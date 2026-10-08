@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { ApiHealthProvider } from "@/components/api-health";
+import { AuthProvider } from "@/components/auth-provider";
 import { AppShell } from "@/components/app-shell";
 import "./globals.css";
 
@@ -17,7 +18,9 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
     <html lang="pt-BR">
       <body>
         <ApiHealthProvider>
-          <AppShell>{children}</AppShell>
+          <AuthProvider>
+            <AppShell>{children}</AppShell>
+          </AuthProvider>
         </ApiHealthProvider>
       </body>
     </html>

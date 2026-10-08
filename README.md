@@ -1,6 +1,22 @@
-# ERP Pirotécnico
+# SisPiro ERP
 
-Monorepositório com a API NestJS em `backend/` e a fundação frontend em `frontend/`.
+Monorepositório da plataforma SisPiro ERP, com API NestJS em `backend/` e
+interface web Next.js em `frontend/`.
+
+## Estado atual e roadmap
+
+A API oferece autenticação e perfis de acesso, estoque/WMS, cadastros
+operacionais e fluxos de compras, vendas, ordens de serviço e financeiro. A
+interface já integra autenticação e estoque: consultas de produtos, lotes,
+paióis, movimentações e resumos disponíveis na API, além dos cadastros e
+operações de estoque suportados.
+
+Clientes, blasters, compras, comercial, operações/OS e financeiro ainda
+precisam de telas conectadas às APIs existentes. Emissão fiscal, Guias de
+Tráfego, integração bancária/conciliação, recuperação de senha e MFA são
+lacunas conhecidas. O documento
+[Status da implementação](./docs/STATUS-IMPLEMENTACAO.md) lista o que foi
+entregue e as próximas etapas por backend e frontend.
 
 ## Frontend
 
@@ -19,6 +35,11 @@ prefixo configurado nele. Os padrões locais são `http://localhost:3000` e
 `/api/v1`, respectivamente. Essas variáveis são públicas e não devem conter
 segredos.
 
+Para visualizar os dados locais do seed, entre com `demo.admin@local.test` e
+com a senha configurada em `DEV_SEED_ADMIN_PASSWORD` no backend. O frontend
+mantém access e refresh tokens em cookies `HttpOnly`; não os persista em
+`localStorage` ou `sessionStorage`.
+
 ## Backend
 
 Requer Node.js 22 ou superior e Docker com Docker Compose.
@@ -36,27 +57,6 @@ npm run start:dev
 A documentação OpenAPI é servida em `http://localhost:3000/api/v1/docs`.
 Consulte também [a documentação do backend](./backend/README.md) para requisitos,
 comandos e configuração de persistência.
-
-## Estado da integração
-
-O backend já expõe APIs de negócio para estoque/WMS, clientes, blasters, ordens
-de serviço, compras/fornecedores, tabelas de preço, orçamentos comerciais,
-vendas/PDV, devoluções e contas a pagar/receber, além de autenticação JWT e
-perfis de acesso por módulo. Orçamentos comerciais reservam estoque por sete
-dias e podem ser convertidos em venda preservando os preços cotados.
-Cada recebimento de compra cria atomicamente uma conta a pagar com valor
-proporcional, fornecedor, vencimento e referência fiscal. Ao concluir uma OS,
-o backend gera uma conta a receber pelo valor contratado, com vencimento
-informado no fechamento. O frontend integra somente os endpoints de liveness e
-readiness. Vendas podem ser quitadas no checkout ou gerar conta a receber a
-prazo, vinculada ao cliente cadastrado; devoluções aplicam crédito ao saldo
-aberto ou geram conta a pagar para reembolso:
-`GET /api/v1/health/live` e
-`GET /api/v1/health/ready` (considerando o prefixo padrão); as telas de negócio
-ainda não consomem as APIs e mostram estados vazios. Permanecem pendentes
-emissão fiscal, Guias de Tráfego, integração bancária e itens de segurança
-adicionais; o [roadmap e as demais lacunas conhecidas](./backend/README.md#lacunas-conhecidas-e-próximos-módulos)
-estão documentados no README do backend.
 
 ## Verificação do frontend
 

@@ -197,21 +197,43 @@ describe('Authentication and users API (e2e)', () => {
   });
 
   it('prevents removing the final active administrator', async () => {
-    const currentAdmin = await supertest(app.getHttpServer())
-      .get('/api/v1/auth/me')
-      .set('Authorization', `Bearer ${adminToken}`)
-      .expect(200);
+    const otherAdminIds = (
+      await prisma.user.findMany({
+        where: {
+          email: { not: 'e2e-admin@local.test' },
+          active: true,
+          roles: { has: 'ADMIN' },
+        },
+        select: { id: true },
+      })
+    ).map((user) => user.id);
+    await prisma.user.updateMany({
+      where: { id: { in: otherAdminIds } },
+      data: { active: false },
+    });
 
-    await supertest(app.getHttpServer())
-      .patch(`/api/v1/users/${currentAdmin.body.id}`)
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({ active: false })
-      .expect(409);
-    await supertest(app.getHttpServer())
-      .patch(`/api/v1/users/${currentAdmin.body.id}`)
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({ roles: ['FINANCEIRO'] })
-      .expect(409);
+    try {
+      const currentAdmin = await supertest(app.getHttpServer())
+        .get('/api/v1/auth/me')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      await supertest(app.getHttpServer())
+        .patch(`/api/v1/users/${currentAdmin.body.id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ active: false })
+        .expect(409);
+      await supertest(app.getHttpServer())
+        .patch(`/api/v1/users/${currentAdmin.body.id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ roles: ['FINANCEIRO'] })
+        .expect(409);
+    } finally {
+      await prisma.user.updateMany({
+        where: { id: { in: otherAdminIds } },
+        data: { active: true },
+      });
+    }
   });
 
   async function createUser(role: string) {

@@ -12,6 +12,7 @@ import {
   ServiceOrderStatus,
   StockMovementType,
 } from '@prisma/client';
+import { createAuditLog } from '../../common/audit-log.js';
 import { rethrowKnownPrismaError } from '../../common/prisma-errors.js';
 import { PrismaService } from '../../database/prisma.service.js';
 import {
@@ -171,7 +172,7 @@ export class CommercialService {
         },
         include: { items: { include: { product: true } } },
       });
-      await tx.auditLog.create({
+      await createAuditLog(tx, {
         data: {
           action: 'pricing-promotion.created',
           aggregateType: 'ProductPromotion',
@@ -224,7 +225,7 @@ export class CommercialService {
         data: { active: dto.active },
         include: { items: { include: { product: true } } },
       });
-      await tx.auditLog.create({
+      await createAuditLog(tx, {
         data: {
           action: 'pricing-promotion.updated',
           aggregateType: 'ProductPromotion',
@@ -277,7 +278,7 @@ export class CommercialService {
           },
           include: { items: { include: { product: true } } },
         });
-        await tx.auditLog.create({
+        await createAuditLog(tx, {
           data: {
             action: 'pricing-list.created',
             aggregateType: 'PriceList',
@@ -798,7 +799,7 @@ export class CommercialService {
             items: { include: { product: true, productLot: true } },
           },
         });
-        await tx.auditLog.create({
+        await createAuditLog(tx, {
           data: {
             action: 'sales-quote.created',
             aggregateType: 'SalesQuote',
@@ -850,7 +851,7 @@ export class CommercialService {
           items: { include: { product: true, productLot: true } },
         },
       });
-      await tx.auditLog.create({
+      await createAuditLog(tx, {
         data: {
           action: 'sales-quote.cancelled',
           aggregateType: 'SalesQuote',
@@ -907,7 +908,7 @@ export class CommercialService {
             convertedAt,
           },
         });
-        await tx.auditLog.create({
+        await createAuditLog(tx, {
           data: {
             action: 'sales-quote.converted',
             aggregateType: 'SalesQuote',
@@ -1129,7 +1130,7 @@ export class CommercialService {
           where: { id: receivable.id },
           data: { creditedAmount: nextCredited, status: nextStatus },
         });
-        await tx.auditLog.create({
+        await createAuditLog(tx, {
           data: {
             action: 'finance.receivable.credit-applied',
             aggregateType: 'FinancialEntry',
@@ -1168,7 +1169,7 @@ export class CommercialService {
             reference: `DEVOLUCAO-${saleReturn.code}`,
           },
         });
-        await tx.auditLog.create({
+        await createAuditLog(tx, {
           data: {
             action: 'finance.refund-entry.created',
             aggregateType: 'FinancialEntry',
@@ -1202,7 +1203,7 @@ export class CommercialService {
           where: { id: lot.id },
           data: { quantity: nextQuantity },
         });
-        await tx.auditLog.create({
+        await createAuditLog(tx, {
           data: {
             action: 'inventory.movement.entrada',
             aggregateType: 'ProductLot',
@@ -1217,7 +1218,7 @@ export class CommercialService {
         });
       }
 
-      await tx.auditLog.create({
+      await createAuditLog(tx, {
         data: {
           action: 'sale.returned',
           aggregateType: 'Sale',
@@ -1433,7 +1434,7 @@ export class CommercialService {
         reference: `VENDA-${sale.code}`,
       },
     });
-    await tx.auditLog.create({
+    await createAuditLog(tx, {
       data: {
         action: 'finance.entry.created',
         aggregateType: 'FinancialEntry',
@@ -1459,7 +1460,7 @@ export class CommercialService {
           reference: `VENDA-${sale.code}`,
         },
       });
-      await tx.auditLog.create({
+      await createAuditLog(tx, {
         data: {
           action: 'finance.payment.registered',
           aggregateType: 'FinancialEntry',
@@ -1493,7 +1494,7 @@ export class CommercialService {
         where: { id: lot.id },
         data: { quantity: nextQuantity },
       });
-      await tx.auditLog.create({
+      await createAuditLog(tx, {
         data: {
           action: 'inventory.movement.saida',
           aggregateType: 'ProductLot',
@@ -1507,7 +1508,7 @@ export class CommercialService {
         },
       });
     }
-    await tx.auditLog.create({
+    await createAuditLog(tx, {
       data: {
         action: 'sale.completed',
         aggregateType: 'Sale',

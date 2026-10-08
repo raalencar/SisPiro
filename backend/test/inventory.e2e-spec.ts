@@ -98,6 +98,18 @@ describe('Inventory API (e2e)', () => {
     const productId = productResponse.body.id as string;
     productIds.push(productId);
 
+    const admin = await prisma.user.findUniqueOrThrow({
+      where: { email: 'e2e-admin@local.test' },
+      select: { id: true },
+    });
+    const productAudit = await prisma.auditLog.findFirstOrThrow({
+      where: {
+        action: 'inventory.product.created',
+        aggregateId: productId,
+      },
+    });
+    expect(productAudit.actorId).toBe(admin.id);
+
     const createMagazine = async (name: string, capacity: number) => {
       const response = await request(app.getHttpServer())
         .post('/api/v1/inventory/magazines')

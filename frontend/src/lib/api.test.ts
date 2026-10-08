@@ -1,10 +1,20 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ApiError, getApiEndpoint, getLiveness, getReadiness } from "./api";
+import {
+  ApiError,
+  clearSessionFreshness,
+  getApiEndpoint,
+  getLiveness,
+  getReadiness,
+  inventoryApi,
+  markSessionFresh,
+  requestJson,
+} from "./api";
 
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
+  clearSessionFreshness();
 });
 
 describe("API client", () => {
@@ -68,6 +78,110 @@ describe("API client", () => {
       name: "ApiError",
       kind: "network",
     });
+  });
+
+  it("uses the same-origin business API and sends JSON for inventory operations", async () => {
+    markSessionFresh();
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ id: "product-id" }), { status: 201 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await inventoryApi.createProduct({
+      sku: "SKU-1",
+      name: "Produto teste",
+      type: "MERCADORIA",
+      isPce: false,
+      unit: "UN",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/inventory/products",
+      expect.objectContaining({
+        method: "POST",
+        credentials: "same-origin",
+        headers: expect.objectContaining({
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        }),
+      }),
+    );
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body as string)).toEqual({
+      sku: "SKU-1",
+      name: "Produto teste",
+      type: "MERCADORIA",
+      isPce: false,
+      unit: "UN",
+    });
+  });
+
+  it("validates the session before starting inventory requests", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ id: "user-id", name: "User", email: "user@example.test", roles: ["ADMIN"] }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ data: [], meta: { page: 1, limit: 100, total: 0, totalPages: 0 } }), {
+          status: 200,
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await inventoryApi.getProducts();
+
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      "/api/auth/session",
+      "/api/inventory/products?page=1&limit=100",
+    ]);
+  });
+
+  it("renews an expired session once and retries the inventory request", async () => {
+    markSessionFresh();
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ message: "expired" }), { status: 401 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ id: "user-id", name: "User", email: "user@example.test", roles: ["ADMIN"] }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ data: [], meta: { page: 1, limit: 100, total: 0, totalPages: 0 } }), {
+          status: 200,
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await inventoryApi.getProducts();
+
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      "/api/inventory/products?page=1&limit=100",
+      "/api/auth/session",
+      "/api/inventory/products?page=1&limit=100",
+    ]);
+  });
+
+  it("surfaces validation messages returned by the business API", async () => {
+    markSessionFresh();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ message: ["Quantidade inválida.", "Lote vencido."] }), {
+          status: 400,
+        }),
+      ),
+    );
+
+    await expect(requestJson("/api/inventory/movements", { method: "POST" }))
+      .rejects.toMatchObject({
+        name: "ApiError",
+        kind: "http",
+        status: 400,
+        message: "Quantidade inválida. Lote vencido.",
+      } satisfies Partial<ApiError>);
   });
 
   it("aborts requests that exceed the timeout", async () => {

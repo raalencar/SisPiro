@@ -6,6 +6,8 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import type { ReactNode } from "react";
 import { ApiHealthIndicator } from "@/components/api-health";
 import { Icon } from "@/components/icon";
+import { LoginPanel } from "@/components/login-panel";
+import { useAuth } from "@/components/auth-provider";
 import { modules } from "@/lib/modules";
 
 const groupOrder = ["Governança", "Cadastros", "Operações", "Gestão", "Sistema"];
@@ -83,6 +85,7 @@ function Breadcrumbs() {
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const auth = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const menuTrigger = useRef<HTMLButtonElement>(null);
   const mobileNavigation = useRef<HTMLElement>(null);
@@ -191,16 +194,58 @@ export function AppShell({ children }: { children: ReactNode }) {
             <ApiHealthIndicator />
           </div>
         </header>
-        <div className="auth-notice" role="note">
-          <Icon name="warning" size={16} />
-          <span>
-            Autenticação ainda não integrada. Este frontend não restringe o acesso a dados.
-          </span>
+        <div className="auth-notice" role="status">
+          {auth.status === "authenticated" && auth.user ? (
+            <>
+              <Icon name="shield" size={16} />
+              <span>Sessão ativa: {auth.user.name} ({auth.user.email})</span>
+              {auth.error && <span className="auth-notice__error">{auth.error}</span>}
+              <button
+                className="button button--quiet"
+                type="button"
+                onClick={() => void auth.logout().catch(() => undefined)}
+              >
+                Sair
+              </button>
+            </>
+          ) : (
+            <>
+              <Icon name="warning" size={16} />
+              <span>
+                {auth.status === "anonymous"
+                  ? "Entre com uma conta autorizada para acessar os módulos."
+                  : auth.status === "error"
+                    ? auth.error
+                    : "Verificando sua sessão..."}
+              </span>
+            </>
+          )}
         </div>
-        <main className="page-content mx-auto w-full">{children}</main>
+        <main className="page-content mx-auto w-full">
+          {auth.status === "checking" && (
+            <section className="panel session-state" role="status">
+              Verificando sessão...
+            </section>
+          )}
+          {auth.status === "error" && (
+            <section className="panel session-state" role="alert">
+              <h1>Não foi possível verificar sua sessão</h1>
+              <p>{auth.error}</p>
+              <button
+                className="button button--primary"
+                type="button"
+                onClick={() => void auth.refreshSession()}
+              >
+                Tentar novamente
+              </button>
+            </section>
+          )}
+          {auth.status === "anonymous" && <LoginPanel />}
+          {auth.status === "authenticated" && children}
+        </main>
         <footer className="page-footer">
           <span>Pirotécnico ERP</span>
-          <span>Fundação de interface · integração de negócio pendente</span>
+          <span>Operações autorizadas pela API do ERP</span>
         </footer>
       </div>
     </div>

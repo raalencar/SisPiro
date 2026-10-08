@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import Joi from 'joi';
+import { AuditContextInterceptor } from './common/audit-context.interceptor.js';
 import { PrismaModule } from './database/prisma.module.js';
 import { HealthModule } from './health/health.module.js';
 import { QueueModule } from './infrastructure/queue.module.js';
@@ -78,6 +80,12 @@ import { ProcurementModule } from './modules/procurement/procurement.module.js';
     CommercialModule,
     FinanceModule,
     ProcurementModule,
+  ],
+  providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditContextInterceptor,
+    },
   ],
 })
 export class AppModule {}

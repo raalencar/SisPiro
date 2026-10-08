@@ -7,6 +7,16 @@ export function formatDate(value: string | Date): string {
   }).format(value instanceof Date ? value : new Date(value));
 }
 
+export function formatDateOnly(value: string | Date): string {
+  const date = value instanceof Date
+    ? value
+    : new Date(`${value.slice(0, 10)}T12:00:00.000Z`);
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeZone: BRAZIL_TIME_ZONE,
+  }).format(date);
+}
+
 export function formatDateTime(value: string | Date): string {
   return new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",

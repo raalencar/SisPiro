@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma, type Customer } from '@prisma/client';
+import { createAuditLog } from '../../common/audit-log.js';
 import { rethrowKnownPrismaError } from '../../common/prisma-errors.js';
 import { PrismaService } from '../../database/prisma.service.js';
 import {
@@ -238,7 +239,7 @@ export class CustomersService {
     before: Customer | undefined,
     after: Customer,
   ): Promise<void> {
-    await tx.auditLog.create({
+    await createAuditLog(tx, {
       data: {
         action,
         aggregateType: 'Customer',

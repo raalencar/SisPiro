@@ -19,6 +19,7 @@ export type ErpModule = {
   group: string;
   emptyTitle: string;
   emptyDescription: string;
+  statusLabel: string;
 };
 
 export const modules: ErpModule[] = [
@@ -32,6 +33,7 @@ export const modules: ErpModule[] = [
     emptyTitle: "A gestão regulatória ainda não está conectada",
     emptyDescription:
       "O backend ainda não oferece consultas ou operações para CRs, licenças, Guias de Tráfego ou mapas regulatórios. Nenhuma validação regulatória está sendo realizada por esta tela.",
+    statusLabel: "Planejado",
   },
   {
     slug: "inventory",
@@ -42,7 +44,8 @@ export const modules: ErpModule[] = [
     group: "Governança",
     emptyTitle: "A API de estoque está disponível; falta conectar esta tela",
     emptyDescription:
-      "A API já lista paióis, lotes e movimentações e valida capacidade NEQ no recebimento e na transferência. Esta interface ainda não consulta nem altera esses dados.",
+      "A tela já consulta produtos, paióis, lotes e movimentações e envia cadastros e operações à API protegida por autenticação.",
+    statusLabel: "Tela integrada",
   },
   {
     slug: "products",
@@ -53,7 +56,8 @@ export const modules: ErpModule[] = [
     group: "Cadastros",
     emptyTitle: "A API de produtos e lotes está disponível",
     emptyDescription:
-      "O backend já oferece consulta e cadastro de produtos PCE e lotes rastreáveis. Esta tela ainda não está conectada à API e não está lendo dados do banco.",
+      "O catálogo de produtos está integrado à API de estoque, incluindo classificação PCE e massa NEQ.",
+    statusLabel: "Tela integrada",
   },
   {
     slug: "customers",
@@ -64,7 +68,8 @@ export const modules: ErpModule[] = [
     group: "Cadastros",
     emptyTitle: "O cadastro de clientes aguarda integração",
     emptyDescription:
-      "A API já disponibiliza cadastro, consulta e verificação dos dados de CR e classes PCE. Esta interface ainda não está conectada; não envia nem consulta cadastros.",
+      "O backend disponibiliza cadastro e consulta de clientes, mas a interface deste módulo ainda não está conectada.",
+    statusLabel: "API disponível",
   },
   {
     slug: "operations",
@@ -75,7 +80,8 @@ export const modules: ErpModule[] = [
     group: "Operações",
     emptyTitle: "As ordens de serviço ainda não estão disponíveis",
     emptyDescription:
-      "A API ainda não oferece operações para orçamentos, aprovações ou execução de OS. Nenhuma ordem, reserva, separação ou execução pode ser criada por esta interface.",
+      "A API já oferece operações de ordens de serviço. A tela deste módulo ainda não está conectada e não exibe nem altera ordens.",
+    statusLabel: "API disponível",
   },
   {
     slug: "teams",
@@ -86,7 +92,8 @@ export const modules: ErpModule[] = [
     group: "Cadastros",
     emptyTitle: "A gestão de equipes aguarda integração",
     emptyDescription:
-      "A API já disponibiliza cadastro e verificação da validade da habilitação para a data de evento. Esta interface ainda não está conectada; não envia nem consulta cadastros.",
+      "O backend disponibiliza cadastro e consulta de blasters, mas a interface deste módulo ainda não está conectada.",
+    statusLabel: "API disponível",
   },
   {
     slug: "sales",
@@ -97,7 +104,8 @@ export const modules: ErpModule[] = [
     group: "Gestão",
     emptyTitle: "O fluxo comercial ainda não está conectado",
     emptyDescription:
-      "Não há endpoints de propostas ou vendas disponíveis. Esta tela não registra pedidos nem confirma vendas.",
+      "A API já oferece tabelas de preço, orçamentos, vendas e devoluções. A interface ainda não está conectada nem realiza transações comerciais.",
+    statusLabel: "API disponível",
   },
   {
     slug: "billing",
@@ -109,6 +117,7 @@ export const modules: ErpModule[] = [
     emptyTitle: "A integração fiscal ainda não está disponível",
     emptyDescription:
       "O backend não expõe endpoints fiscais. Nenhuma NF-e, NFS-e, MDF-e ou Guia de Tráfego pode ser emitida ou consultada por esta interface.",
+    statusLabel: "Planejado",
   },
   {
     slug: "finance",
@@ -119,7 +128,8 @@ export const modules: ErpModule[] = [
     group: "Gestão",
     emptyTitle: "Os dados financeiros aguardam integração",
     emptyDescription:
-      "Não há endpoints financeiros ou relatórios disponíveis. Saldos, lançamentos, fluxo de caixa e DRE não são apresentados para evitar informações fictícias.",
+      "A API já oferece contas a pagar e receber, pagamentos e relatórios financeiros. A interface ainda não consulta esses dados.",
+    statusLabel: "API disponível",
   },
   {
     slug: "settings",
@@ -130,7 +140,8 @@ export const modules: ErpModule[] = [
     group: "Sistema",
     emptyTitle: "Configurações ainda não implementadas",
     emptyDescription:
-      "Esta área está reservada para configurações futuras. A autenticação e o controle de acesso ainda não estão implementados no backend nem neste frontend.",
+      "A autenticação já está integrada. Preferências da empresa e demais configurações ainda não estão disponíveis nesta interface.",
+    statusLabel: "Em preparação",
   },
 ];
 

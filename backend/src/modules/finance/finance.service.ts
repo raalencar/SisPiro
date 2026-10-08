@@ -10,6 +10,7 @@ import {
   FinancialPaymentMethod,
   Prisma,
 } from '@prisma/client';
+import { createAuditLog } from '../../common/audit-log.js';
 import { PrismaService } from '../../database/prisma.service.js';
 import {
   CashFlowQueryDto,
@@ -176,7 +177,7 @@ export class FinanceService {
           payments: true,
         },
       });
-      await tx.auditLog.create({
+      await createAuditLog(tx, {
         data: {
           action: 'finance.entry.created',
           aggregateType: 'FinancialEntry',
@@ -330,7 +331,7 @@ export class FinanceService {
         where: { id },
         data: { status: nextStatus },
       });
-      await tx.auditLog.create({
+      await createAuditLog(tx, {
         data: {
           action: 'finance.payment.registered',
           aggregateType: 'FinancialEntry',
@@ -453,7 +454,7 @@ export class FinanceService {
           payments: true,
         },
       });
-      await tx.auditLog.create({
+      await createAuditLog(tx, {
         data: {
           action: 'finance.entry.cancelled',
           aggregateType: 'FinancialEntry',

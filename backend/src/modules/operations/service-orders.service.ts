@@ -12,6 +12,7 @@ import {
   ServiceOrderStatus,
   StockMovementType,
 } from '@prisma/client';
+import { createAuditLog } from '../../common/audit-log.js';
 import { PrismaService } from '../../database/prisma.service.js';
 import { CustomersService } from '../commercial/customers.service.js';
 import {
@@ -599,7 +600,7 @@ export class ServiceOrdersService {
           reference: `OS-${order.code}`,
         },
       });
-      await tx.auditLog.create({
+      await createAuditLog(tx, {
         data: {
           action: 'finance.entry.created',
           aggregateType: 'FinancialEntry',
@@ -734,7 +735,7 @@ export class ServiceOrdersService {
     before: Prisma.InputJsonValue | undefined,
     after: Prisma.InputJsonValue,
   ): Promise<void> {
-    await tx.auditLog.create({
+    await createAuditLog(tx, {
       data: {
         action,
         aggregateType: 'ServiceOrder',

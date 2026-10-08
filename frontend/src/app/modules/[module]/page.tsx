@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { InventoryWorkspace } from "@/components/inventory-workspace";
 import { ModuleEmptyState } from "@/components/module-empty-state";
 import { getModule, modules } from "@/lib/modules";
 
@@ -25,6 +26,13 @@ export default async function ModulePage({
   const { module: slug } = await params;
   const currentModule = getModule(slug);
   if (!currentModule) notFound();
+
+  if (slug === "inventory") {
+    return <InventoryWorkspace key={slug} />;
+  }
+  if (slug === "products") {
+    return <InventoryWorkspace key={slug} initialTab="products" />;
+  }
 
   return <ModuleEmptyState module={currentModule} />;
 }

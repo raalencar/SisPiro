@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { Prisma, type Blaster } from '@prisma/client';
 import { isValidCpf } from '../../common/brazilian-tax-id.js';
+import { createAuditLog } from '../../common/audit-log.js';
 import { rethrowKnownPrismaError } from '../../common/prisma-errors.js';
 import { PrismaService } from '../../database/prisma.service.js';
 import {
@@ -190,7 +191,7 @@ export class BlastersService {
     before: Blaster | undefined,
     after: Blaster,
   ): Promise<void> {
-    await tx.auditLog.create({
+    await createAuditLog(tx, {
       data: {
         action,
         aggregateType: 'Blaster',

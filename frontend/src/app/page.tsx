@@ -43,8 +43,8 @@ export default function DashboardPage() {
           <p className="eyebrow eyebrow--light">ERP para operações pirotécnicas</p>
           <h2 id="welcome-title">Clareza para operar.<br />Segurança para evoluir.</h2>
           <p>
-            Os módulos estão organizados para acompanhar a operação ponta a ponta.
-            Recursos de negócio serão habilitados conforme a API estiver disponível.
+            Estoque integrado à API para consultar saldos, rastrear lotes e
+            registrar operações com controle de acesso e auditoria.
           </p>
           <Link className="welcome-link" href="/modules/compliance">
             Explorar módulos <Icon name="arrow" size={17} />
@@ -74,16 +74,16 @@ export default function DashboardPage() {
             </span>
           </div>
           <p className="panel-description">
-            As APIs iniciais de estoque já estão disponíveis, assim como
-            cadastros de clientes e blasters. As telas ainda precisam ser
-            conectadas a esses endpoints; os fluxos de OS e demais módulos
-            seguem em implementação no backend.
+            O módulo de estoque consulta os dados reais do backend e permite
+            cadastros e movimentações rastreáveis. As demais telas serão
+            integradas progressivamente às APIs já disponíveis.
           </p>
           <div className="readiness-list">
             <span><span className="readiness-list__check">✓</span> Navegação modular</span>
             <span><span className="readiness-list__check">✓</span> Cliente HTTP tipado</span>
-            <span><span className="readiness-list__check">✓</span> APIs iniciais de estoque e cadastros</span>
-            <span><span className="readiness-list__pending">○</span> Integração das telas de negócio</span>
+            <span><span className="readiness-list__check">✓</span> Consulta de saldos, lotes e paióis</span>
+            <span><span className="readiness-list__check">✓</span> Cadastro e movimentação com autenticação</span>
+            <span><span className="readiness-list__pending">○</span> Integração das demais áreas</span>
           </div>
         </section>
       </div>
@@ -104,7 +104,7 @@ export default function DashboardPage() {
               <strong>{module.title}</strong>
               <span className="module-card__description">{module.description}</span>
               <span className="module-card__footer">
-                <span>Aguardando integração</span>
+                <span>{module.statusLabel}</span>
                 <Icon name="arrow" size={16} />
               </span>
             </Link>

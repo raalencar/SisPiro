@@ -14,6 +14,7 @@ import {
   randomUUID,
   timingSafeEqual,
 } from 'node:crypto';
+import { createAuditLog } from '../../common/audit-log.js';
 import { rethrowKnownPrismaError } from '../../common/prisma-errors.js';
 import { PrismaService } from '../../database/prisma.service.js';
 import {
@@ -67,7 +68,7 @@ export class AuthService {
         select: { id: true, name: true, email: true, roles: true },
       });
       const tokens = await this.createSession(tx, user);
-      await tx.auditLog.create({
+      await createAuditLog(tx, {
         data: {
           actorId: user.id,
           action: 'auth.bootstrap.completed',
@@ -107,7 +108,7 @@ export class AuthService {
     const summary = this.userSummary(user);
     return this.prisma.$transaction(async (tx) => {
       const tokens = await this.createSession(tx, summary);
-      await tx.auditLog.create({
+      await createAuditLog(tx, {
         data: {
           actorId: user.id,
           action: 'auth.session.created',
@@ -167,7 +168,7 @@ export class AuthService {
             where: { id: session.id },
             data: { revokedAt: new Date() },
           });
-          await tx.auditLog.create({
+          await createAuditLog(tx, {
             data: {
               actorId: session.userId,
               action: 'auth.refresh.reuse_detected',
@@ -205,7 +206,7 @@ export class AuthService {
         session.user.id,
         session.id,
       );
-      await tx.auditLog.create({
+      await createAuditLog(tx, {
         data: {
           actorId: session.userId,
           action: 'auth.session.refreshed',
@@ -259,7 +260,7 @@ export class AuthService {
         where: { id: session.id },
         data: { revokedAt: new Date() },
       });
-      await tx.auditLog.create({
+      await createAuditLog(tx, {
         data: {
           actorId: session.userId,
           action: 'auth.session.revoked',
@@ -305,7 +306,7 @@ export class AuthService {
         where: { userId: current.id, revokedAt: null },
         data: { revokedAt: new Date() },
       });
-      await tx.auditLog.create({
+      await createAuditLog(tx, {
         data: {
           actorId: current.id,
           action: 'auth.password.changed',
@@ -396,7 +397,7 @@ export class AuthService {
             createdAt: true,
           },
         });
-        await tx.auditLog.create({
+        await createAuditLog(tx, {
           data: {
             actorId: actor.id,
             action: 'auth.user.created',
@@ -468,7 +469,7 @@ export class AuthService {
           data: { revokedAt: new Date() },
         });
       }
-      await tx.auditLog.create({
+      await createAuditLog(tx, {
         data: {
           actorId: actor.id,
           action: 'auth.user.updated',

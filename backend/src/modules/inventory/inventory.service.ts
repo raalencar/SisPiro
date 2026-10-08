@@ -11,6 +11,7 @@ import {
   ServiceOrderStatus,
   StockMovementType,
 } from '@prisma/client';
+import { createAuditLog } from '../../common/audit-log.js';
 import { PrismaService } from '../../database/prisma.service.js';
 import {
   CreateLotDto,
@@ -96,7 +97,7 @@ export class InventoryService {
             unit: dto.unit.trim(),
           },
         });
-        await tx.auditLog.create({
+        await createAuditLog(tx, {
           data: {
             action: 'inventory.product.created',
             aggregateType: 'Product',
@@ -178,7 +179,7 @@ export class InventoryService {
             fireLicenseExpiresAt: this.dateOnly(dto.fireLicenseExpiresAt),
           },
         });
-        await tx.auditLog.create({
+        await createAuditLog(tx, {
           data: {
             action: 'inventory.magazine.created',
             aggregateType: 'Magazine',
@@ -512,7 +513,7 @@ export class InventoryService {
             reference: 'RECEBIMENTO_INICIAL',
           },
         });
-        await tx.auditLog.create({
+        await createAuditLog(tx, {
           data: {
             action: 'inventory.lot.received',
             aggregateType: 'ProductLot',
@@ -732,7 +733,7 @@ export class InventoryService {
             },
           }),
         ]);
-        await tx.auditLog.create({
+        await createAuditLog(tx, {
           data: {
             action: `inventory.movement.${dto.type.toLowerCase()}`,
             aggregateType: 'ProductLot',

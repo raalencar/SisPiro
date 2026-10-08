@@ -33,7 +33,8 @@ alternativas também estiverem ocupadas, altere `POSTGRES_HOST_PORT` e
 Configure `AUTH_JWT_SECRET` com uma chave aleatória de pelo menos 32 caracteres
 (`openssl rand -base64 48` é uma opção). O valor no `.env.example` é apenas um
 placeholder e não deve ser usado fora do desenvolvimento local. Mantenha a API
-restrita à rede confiável até concluir o bootstrap do primeiro administrador.
+restrita à rede confiável até concluir o bootstrap do primeiro administrador ou
+executar o seed local de demonstração.
 
 ## Comandos úteis
 
@@ -49,6 +50,24 @@ Use `npm run db:migrate -- --name nome_da_migracao` para criar uma migração de
 desenvolvimento e `npm run db:deploy` para aplicar migrações já versionadas em
 ambientes de implantação a partir de um runner com as dependências do projeto
 instaladas.
+
+### Dados locais de demonstração
+
+Depois de aplicar as migrações, o seed pode preencher as telas com dados
+fictícios de estoque, clientes, fornecedores, compras, preços, vendas,
+devoluções, ordens de serviço e financeiro:
+
+```bash
+npm run db:seed
+```
+
+Antes, mantenha `NODE_ENV=development`, altere `DEV_SEED_ENABLED=true` e
+configure `DEV_SEED_ADMIN_PASSWORD` em `.env` com uma senha local de pelo menos
+12 caracteres. O login criado é `demo.admin@local.test`; use a senha definida
+nessa variável. O comando também exige que `DATABASE_URL` aponte para
+`localhost`/loopback; falha fora de desenvolvimento ou sem a habilitação
+explícita. Os registros são identificados como DEMO e não representam dados ou
+documentos regulatórios reais. A execução é idempotente e pode ser repetida.
 
 ## Persistência e regras de domínio
 
@@ -93,9 +112,15 @@ ser o último administrador ativo removido ou rebaixado.
 
 Usuários podem receber mais de um perfil. Desativar usuário, alterar sua senha,
 encerrar sessão ou detectar reutilização de refresh invalida imediatamente seus
-access tokens. Os registros de auditoria das operações de autenticação e gestão
-de usuários identificam o ator; os registros históricos e os fluxos de negócio
-existentes ainda precisam propagar essa identidade.
+access tokens. Os registros de auditoria de autenticação, gestão de usuários e
+operações de negócio identificam o usuário autenticado. Registros históricos
+anteriores à propagação permanecem com o ator nulo.
+
+O backend emite tokens JSON e não define cookies. O frontend web usa o BFF do
+Next.js para armazenar access e refresh tokens em cookies `HttpOnly`; clientes
+alternativos devem manter os tokens fora de armazenamento acessível a
+JavaScript. A autorização de todas as rotas de negócio continua sendo aplicada
+pela API, independentemente dos controles de apresentação no frontend.
 
 ### Endpoints de estoque/WMS disponíveis
 
@@ -123,8 +148,8 @@ um único paiol, precisam mover o saldo integral do lote. Para dividir estoque,
 cadastre lotes separados com rastreabilidade própria. Saídas impedem saldo
 negativo; saídas e transferências bloqueiam lotes vencidos. Paiol inativo ou com
 licença dos Bombeiros vencida não recebe estoque. Cada gravação cria um registro
-de auditoria na mesma transação; a identificação do ator ficará nula até existir
-autenticação.
+de auditoria na mesma transação, identificando o usuário autenticado. Registros
+históricos permanecem com o ator nulo.
 O resumo de estoque considera reservas ativas de OS e orçamentos comerciais.
 Exibe o saldo físico, reservado e disponível por produto e por lote; lotes
 vencidos ficam separados e têm disponibilidade vendável zero. Lotes que vencem
@@ -319,27 +344,26 @@ uma OS gera uma conta a receber com o valor contratado e as vendas geram
 recebimentos ou contas a receber de acordo com a condição informada. Não há integração bancária,
 conciliação, parcelamento ou estorno de pagamentos. Emissão fiscal, Guias de
 Tráfego, mapas regulatórios e relatórios gerenciais adicionais ainda não estão
-expostos pela API. As telas do frontend também ainda não consomem estes
-endpoints.
+expostos pela API. O frontend já consome a autenticação e os endpoints de
+estoque; as demais áreas de negócio ainda precisam ser integradas às telas.
 
 Todas as rotas de negócio exigem access token e perfil compatível; liveness,
 readiness e os endpoints de bootstrap/login/refresh/logout são públicos. A API
 ainda não possui limitação de tentativas de login, recuperação de senha,
-autenticação multifator ou transporte de refresh token por cookie HttpOnly. O
-cliente não deve persistir tokens em armazenamento acessível a JavaScript; para
-uso web em produção, implemente uma camada BFF/cookie seguro ou estratégia
-equivalente. Antes da produção, propague a identidade do operador para toda a
-auditoria de negócio, restrinja permissões de banco, revise os fluxos
+autenticação multifator ou emissão de cookies HttpOnly. O BFF do frontend
+implementa o transporte web por cookie. Antes da produção, valide a cobertura e
+retenção da auditoria, restrinja permissões de banco, revise os fluxos
 regulatórios e faça revisão de segurança e testes de concorrência.
 
 ### Lacunas conhecidas e próximos módulos
 
-Os itens abaixo **não estão implementados**. São próximos escopos candidatos;
-as rotas e regras detalhadas devem ser definidas antes de iniciar cada módulo.
+Os itens da coluna de trabalho pendente permanecem em aberto ou são evoluções
+futuras candidatas; rotas e regras detalhadas devem ser definidas antes de
+iniciar cada novo escopo.
 
 | Área | Situação atual | Trabalho pendente |
 | --- | --- | --- |
-| Acesso e operadores | Login JWT, refresh rotativo, usuários e perfis por módulo implementados; auditoria de autenticação identifica ator | Recuperação de senha, MFA, limitação de tentativas, transporte seguro de refresh no cliente e propagação de ator nos demais logs de negócio |
+| Acesso e operadores | Login JWT, refresh rotativo, usuários e perfis por módulo implementados; auditoria identifica o ator; BFF web usa cookies HttpOnly | Recuperação de senha, MFA, limitação de tentativas e validação de segurança do transporte web |
 | Financeiro de vendas | Checkout, conversão de orçamento, execução de OS e recebimentos de compras geram lançamentos vinculados | Integrar estornos fiscais e revisar devoluções de vendas legadas sem vínculo financeiro |
 | Devolução e financeiro | Devolução aplica crédito ao saldo em aberto e cria conta a pagar para eventual reembolso | Nenhuma regra financeira pendente para novas vendas |
 | Orçamentos comerciais | Emissão, consulta, cancelamento e conversão em venda implementados; reserva de lote por sete dias integrada a vendas, OS e movimentações | Revisar regras comerciais e evoluir conforme necessidade (por exemplo, edição e envio do orçamento) |
@@ -347,12 +371,14 @@ as rotas e regras detalhadas devem ser definidas antes de iniciar cada módulo.
 | Fiscal e regulatório | Sem emissão fiscal ou integração oficial | Integrações e fluxos de NF-e, NFS-e, MDF-e e Guias de Tráfego, sujeitos à validação regulatória |
 | Bancos | Sem integração bancária ou conciliação | Importação/integração de extratos, conciliação e tratamento de divergências |
 | Relatórios | Resumos de vendas por produto/cliente, OS por status, painéis financeiros por vencimento/categoria/método e posição de estoque com alertas de validade disponíveis | Outros relatórios operacionais, regulatórios e projeções financeiras |
-| Frontend de negócio | Telas de negócio ainda não consomem as APIs | Integrar os módulos existentes à interface |
+| Frontend de negócio | Login/BFF e módulo de estoque integrados à API | Integrar clientes, blasters, compras, comercial, operações/OS e financeiro; aplicar controles de apresentação por perfil |
 
 Esta lista registra lacunas conhecidas, não constitui contrato final de API nem
-garante que todos os itens pertençam ao escopo aprovado do produto. A API não
-deve ser exposta em produção antes da implementação e validação de autenticação,
-autorização e demais controles de segurança.
+garante que todos os itens pertençam ao escopo aprovado do produto. Antes de
+expor a API em produção, valide autenticação, autorização, controles de
+segurança, observabilidade, retenção de auditoria, backups e configuração do
+ambiente final. Consulte também o
+[status consolidado do backend e frontend](../docs/STATUS-IMPLEMENTACAO.md).
 
 ## Container de produção
 

@@ -15,6 +15,7 @@ import {
   isValidCpf,
 } from '../../common/brazilian-tax-id.js';
 import { normalizeBrazilianTaxId } from '../../common/brazilian-tax-id.js';
+import { createAuditLog } from '../../common/audit-log.js';
 import { rethrowKnownPrismaError } from '../../common/prisma-errors.js';
 import { PrismaService } from '../../database/prisma.service.js';
 import {
@@ -109,7 +110,7 @@ export class ProcurementService {
             ...next,
           },
         });
-        await tx.auditLog.create({
+        await createAuditLog(tx, {
           data: {
             action: 'supplier.updated',
             aggregateType: 'Supplier',
@@ -165,7 +166,7 @@ export class ProcurementService {
               : [],
           },
         });
-        await tx.auditLog.create({
+        await createAuditLog(tx, {
           data: {
             action: 'supplier.created',
             aggregateType: 'Supplier',
@@ -279,7 +280,7 @@ export class ProcurementService {
             items: { include: { product: true } },
           },
         });
-        await tx.auditLog.create({
+        await createAuditLog(tx, {
           data: {
             action: 'procurement.purchase.created',
             aggregateType: 'Purchase',
@@ -431,7 +432,7 @@ export class ProcurementService {
           reference: dto.invoiceReference,
         },
       });
-      await tx.auditLog.create({
+      await createAuditLog(tx, {
         data: {
           action: 'finance.entry.created',
           aggregateType: 'FinancialEntry',
@@ -489,7 +490,7 @@ export class ProcurementService {
             quantity,
           },
         });
-        await tx.auditLog.create({
+        await createAuditLog(tx, {
           data: {
             action: 'inventory.lot.received',
             aggregateType: 'ProductLot',
@@ -527,7 +528,7 @@ export class ProcurementService {
           items: { include: { product: true, receipts: true } },
         },
       });
-      await tx.auditLog.create({
+      await createAuditLog(tx, {
         data: {
           action: 'procurement.purchase.received',
           aggregateType: 'Purchase',
@@ -570,7 +571,7 @@ export class ProcurementService {
         where: { id },
         data: { status: PurchaseStatus.CANCELADO },
       });
-      await tx.auditLog.create({
+      await createAuditLog(tx, {
         data: {
           action: 'procurement.purchase.cancelled',
           aggregateType: 'Purchase',
