@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  Patch,
   ParseUUIDPipe,
   Post,
   Query,
@@ -18,6 +19,9 @@ import { UserRole } from '@prisma/client';
 import { Roles } from '../auth/auth.decorators.js';
 import {
   CreatePriceListDto,
+  CreateProductPromotionDto,
+  ProductPromotionsQueryDto,
+  UpdateProductPromotionDto,
   CreateSaleDto,
   CreateSaleReturnDto,
   ConvertSalesQuoteDto,
@@ -55,6 +59,41 @@ export class CommercialController {
   @ApiParam({ name: 'id', format: 'uuid' })
   getPriceList(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.commercial.getPriceList(id);
+  }
+
+  @Get('pricing/promotions')
+  @ApiOperation({ summary: 'Lista promoções de preço por período e produto.' })
+  listProductPromotions(@Query() query: ProductPromotionsQueryDto) {
+    return this.commercial.listProductPromotions(query);
+  }
+
+  @Post('pricing/promotions')
+  @ApiOperation({
+    summary:
+      'Cria promoção de preço fixo por produto, bloqueando vigências sobrepostas.',
+  })
+  @ApiCreatedResponse({ description: 'Promoção cadastrada.' })
+  createProductPromotion(@Body() dto: CreateProductPromotionDto) {
+    return this.commercial.createProductPromotion(dto);
+  }
+
+  @Get('pricing/promotions/:id')
+  @ApiOperation({ summary: 'Consulta promoção e preços dos produtos.' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  getProductPromotion(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.commercial.getProductPromotion(id);
+  }
+
+  @Patch('pricing/promotions/:id')
+  @ApiOperation({
+    summary: 'Ativa ou desativa promoção sem alterar seu período ou preços.',
+  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  updateProductPromotion(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: UpdateProductPromotionDto,
+  ) {
+    return this.commercial.updateProductPromotion(id, dto);
   }
 
   @Get('sales/quotes')

@@ -1,6 +1,7 @@
 import { Transform, Type } from 'class-transformer';
 import {
   ArrayMinSize,
+  ArrayMaxSize,
   ArrayUnique,
   IsArray,
   IsBoolean,
@@ -39,6 +40,19 @@ export class PriceListsQueryDto extends PaginationQueryDto {
   active?: boolean;
 }
 
+export class ProductPromotionsQueryDto extends PaginationQueryDto {
+  @ApiPropertyOptional({ type: Boolean })
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
+  active?: boolean;
+
+  @ApiPropertyOptional({ format: 'uuid' })
+  @IsOptional()
+  @IsUUID()
+  productId?: string;
+}
+
 export class CreatePriceListItemDto {
   @ApiProperty({ format: 'uuid' })
   @IsUUID()
@@ -50,6 +64,62 @@ export class CreatePriceListItemDto {
   @Min(0.01)
   @Max(9999999999.99)
   unitPrice!: number;
+}
+
+export class CreateProductPromotionItemDto {
+  @ApiProperty({ format: 'uuid' })
+  @IsUUID()
+  productId!: string;
+
+  @ApiProperty({ minimum: 0.01, maximum: 9999999999.99 })
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.01)
+  @Max(9999999999.99)
+  promotionalPrice!: number;
+}
+
+export class CreateProductPromotionDto {
+  @ApiProperty({ maxLength: 100 })
+  @IsString()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @MinLength(1)
+  @MaxLength(100)
+  name!: string;
+
+  @ApiPropertyOptional({ default: true })
+  @IsOptional()
+  @IsBoolean()
+  active = true;
+
+  @ApiProperty({ format: 'date', example: '2026-11-01' })
+  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  effectiveFrom!: string;
+
+  @ApiProperty({ format: 'date', example: '2026-11-30' })
+  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  effectiveUntil!: string;
+
+  @ApiProperty({
+    type: [CreateProductPromotionItemDto],
+    minItems: 1,
+    maxItems: 500,
+  })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(500)
+  @ArrayUnique((item: CreateProductPromotionItemDto) => item.productId)
+  @ValidateNested({ each: true })
+  @Type(() => CreateProductPromotionItemDto)
+  items!: CreateProductPromotionItemDto[];
+}
+
+export class UpdateProductPromotionDto {
+  @ApiProperty({ type: Boolean })
+  @IsBoolean()
+  active!: boolean;
 }
 
 export class CreatePriceListDto {

@@ -20,6 +20,9 @@ import {
   CreateSaleDto,
   CreateSaleReturnDto,
   ConvertSalesQuoteDto,
+  CreateProductPromotionDto,
+  ProductPromotionsQueryDto,
+  UpdateProductPromotionDto,
   PriceListsQueryDto,
   SaleSettlementCondition,
   SalesQuotesQueryDto,
@@ -66,6 +69,171 @@ export class CommercialService {
       throw new NotFoundException('Tabela de preço não encontrada.');
     }
     return list;
+  }
+
+  async listProductPromotions(query: ProductPromotionsQueryDto) {
+    const where: Prisma.ProductPromotionWhereInput = {
+      ...(query.active !== undefined ? { active: query.active } : {}),
+      ...(query.productId
+        ? { items: { some: { productId: query.productId } } }
+        : {}),
+      ...(query.search
+        ? {
+            OR: [
+              { name: { contains: query.search, mode: 'insensitive' } },
+              {
+                items: {
+                  some: {
+                    product: {
+                      name: { contains: query.search, mode: 'insensitive' },
+                    },
+                  },
+                },
+              },
+            ],
+          }
+        : {}),
+    };
+    const [data, total] = await Promise.all([
+      this.prisma.productPromotion.findMany({
+        where,
+        include: {
+          items: {
+            include: { product: true },
+            orderBy: { product: { name: 'asc' } },
+          },
+        },
+        orderBy: [{ effectiveFrom: 'desc' }, { name: 'asc' }],
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+      }),
+      this.prisma.productPromotion.count({ where }),
+    ]);
+    return this.paginated(data, total, query);
+  }
+
+  async getProductPromotion(id: string) {
+    const promotion = await this.prisma.productPromotion.findUnique({
+      where: { id },
+      include: {
+        items: {
+          include: { product: true },
+          orderBy: { product: { name: 'asc' } },
+        },
+      },
+    });
+    if (!promotion) {
+      throw new NotFoundException('Promoção não encontrada.');
+    }
+    return promotion;
+  }
+
+  async createProductPromotion(dto: CreateProductPromotionDto) {
+    if (dto.effectiveFrom > dto.effectiveUntil) {
+      throw new BadRequestException(
+        'O início da vigência não pode ser posterior ao término.',
+      );
+    }
+    const productIds = dto.items.map((item) => item.productId).sort();
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockProducts(tx, productIds);
+      const products = await tx.product.count({
+        where: { id: { in: productIds } },
+      });
+      if (products !== productIds.length) {
+        throw new NotFoundException(
+          'Um ou mais produtos não foram encontrados.',
+        );
+      }
+      const effectiveFrom = this.dateOnly(dto.effectiveFrom);
+      const effectiveUntil = this.dateOnly(dto.effectiveUntil);
+      if (dto.active) {
+        await this.assertNoOverlappingProductPromotions(
+          tx,
+          productIds,
+          effectiveFrom,
+          effectiveUntil,
+        );
+      }
+      const promotion = await tx.productPromotion.create({
+        data: {
+          name: dto.name.trim(),
+          active: dto.active,
+          effectiveFrom,
+          effectiveUntil,
+          items: {
+            create: dto.items.map((item) => ({
+              productId: item.productId,
+              promotionalPrice: new Prisma.Decimal(item.promotionalPrice),
+            })),
+          },
+        },
+        include: { items: { include: { product: true } } },
+      });
+      await tx.auditLog.create({
+        data: {
+          action: 'pricing-promotion.created',
+          aggregateType: 'ProductPromotion',
+          aggregateId: promotion.id,
+          after: {
+            name: promotion.name,
+            active: promotion.active,
+            effectiveFrom: dto.effectiveFrom,
+            effectiveUntil: dto.effectiveUntil,
+            products: promotion.items.map((item) => ({
+              productId: item.productId,
+              promotionalPrice: item.promotionalPrice.toString(),
+            })),
+          },
+        },
+      });
+      return promotion;
+    });
+  }
+
+  async updateProductPromotion(id: string, dto: UpdateProductPromotionDto) {
+    return this.prisma.$transaction(async (tx) => {
+      const rows = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT "id" FROM "promocoes_produto"
+        WHERE "id" = ${id}::uuid FOR UPDATE
+      `;
+      if (!rows.length) {
+        throw new NotFoundException('Promoção não encontrada.');
+      }
+      const promotion = await tx.productPromotion.findUnique({
+        where: { id },
+        include: { items: true },
+      });
+      if (!promotion) {
+        throw new NotFoundException('Promoção não encontrada.');
+      }
+      const productIds = promotion.items.map((item) => item.productId).sort();
+      await this.lockProducts(tx, productIds);
+      if (dto.active && !promotion.active) {
+        await this.assertNoOverlappingProductPromotions(
+          tx,
+          productIds,
+          promotion.effectiveFrom,
+          promotion.effectiveUntil,
+          promotion.id,
+        );
+      }
+      const updated = await tx.productPromotion.update({
+        where: { id },
+        data: { active: dto.active },
+        include: { items: { include: { product: true } } },
+      });
+      await tx.auditLog.create({
+        data: {
+          action: 'pricing-promotion.updated',
+          aggregateType: 'ProductPromotion',
+          aggregateId: id,
+          before: { active: promotion.active },
+          after: { active: updated.active },
+        },
+      });
+      return updated;
+    });
   }
 
   async createPriceList(dto: CreatePriceListDto) {
@@ -276,6 +444,12 @@ export class CommercialService {
         const priceByProduct = new Map(
           priceList.items.map((item) => [item.productId, item.unitPrice]),
         );
+        const now = new Date();
+        const promotionPriceByProduct = await this.getActivePromotionalPrices(
+          tx,
+          lots.map((lot) => lot.productId),
+          now,
+        );
         const pceClasses = new Set<string>();
         const quoteLines: Array<{
           productId: string;
@@ -284,11 +458,13 @@ export class CommercialService {
           unitPrice: Prisma.Decimal;
           subtotal: Prisma.Decimal;
         }> = [];
-        const now = new Date();
 
         for (const item of dto.items) {
           const lot = lotById.get(item.productLotId)!;
-          const unitPrice = priceByProduct.get(lot.productId);
+          const unitPrice = this.resolveUnitPrice(
+            priceByProduct.get(lot.productId),
+            promotionPriceByProduct.get(lot.productId),
+          );
           if (!unitPrice) {
             throw new ConflictException(
               `Produto ${lot.product.name} não possui preço nesta tabela.`,
@@ -881,6 +1057,12 @@ export class CommercialService {
     const priceByProduct = new Map(
       priceList.items.map((item) => [item.productId, item.unitPrice]),
     );
+    const promotionPriceByProduct = quote
+      ? new Map<string, Prisma.Decimal>()
+      : await this.getActivePromotionalPrices(
+          tx,
+          lots.map((lot) => lot.productId),
+        );
     const quotedItemByLot = new Map(
       quote?.items.map((item) => [item.productLotId, item]),
     );
@@ -901,7 +1083,10 @@ export class CommercialService {
           ? quotedItem.unitPrice
           : quote
             ? undefined
-            : priceByProduct.get(lot.productId);
+            : this.resolveUnitPrice(
+                priceByProduct.get(lot.productId),
+                promotionPriceByProduct.get(lot.productId),
+              );
       if (!unitPrice) {
         throw new ConflictException(
           `Produto ${lot.product.name} não possui preço nesta tabela.`,
@@ -1235,6 +1420,106 @@ export class CommercialService {
       new Date().toISOString().slice(0, 10)
     ) {
       throw new ConflictException('Lote vencido não pode ser vendido.');
+    }
+  }
+
+  private async getActivePromotionalPrices(
+    tx: Prisma.TransactionClient,
+    productIds: string[],
+    at = new Date(),
+  ): Promise<Map<string, Prisma.Decimal>> {
+    const ids = [...new Set(productIds)];
+    if (!ids.length) {
+      return new Map();
+    }
+    const day = this.dateOnly(at.toISOString().slice(0, 10));
+    const items = await tx.productPromotionItem.findMany({
+      where: {
+        productId: { in: ids },
+        promotion: {
+          active: true,
+          effectiveFrom: { lte: day },
+          effectiveUntil: { gte: day },
+        },
+      },
+      select: { productId: true, promotionalPrice: true, promotionId: true },
+    });
+    const prices = new Map<string, Prisma.Decimal>();
+    for (const item of items) {
+      if (prices.has(item.productId)) {
+        throw new ConflictException(
+          'Mais de uma promoção vigente encontrada para o mesmo produto.',
+        );
+      }
+      prices.set(item.productId, item.promotionalPrice);
+    }
+    return prices;
+  }
+
+  private resolveUnitPrice(
+    tablePrice: Prisma.Decimal | undefined,
+    promotionalPrice: Prisma.Decimal | undefined,
+  ): Prisma.Decimal | undefined {
+    if (!promotionalPrice) {
+      return tablePrice;
+    }
+    return !tablePrice || promotionalPrice.lt(tablePrice)
+      ? promotionalPrice
+      : tablePrice;
+  }
+
+  private async assertNoOverlappingProductPromotions(
+    tx: Prisma.TransactionClient,
+    productIds: string[],
+    effectiveFrom: Date,
+    effectiveUntil: Date,
+    excludePromotionId?: string,
+  ): Promise<void> {
+    const overlapping = await tx.productPromotion.findFirst({
+      where: {
+        active: true,
+        effectiveFrom: { lte: effectiveUntil },
+        effectiveUntil: { gte: effectiveFrom },
+        ...(excludePromotionId ? { id: { not: excludePromotionId } } : {}),
+        items: { some: { productId: { in: productIds } } },
+      },
+      include: {
+        items: {
+          where: { productId: { in: productIds } },
+          select: { productId: true },
+        },
+      },
+    });
+    if (overlapping) {
+      throw new ConflictException({
+        message:
+          'Já existe promoção vigente ou futura sobreposta para produto.',
+        promotionId: overlapping.id,
+        promotionName: overlapping.name,
+        productIds: overlapping.items.map((item) => item.productId),
+      });
+    }
+  }
+
+  private async lockProducts(
+    tx: Prisma.TransactionClient,
+    productIds: string[],
+  ): Promise<void> {
+    const ids = [...new Set(productIds)].sort();
+    if (!ids.length) {
+      return;
+    }
+    const conditions = ids.map((id) => Prisma.sql`"id" = ${id}::uuid`);
+    const rows = await tx.$queryRaw<Array<{ id: string }>>(
+      Prisma.sql`
+        SELECT "id" FROM "produtos"
+        WHERE ${Prisma.join(conditions, ' OR ')}
+        ORDER BY "id"
+        FOR UPDATE
+      `,
+    );
+    if (rows.length !== ids.length) {
+      throw new NotFoundException('Um ou mais produtos não foram encontrados.');
     }
   }
 

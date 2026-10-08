@@ -177,6 +177,9 @@ documental. Criações e atualizações registram audit log na mesma transação
 | --- | --- | --- |
 | `GET` / `POST` | `/pricing/lists` | Lista ou cria tabelas de preço com preços unitários por produto |
 | `GET` | `/pricing/lists/:id` | Consulta tabela e itens |
+| `GET` / `POST` | `/pricing/promotions` | Lista ou cria promoções de preço fixo por produto e vigência |
+| `GET` | `/pricing/promotions/:id` | Consulta promoção e itens |
+| `PATCH` | `/pricing/promotions/:id` | Ativa ou desativa promoção |
 | `GET` | `/sales` | Lista vendas finalizadas com paginação |
 | `GET` | `/sales/:id` | Consulta venda, cliente, preços e itens |
 | `POST` | `/sales` | Finaliza venda, registra recebimento ou conta a receber e baixa estoque |
@@ -203,6 +206,15 @@ Orçamentos expirados deixam de reservar saldo; cancelamento libera a reserva.
 A conversão em venda preserva os preços cotados e baixa o estoque atomicamente.
 Ordens de serviço e saídas, transferências ou ajustes negativos de estoque
 respeitam essas reservas e não podem consumir o saldo comprometido.
+
+Promoções usam um preço fixo por produto com início e fim inclusivos. Produtos
+não podem ter promoções ativas com períodos sobrepostos; a ativação também
+verifica essa regra. Na venda e na emissão de orçamento, a promoção vigente é
+aplicada automaticamente somente quando seu preço for inferior ao preço da
+tabela escolhida. Se não houver preço na tabela, a promoção pode fornecer o
+preço; se o preço promocional for maior, prevalece o preço da tabela. O valor
+aplicado é salvo no orçamento/venda como snapshot e não muda ao desativar a
+promoção.
 
 O checkout e a conversão de orçamento recebem `condition`: `IMEDIATO` exige
 `paymentMethod` (métodos financeiros existentes) e registra atomicamente uma
@@ -301,7 +313,7 @@ as rotas e regras detalhadas devem ser definidas antes de iniciar cada módulo.
 | Financeiro de vendas | Checkout, conversão de orçamento, execução de OS e recebimentos de compras geram lançamentos vinculados | Integrar estornos fiscais e revisar devoluções de vendas legadas sem vínculo financeiro |
 | Devolução e financeiro | Devolução aplica crédito ao saldo em aberto e cria conta a pagar para eventual reembolso | Nenhuma regra financeira pendente para novas vendas |
 | Orçamentos comerciais | Emissão, consulta, cancelamento e conversão em venda implementados; reserva de lote por sete dias integrada a vendas, OS e movimentações | Revisar regras comerciais e evoluir conforme necessidade (por exemplo, edição e envio do orçamento) |
-| Preços promocionais | Tabelas de preço básicas implementadas | Regras de promoção, vigência e precedência de preços |
+| Preços promocionais | Campanhas de preço fixo, vigência inclusiva, aplicação automática sem aumento sobre o preço de tabela e bloqueio de sobreposição por produto implementados | Evoluir conforme necessidade (por exemplo, descontos percentuais, segmentação e campanhas promocionais) |
 | Fiscal e regulatório | Sem emissão fiscal ou integração oficial | Integrações e fluxos de NF-e, NFS-e, MDF-e e Guias de Tráfego, sujeitos à validação regulatória |
 | Bancos | Sem integração bancária ou conciliação | Importação/integração de extratos, conciliação e tratamento de divergências |
 | Relatórios | Listagens operacionais e fluxo de caixa realizado disponíveis | Relatórios gerenciais, regulatórios e projeções financeiras |

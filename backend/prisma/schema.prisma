@@ -117,18 +117,19 @@ model UsedRefreshToken {
 }
 
 model Product {
-  id              String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  sku             String             @unique @map("codigo_sku") @db.VarChar(50)
-  name            String             @map("nome") @db.VarChar(150)
-  type            ProductType        @map("tipo")
-  isPce           Boolean            @default(false) @map("eh_pce")
-  riskClass       String?            @map("classe_risco") @db.VarChar(20)
-  neqGrams        Decimal            @default(0) @map("massa_neq_gramas") @db.Decimal(10, 3)
-  unit            String             @map("unidade_medida") @db.VarChar(10)
-  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  id              String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sku             String                 @unique @map("codigo_sku") @db.VarChar(50)
+  name            String                 @map("nome") @db.VarChar(150)
+  type            ProductType            @map("tipo")
+  isPce           Boolean                @default(false) @map("eh_pce")
+  riskClass       String?                @map("classe_risco") @db.VarChar(20)
+  neqGrams        Decimal                @default(0) @map("massa_neq_gramas") @db.Decimal(10, 3)
+  unit            String                 @map("unidade_medida") @db.VarChar(10)
+  createdAt       DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
   lots            ProductLot[]
   serviceItems    ServiceOrderItem[]
   prices          PriceListItem[]
+  promotionItems  ProductPromotionItem[]
   saleItems       SaleItem[]
   salesQuoteItems SalesQuoteItem[]
   purchaseItems   PurchaseItem[]
@@ -314,6 +315,32 @@ model PriceListItem {
 
   @@unique([priceListId, productId])
   @@map("itens_tabela_preco")
+}
+
+model ProductPromotion {
+  id             String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name           String                 @db.VarChar(100)
+  active         Boolean                @default(true) @map("ativa")
+  effectiveFrom  DateTime               @map("vigente_de") @db.Date
+  effectiveUntil DateTime               @map("vigente_ate") @db.Date
+  createdAt      DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  items          ProductPromotionItem[]
+
+  @@index([active, effectiveFrom, effectiveUntil])
+  @@map("promocoes_produto")
+}
+
+model ProductPromotionItem {
+  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  promotionId      String           @map("promocao_id") @db.Uuid
+  productId        String           @map("produto_id") @db.Uuid
+  promotionalPrice Decimal          @map("preco_promocional") @db.Decimal(12, 2)
+  promotion        ProductPromotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  product          Product          @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@unique([promotionId, productId])
+  @@index([productId, promotionId])
+  @@map("itens_promocao_produto")
 }
 
 model Sale {

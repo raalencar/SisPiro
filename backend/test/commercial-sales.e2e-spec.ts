@@ -19,6 +19,7 @@ describe('Commercial sales API (e2e)', () => {
   const magazineIds: string[] = [];
   const lotIds: string[] = [];
   const priceListIds: string[] = [];
+  const promotionIds: string[] = [];
   const saleIds: string[] = [];
   const salesQuoteIds: string[] = [];
   const orderIds: string[] = [];
@@ -67,6 +68,9 @@ describe('Commercial sales API (e2e)', () => {
     await prisma.salesQuote.deleteMany({
       where: { id: { in: salesQuoteIds } },
     });
+    await prisma.productPromotion.deleteMany({
+      where: { id: { in: promotionIds } },
+    });
     await prisma.serviceOrder.deleteMany({
       where: { id: { in: orderIds } },
     });
@@ -81,6 +85,7 @@ describe('Commercial sales API (e2e)', () => {
           { aggregateId: { in: orderIds } },
           { aggregateId: { in: financialEntryIds } },
           { aggregateId: { in: priceListIds } },
+          { aggregateId: { in: promotionIds } },
           { aggregateId: { in: customerIds } },
           { aggregateId: { in: blasterIds } },
           { aggregateId: { in: productIds } },
@@ -204,6 +209,137 @@ describe('Commercial sales API (e2e)', () => {
       .get(`/api/v1/sales/${response.body.id}/returns`)
       .expect(200);
     expect(returns.body).toHaveLength(1);
+  });
+
+  it('applies fixed product promotions and preserves quoted promotional prices', async () => {
+    const product = await createProduct('PROMO', false);
+    const lot = await createLot(
+      product.body.id as string,
+      `PROMO-${suffix}`,
+      10,
+    );
+    const list = await createPriceList(product.body.id as string, 20);
+    const today = new Date().toISOString().slice(0, 10);
+    const promotion = await request(app.getHttpServer())
+      .post('/api/v1/pricing/promotions')
+      .send({
+        name: `Promoção sazonal ${suffix}`,
+        effectiveFrom: today,
+        effectiveUntil: '2099-12-31',
+        items: [{ productId: product.body.id, promotionalPrice: 12 }],
+      })
+      .expect(201);
+    promotionIds.push(promotion.body.id as string);
+
+    const sale = await request(app.getHttpServer())
+      .post('/api/v1/sales')
+      .send({
+        priceListId: list.id,
+        condition: 'IMEDIATO',
+        paymentMethod: 'PIX',
+        items: [{ productLotId: lot.body.id, quantity: 1 }],
+      })
+      .expect(201);
+    saleIds.push(sale.body.id as string);
+    expect(sale.body.items[0].unitPrice).toBe('12');
+    expect(sale.body.total).toBe('12');
+
+    const quote = await createSalesQuote(list.id, lot.body.id as string, 1);
+    salesQuoteIds.push(quote.body.id as string);
+    expect(quote.body.items[0].unitPrice).toBe('12');
+    expect(quote.body.total).toBe('12');
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/pricing/promotions/${promotion.body.id}`)
+      .send({ active: false })
+      .expect(200);
+    const regularPriceSale = await request(app.getHttpServer())
+      .post('/api/v1/sales')
+      .send({
+        priceListId: list.id,
+        condition: 'IMEDIATO',
+        paymentMethod: 'PIX',
+        items: [{ productLotId: lot.body.id, quantity: 1 }],
+      })
+      .expect(201);
+    saleIds.push(regularPriceSale.body.id as string);
+    expect(regularPriceSale.body.items[0].unitPrice).toBe('20');
+
+    const secondPromotion = await request(app.getHttpServer())
+      .post('/api/v1/pricing/promotions')
+      .send({
+        name: `Promoção alternativa ${suffix}`,
+        effectiveFrom: today,
+        effectiveUntil: '2099-12-31',
+        items: [{ productId: product.body.id, promotionalPrice: 30 }],
+      })
+      .expect(201);
+    promotionIds.push(secondPromotion.body.id as string);
+    await request(app.getHttpServer())
+      .get(
+        `/api/v1/pricing/promotions?active=true&productId=${product.body.id}`,
+      )
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.data).toHaveLength(1);
+        expect(body.data[0].id).toBe(secondPromotion.body.id);
+      });
+    const higherPromotionSale = await request(app.getHttpServer())
+      .post('/api/v1/sales')
+      .send({
+        priceListId: list.id,
+        condition: 'IMEDIATO',
+        paymentMethod: 'PIX',
+        items: [{ productLotId: lot.body.id, quantity: 1 }],
+      })
+      .expect(201);
+    saleIds.push(higherPromotionSale.body.id as string);
+    expect(higherPromotionSale.body.items[0].unitPrice).toBe('20');
+    await request(app.getHttpServer())
+      .patch(`/api/v1/pricing/promotions/${promotion.body.id}`)
+      .send({ active: true })
+      .expect(409);
+
+    const converted = await request(app.getHttpServer())
+      .post(`/api/v1/sales/quotes/${quote.body.id}/convert`)
+      .send({ condition: 'IMEDIATO', paymentMethod: 'PIX' })
+      .expect(201);
+    saleIds.push(converted.body.sale.id as string);
+    expect(converted.body.sale.items[0].unitPrice).toBe('12');
+    expect(converted.body.sale.total).toBe('12');
+  });
+
+  it('serializes overlapping promotion creation for the same product', async () => {
+    const product = await createProduct('PRACE', false);
+    const today = new Date().toISOString().slice(0, 10);
+    const attempts = await Promise.all([
+      request(app.getHttpServer())
+        .post('/api/v1/pricing/promotions')
+        .send({
+          name: `Promoção concorrente A ${suffix}`,
+          effectiveFrom: today,
+          effectiveUntil: '2099-12-31',
+          items: [{ productId: product.body.id, promotionalPrice: 9 }],
+        }),
+      request(app.getHttpServer())
+        .post('/api/v1/pricing/promotions')
+        .send({
+          name: `Promoção concorrente B ${suffix}`,
+          effectiveFrom: today,
+          effectiveUntil: '2099-12-31',
+          items: [{ productId: product.body.id, promotionalPrice: 8 }],
+        }),
+    ]);
+    for (const attempt of attempts) {
+      if (attempt.status === 201) {
+        promotionIds.push(attempt.body.id as string);
+      }
+    }
+    expect(
+      attempts
+        .map((attempt) => attempt.status)
+        .sort((first, second) => first - second),
+    ).toEqual([201, 409]);
   });
 
   it('serializes concurrent checkouts for stock in the same lot', async () => {
