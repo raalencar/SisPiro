@@ -110,6 +110,7 @@ Todos usam o prefixo configurado (`/api/v1` por padrão):
 | `GET` / `POST` | `/inventory/lots` | Lista lotes ou registra lote com recebimento inicial |
 | `GET` | `/inventory/lots/:id` | Consulta lote, produto, paiol e NEQ |
 | `GET` / `POST` | `/inventory/movements` | Consulta histórico ou registra movimentação |
+| `GET` | `/inventory/reports/stock-summary` | Resume saldo físico, reservas, disponibilidade e lotes vencidos/próximos do vencimento |
 
 As listas aceitam `page` e `limit` (máximo 100); produtos aceitam `search`,
 `type` e `isPce`, lotes aceitam `search`, `productId` e `magazineId`, e
@@ -124,6 +125,10 @@ negativo; saídas e transferências bloqueiam lotes vencidos. Paiol inativo ou c
 licença dos Bombeiros vencida não recebe estoque. Cada gravação cria um registro
 de auditoria na mesma transação; a identificação do ator ficará nula até existir
 autenticação.
+O resumo de estoque considera reservas ativas de OS e orçamentos comerciais.
+Exibe o saldo físico, reservado e disponível por produto e por lote; lotes
+vencidos ficam separados e têm disponibilidade vendável zero. Lotes que vencem
+hoje ou nos próximos 30 dias aparecem como próximos do vencimento.
 
 ### Compras e fornecedores
 
@@ -336,7 +341,7 @@ as rotas e regras detalhadas devem ser definidas antes de iniciar cada módulo.
 | Preços promocionais | Campanhas de preço fixo, vigência inclusiva, aplicação automática sem aumento sobre o preço de tabela e bloqueio de sobreposição por produto implementados | Evoluir conforme necessidade (por exemplo, descontos percentuais, segmentação e campanhas promocionais) |
 | Fiscal e regulatório | Sem emissão fiscal ou integração oficial | Integrações e fluxos de NF-e, NFS-e, MDF-e e Guias de Tráfego, sujeitos à validação regulatória |
 | Bancos | Sem integração bancária ou conciliação | Importação/integração de extratos, conciliação e tratamento de divergências |
-| Relatórios | Resumos de vendas por produto/cliente, OS por status e painel financeiro disponíveis | Outros relatórios operacionais, regulatórios e projeções financeiras |
+| Relatórios | Resumos de vendas por produto/cliente, OS por status, painel financeiro e posição de estoque com alertas de validade disponíveis | Outros relatórios operacionais, regulatórios e projeções financeiras |
 | Frontend de negócio | Telas de negócio ainda não consomem as APIs | Integrar os módulos existentes à interface |
 
 Esta lista registra lacunas conhecidas, não constitui contrato final de API nem

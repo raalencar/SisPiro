@@ -63,6 +63,15 @@ export class InventoryController {
     return this.inventory.listMagazines(query);
   }
 
+  @Get('reports/stock-summary')
+  @ApiOperation({
+    summary:
+      'Resume estoque físico, reservas, saldo disponível e lotes vencidos ou próximos do vencimento.',
+  })
+  stockReport() {
+    return this.inventory.stockReport();
+  }
+
   @Get('magazines/:id')
   @ApiOperation({ summary: 'Consulta um paiol e sua ocupação NEQ atual.' })
   @ApiParam({ name: 'id', format: 'uuid' })

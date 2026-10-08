@@ -25,6 +25,8 @@ import { rethrowInventoryError } from './inventory.errors.js';
 
 type Pagination = { page: number; limit: number };
 
+const EXPIRING_LOT_DAYS = 30;
+
 @Injectable()
 export class InventoryService {
   constructor(private readonly prisma: PrismaService) {}
@@ -244,6 +246,207 @@ export class InventoryService {
       total,
       query,
     );
+  }
+
+  async stockReport() {
+    const now = new Date();
+    const today = this.dateOnly(now.toISOString().slice(0, 10));
+    const expiryLimit = new Date(today);
+    expiryLimit.setUTCDate(expiryLimit.getUTCDate() + EXPIRING_LOT_DAYS);
+    const reservationCte = Prisma.sql`
+      WITH reservation_sources AS (
+        SELECT
+          soi."produto_lote_id" AS lot_id,
+          SUM(soi."quantidade_planejada") AS quantity
+        FROM "ordem_servico_itens" soi
+        INNER JOIN "ordens_servico" so
+          ON so."id" = soi."ordem_servico_id"
+        WHERE so."status" IN ('APROVADO', 'EM_MONTAGEM')
+        GROUP BY soi."produto_lote_id"
+        UNION ALL
+        SELECT
+          sqi."produto_lote_id" AS lot_id,
+          SUM(sqi."quantity") AS quantity
+        FROM "itens_orcamento_venda" sqi
+        INNER JOIN "orcamentos_venda" sq
+          ON sq."id" = sqi."orcamento_id"
+        WHERE sq."status" = 'EMITIDO'
+          AND sq."expira_em" > ${now}
+        GROUP BY sqi."produto_lote_id"
+      ),
+      reservations AS (
+        SELECT lot_id, SUM(quantity) AS quantity
+        FROM reservation_sources
+        GROUP BY lot_id
+      )
+    `;
+    const [productRows, lotRows] = await Promise.all([
+      this.prisma.$queryRaw<
+        Array<{
+          productId: string;
+          sku: string;
+          productName: string;
+          unit: string;
+          neqGrams: Prisma.Decimal;
+          lotCount: bigint;
+          physicalQuantity: Prisma.Decimal;
+          reservedQuantity: Prisma.Decimal;
+          availableQuantity: Prisma.Decimal;
+          expiredQuantity: Prisma.Decimal;
+          expiringQuantity: Prisma.Decimal;
+        }>
+      >(
+        Prisma.sql`${reservationCte}
+          SELECT
+            p."id" AS "productId",
+            p."codigo_sku" AS sku,
+            p."nome" AS "productName",
+            p."unidade_medida" AS unit,
+            p."massa_neq_gramas" AS "neqGrams",
+            COUNT(l."id") AS "lotCount",
+            SUM(l."quantidade") AS "physicalQuantity",
+            SUM(COALESCE(r.quantity, 0)) AS "reservedQuantity",
+            SUM(
+              CASE
+                WHEN l."data_validade" >= ${today}
+                  THEN GREATEST(l."quantidade" - COALESCE(r.quantity, 0), 0)
+                ELSE 0
+              END
+            ) AS "availableQuantity",
+            SUM(
+              CASE WHEN l."data_validade" < ${today}
+                THEN l."quantidade" ELSE 0 END
+            ) AS "expiredQuantity",
+            SUM(
+              CASE
+                WHEN l."data_validade" >= ${today}
+                  AND l."data_validade" <= ${expiryLimit}
+                  THEN l."quantidade"
+                ELSE 0
+              END
+            ) AS "expiringQuantity"
+          FROM "produto_lotes" l
+          INNER JOIN "produtos" p ON p."id" = l."produto_id"
+          LEFT JOIN reservations r ON r.lot_id = l."id"
+          WHERE l."quantidade" > 0
+          GROUP BY p."id", p."codigo_sku", p."nome", p."unidade_medida",
+            p."massa_neq_gramas"
+          ORDER BY SUM(l."quantidade") DESC, p."nome" ASC`,
+      ),
+      this.prisma.$queryRaw<
+        Array<{
+          lotId: string;
+          productId: string;
+          sku: string;
+          productName: string;
+          unit: string;
+          lotNumber: string;
+          magazineId: string;
+          magazineName: string;
+          expiresAt: Date;
+          physicalQuantity: Prisma.Decimal;
+          reservedQuantity: Prisma.Decimal;
+          availableQuantity: Prisma.Decimal;
+        }>
+      >(
+        Prisma.sql`${reservationCte}
+          SELECT
+            l."id" AS "lotId",
+            p."id" AS "productId",
+            p."codigo_sku" AS sku,
+            p."nome" AS "productName",
+            p."unidade_medida" AS unit,
+            l."numero_lote" AS "lotNumber",
+            m."id" AS "magazineId",
+            m."nome" AS "magazineName",
+            l."data_validade" AS "expiresAt",
+            l."quantidade" AS "physicalQuantity",
+            COALESCE(r.quantity, 0) AS "reservedQuantity",
+            CASE
+              WHEN l."data_validade" < ${today} THEN 0
+              ELSE GREATEST(l."quantidade" - COALESCE(r.quantity, 0), 0)
+            END AS "availableQuantity"
+          FROM "produto_lotes" l
+          INNER JOIN "produtos" p ON p."id" = l."produto_id"
+          INNER JOIN "paioes" m ON m."id" = l."paiol_id"
+          LEFT JOIN reservations r ON r.lot_id = l."id"
+          WHERE l."quantidade" > 0
+            AND l."data_validade" <= ${expiryLimit}
+          ORDER BY l."data_validade" ASC, l."numero_lote" ASC`,
+      ),
+    ]);
+    const zero = () => new Prisma.Decimal(0);
+    const totals = productRows.reduce(
+      (sum, product) => ({
+        lotCount: sum.lotCount + Number(product.lotCount),
+        physicalQuantity: sum.physicalQuantity.plus(product.physicalQuantity),
+        reservedQuantity: sum.reservedQuantity.plus(product.reservedQuantity),
+        availableQuantity: sum.availableQuantity.plus(
+          product.availableQuantity,
+        ),
+        expiredQuantity: sum.expiredQuantity.plus(product.expiredQuantity),
+        expiringQuantity: sum.expiringQuantity.plus(product.expiringQuantity),
+      }),
+      {
+        lotCount: 0,
+        physicalQuantity: zero(),
+        reservedQuantity: zero(),
+        availableQuantity: zero(),
+        expiredQuantity: zero(),
+        expiringQuantity: zero(),
+      },
+    );
+    const serializeLot = (lot: (typeof lotRows)[number]) => ({
+      lotId: lot.lotId,
+      productId: lot.productId,
+      sku: lot.sku,
+      productName: lot.productName,
+      unit: lot.unit,
+      lotNumber: lot.lotNumber,
+      magazineId: lot.magazineId,
+      magazineName: lot.magazineName,
+      expiresAt: lot.expiresAt,
+      physicalQuantity: lot.physicalQuantity.toString(),
+      reservedQuantity: lot.reservedQuantity.toString(),
+      availableQuantity: lot.availableQuantity.toString(),
+    });
+    const todayString = now.toISOString().slice(0, 10);
+    return {
+      asOf: now.toISOString(),
+      expiryWindowDays: EXPIRING_LOT_DAYS,
+      totals: {
+        lotCount: totals.lotCount,
+        physicalQuantity: totals.physicalQuantity.toString(),
+        reservedQuantity: totals.reservedQuantity.toString(),
+        availableQuantity: totals.availableQuantity.toString(),
+        expiredQuantity: totals.expiredQuantity.toString(),
+        expiringQuantity: totals.expiringQuantity.toString(),
+      },
+      byProduct: productRows.map((product) => ({
+        productId: product.productId,
+        sku: product.sku,
+        productName: product.productName,
+        unit: product.unit,
+        lotCount: Number(product.lotCount),
+        neqKg: product.physicalQuantity
+          .mul(product.neqGrams)
+          .div(1000)
+          .toString(),
+        physicalQuantity: product.physicalQuantity.toString(),
+        reservedQuantity: product.reservedQuantity.toString(),
+        availableQuantity: product.availableQuantity.toString(),
+        expiredQuantity: product.expiredQuantity.toString(),
+        expiringQuantity: product.expiringQuantity.toString(),
+      })),
+      expiringLots: lotRows
+        .filter(
+          (lot) => lot.expiresAt.toISOString().slice(0, 10) >= todayString,
+        )
+        .map(serializeLot),
+      expiredLots: lotRows
+        .filter((lot) => lot.expiresAt.toISOString().slice(0, 10) < todayString)
+        .map(serializeLot),
+    };
   }
 
   async getLot(id: string) {
