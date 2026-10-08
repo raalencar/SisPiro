@@ -37,6 +37,7 @@ enum FinancialEntryStatus {
   ABERTO
   PARCIAL
   PAGO
+  COMPENSADO
   CANCELADO
 }
 
@@ -389,13 +390,16 @@ model SaleItem {
 }
 
 model SaleReturn {
-  id        String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  code      Int              @unique @default(autoincrement()) @map("codigo_devolucao")
-  saleId    String           @map("venda_id") @db.Uuid
-  reason    String           @db.VarChar(500)
-  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
-  sale      Sale             @relation(fields: [saleId], references: [id], onDelete: Restrict)
-  items     SaleReturnItem[]
+  id            String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code          Int              @unique @default(autoincrement()) @map("codigo_devolucao")
+  saleId        String           @map("venda_id") @db.Uuid
+  reason        String           @db.VarChar(500)
+  creditApplied Decimal          @default(0) @map("credito_aplicado") @db.Decimal(12, 2)
+  refundAmount  Decimal          @default(0) @map("valor_a_reembolsar") @db.Decimal(12, 2)
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  sale          Sale             @relation(fields: [saleId], references: [id], onDelete: Restrict)
+  items         SaleReturnItem[]
+  refundEntry   FinancialEntry?
 
   @@index([saleId, createdAt])
   @@map("devolucoes_venda")
@@ -492,7 +496,9 @@ model FinancialEntry {
   receiptBatchId String?               @unique @map("recebimento_compra_id") @db.Uuid
   serviceOrderId String?               @unique @map("ordem_servico_id") @db.Uuid
   saleId         String?               @unique @map("venda_id") @db.Uuid
+  saleReturnId   String?               @unique @map("devolucao_venda_id") @db.Uuid
   amount         Decimal               @db.Decimal(12, 2)
+  creditedAmount Decimal               @default(0) @map("credito_aplicado") @db.Decimal(12, 2)
   dueDate        DateTime              @map("data_vencimento") @db.Date
   status         FinancialEntryStatus  @default(ABERTO)
   reference      String?               @db.VarChar(100)
@@ -502,6 +508,7 @@ model FinancialEntry {
   receiptBatch   PurchaseReceiptBatch? @relation(fields: [receiptBatchId], references: [id], onDelete: Restrict)
   serviceOrder   ServiceOrder?         @relation(fields: [serviceOrderId], references: [id], onDelete: Restrict)
   sale           Sale?                 @relation(fields: [saleId], references: [id], onDelete: Restrict)
+  saleReturn     SaleReturn?           @relation(fields: [saleReturnId], references: [id], onDelete: Restrict)
   payments       FinancialPayment[]
 
   @@index([direction, status, dueDate])

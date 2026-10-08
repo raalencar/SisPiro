@@ -204,6 +204,16 @@ export class CreateSaleReturnDto {
   @MaxLength(500)
   reason!: string;
 
+  @ApiPropertyOptional({
+    format: 'date',
+    example: '2026-10-31',
+    description: 'Obrigatório se a devolução gerar valor a reembolsar.',
+  })
+  @IsOptional()
+  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  dueDate?: string;
+
   @ApiProperty({ type: [CreateSaleReturnItemDto], minItems: 1 })
   @IsArray()
   @ArrayMinSize(1)

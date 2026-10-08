@@ -514,6 +514,7 @@ export class CommercialService {
     return this.prisma.saleReturn.findMany({
       where: { saleId },
       include: {
+        refundEntry: { include: { payments: true } },
         items: {
           include: {
             saleItem: { include: { product: true } },
@@ -532,6 +533,31 @@ export class CommercialService {
       `;
       if (saleRows.length === 0) {
         throw new NotFoundException('Venda não encontrada.');
+      }
+      const sale = await tx.sale.findUnique({
+        where: { id: saleId },
+        include: {
+          customer: true,
+          financialEntry: { select: { id: true } },
+        },
+      });
+      if (!sale) {
+        throw new NotFoundException('Venda não encontrada.');
+      }
+      let receivable:
+        | (Prisma.FinancialEntryGetPayload<{
+            include: { payments: true };
+          }> & { id: string })
+        | null = null;
+      if (sale.financialEntry) {
+        await tx.$queryRaw<Array<{ id: string }>>`
+          SELECT "id" FROM "lancamentos_financeiros"
+          WHERE "id" = ${sale.financialEntry.id}::uuid FOR UPDATE
+        `;
+        receivable = await tx.financialEntry.findUnique({
+          where: { id: sale.financialEntry.id },
+          include: { payments: true },
+        });
       }
 
       const saleItemIds = dto.items.map((item) => item.saleItemId);
@@ -624,10 +650,38 @@ export class CommercialService {
         await this.assertCapacity(tx, magazineId, additionalNeqKg);
       }
 
+      const returnTotal = returnLines.reduce(
+        (sum, line) => sum.plus(line.subtotal),
+        new Prisma.Decimal(0),
+      );
+      const paid = receivable
+        ? receivable.payments.reduce(
+            (sum, payment) => sum.plus(payment.amount),
+            new Prisma.Decimal(0),
+          )
+        : new Prisma.Decimal(0);
+      const outstanding = receivable
+        ? receivable.status === FinancialEntryStatus.CANCELADO
+          ? new Prisma.Decimal(0)
+          : Prisma.Decimal.max(
+              receivable.amount.minus(paid).minus(receivable.creditedAmount),
+              0,
+            )
+        : new Prisma.Decimal(0);
+      const creditApplied = Prisma.Decimal.min(returnTotal, outstanding);
+      const refundAmount = returnTotal.minus(creditApplied);
+      if (refundAmount.gt(0) && !dto.dueDate) {
+        throw new BadRequestException(
+          'Informe o vencimento do reembolso gerado pela devolução.',
+        );
+      }
+
       const saleReturn = await tx.saleReturn.create({
         data: {
           saleId,
           reason: dto.reason.trim(),
+          creditApplied,
+          refundAmount,
           items: { create: returnLines },
         },
         include: {
@@ -639,6 +693,75 @@ export class CommercialService {
           },
         },
       });
+
+      if (receivable && creditApplied.gt(0)) {
+        const nextCredited = receivable.creditedAmount.plus(creditApplied);
+        const remaining = receivable.amount.minus(paid).minus(nextCredited);
+        const nextStatus = remaining.eq(0)
+          ? paid.eq(0)
+            ? FinancialEntryStatus.COMPENSADO
+            : FinancialEntryStatus.PAGO
+          : FinancialEntryStatus.PARCIAL;
+        await tx.financialEntry.update({
+          where: { id: receivable.id },
+          data: { creditedAmount: nextCredited, status: nextStatus },
+        });
+        await tx.auditLog.create({
+          data: {
+            action: 'finance.receivable.credit-applied',
+            aggregateType: 'FinancialEntry',
+            aggregateId: receivable.id,
+            before: {
+              status: receivable.status,
+              creditedAmount: receivable.creditedAmount.toString(),
+              outstanding: outstanding.toString(),
+            },
+            after: {
+              status: nextStatus,
+              creditedAmount: nextCredited.toString(),
+              creditApplied: creditApplied.toString(),
+              outstanding: remaining.toString(),
+              saleReturnId: saleReturn.id,
+            },
+          },
+        });
+      }
+      let refundEntry: {
+        id: string;
+        code: number;
+        amount: Prisma.Decimal;
+      } | null = null;
+      if (refundAmount.gt(0)) {
+        refundEntry = await tx.financialEntry.create({
+          data: {
+            direction: FinancialDirection.PAGAR,
+            description: `Reembolso da devolução ${saleReturn.code}`,
+            category: 'DEVOLUCAO_VENDA',
+            counterparty: sale.customer?.legalName ?? 'Cliente de venda',
+            customerId: sale.customerId,
+            saleReturnId: saleReturn.id,
+            amount: refundAmount,
+            dueDate: this.dateOnly(dto.dueDate!),
+            reference: `DEVOLUCAO-${saleReturn.code}`,
+          },
+        });
+        await tx.auditLog.create({
+          data: {
+            action: 'finance.refund-entry.created',
+            aggregateType: 'FinancialEntry',
+            aggregateId: refundEntry.id,
+            after: {
+              code: refundEntry.code,
+              direction: FinancialDirection.PAGAR,
+              amount: refundEntry.amount.toString(),
+              dueDate: dto.dueDate,
+              saleReturnId: saleReturn.id,
+              saleId,
+              customerId: sale.customerId,
+            },
+          },
+        });
+      }
 
       for (const line of returnLines) {
         const lot = lotById.get(line.productLotId)!;
@@ -680,6 +803,10 @@ export class CommercialService {
             returnId: saleReturn.id,
             returnCode: saleReturn.code,
             reason: saleReturn.reason,
+            total: returnTotal.toString(),
+            creditApplied: creditApplied.toString(),
+            refundAmount: refundAmount.toString(),
+            refundEntryId: refundEntry?.id ?? null,
             items: returnLines.map((item) => ({
               saleItemId: item.saleItemId,
               productLotId: item.productLotId,
@@ -689,7 +816,18 @@ export class CommercialService {
           },
         },
       });
-      return saleReturn;
+      return tx.saleReturn.findUniqueOrThrow({
+        where: { id: saleReturn.id },
+        include: {
+          refundEntry: { include: { payments: true } },
+          items: {
+            include: {
+              saleItem: { include: { product: true } },
+              productLot: true,
+            },
+          },
+        },
+      });
     });
   }
 

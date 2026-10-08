@@ -211,14 +211,20 @@ conta a receber quitada com o pagamento correspondente; `PRAZO` exige
 venda de balcão sem cliente cadastrado somente pode ser quitada imediatamente.
 Parcelas e métodos divididos não são criados no checkout; recebimentos parciais
 posteriores podem ser registrados pelos endpoints financeiros. Devoluções
-reentram estoque, mas ainda não geram estorno ou crédito financeiro automático.
+aplicam primeiro o valor devolvido ao saldo a receber ainda aberto; qualquer
+excedente, ou valor de venda já quitada, gera uma conta a pagar aberta vinculada
+à devolução, com vencimento informado quando houver reembolso. O valor usado
+para abater o saldo fica registrado como crédito aplicado; o status
+`COMPENSADO` identifica contas quitadas integralmente por créditos sem
+recebimento em dinheiro. O pagamento posterior do reembolso segue os endpoints
+financeiros.
 
 Devoluções identificam os itens da venda original e aceitam quantidades parciais,
 limitadas ao saldo ainda não devolvido. O sistema reentra os produtos no lote
 original somente se o lote não estiver vencido e o paiol puder recebê-los sem
-exceder capacidade NEQ; registro, movimentações e auditoria são atômicos. Isso
-controla a devolução física, mas não realiza estorno financeiro nem cancelamento
-de documento fiscal.
+exceder capacidade NEQ; estoque, crédito aplicado, conta a pagar de reembolso e
+auditoria são atualizados atomicamente. Não realiza cancelamento de documento
+fiscal.
 
 Este ciclo ainda não oferece tabela promocional ou integração fiscal. Não emite
 NF-e, NFS-e, MDF-e ou Guia de Tráfego.
@@ -261,10 +267,10 @@ canceladas e recriadas antes de concluir.
 
 Lançamentos armazenam direção, categoria, contraparte, valor e vencimento; o
 cliente é opcional para contas a receber. Pagamentos são imutáveis neste fluxo,
-serializados por lançamento para impedir quitação acima do saldo. O status muda
-entre `ABERTO`, `PARCIAL` e `PAGO`; lançamentos sem pagamentos podem ser
-`CANCELADO`. `overdue` sinaliza saldo pendente cujo vencimento passou. O fluxo de
-caixa representa pagamentos realizados, não projeções futuras.
+serializados por lançamento para impedir quitação acima do saldo, considerando
+créditos aplicados por devoluções. O status pode ser `ABERTO`, `PARCIAL`, `PAGO`,
+`COMPENSADO` ou `CANCELADO`. `overdue` sinaliza saldo pendente cujo vencimento
+passou. O fluxo de caixa representa pagamentos realizados, não projeções futuras.
 
 Lançamentos avulsos continuam manuais; cada recebimento de compra gera
 automaticamente uma conta a pagar vinculada à etapa recebida, a conclusão de
@@ -292,8 +298,8 @@ as rotas e regras detalhadas devem ser definidas antes de iniciar cada módulo.
 | Área | Situação atual | Trabalho pendente |
 | --- | --- | --- |
 | Acesso e operadores | Login JWT, refresh rotativo, usuários e perfis por módulo implementados; auditoria de autenticação identifica ator | Recuperação de senha, MFA, limitação de tentativas, transporte seguro de refresh no cliente e propagação de ator nos demais logs de negócio |
-| Financeiro de vendas | Checkout e conversão de orçamento registram recebimento imediato ou conta a receber; OS e recebimentos de compras também geram lançamentos vinculados | Implementar estornos/créditos automáticos para devoluções |
-| Devolução e financeiro | Devolução reentra estoque; não gera estorno financeiro | Definir e registrar estorno/crédito vinculado à devolução e à venda original |
+| Financeiro de vendas | Checkout, conversão de orçamento, execução de OS e recebimentos de compras geram lançamentos vinculados | Integrar estornos fiscais e revisar devoluções de vendas legadas sem vínculo financeiro |
+| Devolução e financeiro | Devolução aplica crédito ao saldo em aberto e cria conta a pagar para eventual reembolso | Nenhuma regra financeira pendente para novas vendas |
 | Orçamentos comerciais | Emissão, consulta, cancelamento e conversão em venda implementados; reserva de lote por sete dias integrada a vendas, OS e movimentações | Revisar regras comerciais e evoluir conforme necessidade (por exemplo, edição e envio do orçamento) |
 | Preços promocionais | Tabelas de preço básicas implementadas | Regras de promoção, vigência e precedência de preços |
 | Fiscal e regulatório | Sem emissão fiscal ou integração oficial | Integrações e fluxos de NF-e, NFS-e, MDF-e e Guias de Tráfego, sujeitos à validação regulatória |

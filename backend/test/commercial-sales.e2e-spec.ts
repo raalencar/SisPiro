@@ -44,7 +44,12 @@ describe('Commercial sales API (e2e)', () => {
 
   afterAll(async () => {
     const saleEntries = await prisma.financialEntry.findMany({
-      where: { saleId: { in: saleIds } },
+      where: {
+        OR: [
+          { saleId: { in: saleIds } },
+          { saleReturn: { saleId: { in: saleIds } } },
+        ],
+      },
       select: { id: true },
     });
     financialEntryIds.push(...saleEntries.map((entry) => entry.id));
@@ -167,11 +172,20 @@ describe('Commercial sales API (e2e)', () => {
       .post(`/api/v1/sales/${response.body.id}/returns`)
       .send({
         reason: 'Produto retornado sem uso.',
+        dueDate: '2099-12-31',
         items: [{ saleItemId, quantity: 1 }],
       })
       .expect(201);
     expect(returned.body.items[0].quantity).toBe('1');
     expect(returned.body.items[0].subtotal).toBe('12.5');
+    expect(returned.body.creditApplied).toBe('0');
+    expect(returned.body.refundAmount).toBe('12.5');
+    expect(returned.body.refundEntry).toMatchObject({
+      direction: 'PAGAR',
+      amount: '12.5',
+      status: 'ABERTO',
+      dueDate: '2099-12-31T00:00:00.000Z',
+    });
 
     await request(app.getHttpServer())
       .post(`/api/v1/sales/${response.body.id}/returns`)
@@ -285,11 +299,105 @@ describe('Commercial sales API (e2e)', () => {
     expect(financeEntry.body).toMatchObject({
       paid: '0',
       outstanding: '30',
+      creditedAmount: '0',
       status: 'ABERTO',
     });
     expect(financeEntry.body.sale).toMatchObject({
       id: sale.body.id,
       code: sale.body.code,
+    });
+    const saleItemId = sale.body.items[0].id as string;
+    const partialReturn = await request(app.getHttpServer())
+      .post(`/api/v1/sales/${sale.body.id}/returns`)
+      .send({
+        reason: 'Crédito aplicado ao saldo a prazo.',
+        items: [{ saleItemId, quantity: 1 }],
+      })
+      .expect(201);
+    expect(partialReturn.body).toMatchObject({
+      creditApplied: '15',
+      refundAmount: '0',
+      refundEntry: null,
+    });
+    const partiallyCredited = await request(app.getHttpServer())
+      .get(`/api/v1/finance/entries/${sale.body.financialEntry.id}`)
+      .expect(200);
+    expect(partiallyCredited.body).toMatchObject({
+      creditedAmount: '15',
+      outstanding: '15',
+      status: 'PARCIAL',
+    });
+
+    const fullReturn = await request(app.getHttpServer())
+      .post(`/api/v1/sales/${sale.body.id}/returns`)
+      .send({
+        reason: 'Crédito total do saldo restante.',
+        items: [{ saleItemId, quantity: 1 }],
+      })
+      .expect(201);
+    expect(fullReturn.body).toMatchObject({
+      creditApplied: '15',
+      refundAmount: '0',
+    });
+    const fullyCredited = await request(app.getHttpServer())
+      .get(`/api/v1/finance/entries/${sale.body.financialEntry.id}`)
+      .expect(200);
+    expect(fullyCredited.body).toMatchObject({
+      creditedAmount: '30',
+      outstanding: '0',
+      status: 'COMPENSADO',
+    });
+
+    const splitSale = await request(app.getHttpServer())
+      .post('/api/v1/sales')
+      .send({
+        customerId: customer.body.id,
+        priceListId: list.id,
+        condition: 'PRAZO',
+        dueDate: '2099-12-31',
+        items: [{ productLotId: lot.body.id, quantity: 2 }],
+      })
+      .expect(201);
+    saleIds.push(splitSale.body.id as string);
+    await request(app.getHttpServer())
+      .post(
+        `/api/v1/finance/entries/${splitSale.body.financialEntry.id}/payments`,
+      )
+      .send({ amount: 20, method: 'PIX' })
+      .expect(201);
+    const splitSaleItemId = splitSale.body.items[0].id as string;
+    await request(app.getHttpServer())
+      .post(`/api/v1/sales/${splitSale.body.id}/returns`)
+      .send({
+        reason: 'Sem vencimento de reembolso.',
+        items: [{ saleItemId: splitSaleItemId, quantity: 1 }],
+      })
+      .expect(400);
+    const splitReturn = await request(app.getHttpServer())
+      .post(`/api/v1/sales/${splitSale.body.id}/returns`)
+      .send({
+        reason: 'Aplicação parcial e reembolso do excedente.',
+        dueDate: '2099-12-31',
+        items: [{ saleItemId: splitSaleItemId, quantity: 1 }],
+      })
+      .expect(201);
+    expect(splitReturn.body).toMatchObject({
+      creditApplied: '10',
+      refundAmount: '5',
+      refundEntry: {
+        direction: 'PAGAR',
+        amount: '5',
+        status: 'ABERTO',
+      },
+    });
+    const splitReceivable = await request(app.getHttpServer())
+      .get(`/api/v1/finance/entries/${splitSale.body.financialEntry.id}`)
+      .expect(200);
+    expect(splitReceivable.body).toMatchObject({
+      paid: '20',
+      creditedAmount: '10',
+      outstanding: '0',
+      status: 'PAGO',
     });
   });
 

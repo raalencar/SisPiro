@@ -80,6 +80,15 @@ export class FinanceService {
           sale: {
             select: { id: true, code: true, quoteId: true, createdAt: true },
           },
+          saleReturn: {
+            select: {
+              id: true,
+              code: true,
+              saleId: true,
+              creditApplied: true,
+              refundAmount: true,
+            },
+          },
           payments: true,
         },
         orderBy: [{ dueDate: 'asc' }, { code: 'asc' }],
@@ -152,6 +161,15 @@ export class FinanceService {
           sale: {
             select: { id: true, code: true, quoteId: true, createdAt: true },
           },
+          saleReturn: {
+            select: {
+              id: true,
+              code: true,
+              saleId: true,
+              creditApplied: true,
+              refundAmount: true,
+            },
+          },
           payments: true,
         },
       });
@@ -191,6 +209,15 @@ export class FinanceService {
         },
         sale: {
           select: { id: true, code: true, quoteId: true, createdAt: true },
+        },
+        saleReturn: {
+          select: {
+            id: true,
+            code: true,
+            saleId: true,
+            creditApplied: true,
+            refundAmount: true,
+          },
         },
         payments: { orderBy: { occurredAt: 'asc' } },
       },
@@ -234,6 +261,15 @@ export class FinanceService {
           sale: {
             select: { id: true, code: true, quoteId: true, createdAt: true },
           },
+          saleReturn: {
+            select: {
+              id: true,
+              code: true,
+              saleId: true,
+              creditApplied: true,
+              refundAmount: true,
+            },
+          },
           payments: true,
         },
       });
@@ -242,7 +278,8 @@ export class FinanceService {
       }
       if (
         entry.status === FinancialEntryStatus.CANCELADO ||
-        entry.status === FinancialEntryStatus.PAGO
+        entry.status === FinancialEntryStatus.PAGO ||
+        entry.status === FinancialEntryStatus.COMPENSADO
       ) {
         throw new ConflictException(
           'Não é possível registrar pagamento para lançamento pago ou cancelado.',
@@ -258,7 +295,7 @@ export class FinanceService {
         (sum, payment) => sum.plus(payment.amount),
         new Prisma.Decimal(0),
       );
-      const remaining = entry.amount.minus(paid);
+      const remaining = entry.amount.minus(paid).minus(entry.creditedAmount);
       const amount = new Prisma.Decimal(dto.amount);
       if (amount.gt(remaining)) {
         throw new ConflictException({
@@ -278,8 +315,13 @@ export class FinanceService {
         },
       });
       const nextPaid = paid.plus(amount);
-      const nextStatus = nextPaid.eq(entry.amount)
-        ? FinancialEntryStatus.PAGO
+      const outstanding = entry.amount
+        .minus(nextPaid)
+        .minus(entry.creditedAmount);
+      const nextStatus = outstanding.eq(0)
+        ? nextPaid.eq(0)
+          ? FinancialEntryStatus.COMPENSADO
+          : FinancialEntryStatus.PAGO
         : FinancialEntryStatus.PARCIAL;
       await tx.financialEntry.update({
         where: { id },
@@ -293,6 +335,7 @@ export class FinanceService {
           before: {
             status: entry.status,
             paid: paid.toString(),
+            creditedAmount: entry.creditedAmount.toString(),
             outstanding: remaining.toString(),
           },
           after: {
@@ -302,7 +345,8 @@ export class FinanceService {
             occurredAt: payment.occurredAt.toISOString(),
             status: nextStatus,
             paid: nextPaid.toString(),
-            outstanding: entry.amount.minus(nextPaid).toString(),
+            creditedAmount: entry.creditedAmount.toString(),
+            outstanding: outstanding.toString(),
           },
         },
       });
@@ -328,6 +372,15 @@ export class FinanceService {
           },
           sale: {
             select: { id: true, code: true, quoteId: true, createdAt: true },
+          },
+          saleReturn: {
+            select: {
+              id: true,
+              code: true,
+              saleId: true,
+              creditApplied: true,
+              refundAmount: true,
+            },
           },
           payments: { orderBy: { occurredAt: 'asc' } },
         },
@@ -384,6 +437,15 @@ export class FinanceService {
           },
           sale: {
             select: { id: true, code: true, quoteId: true, createdAt: true },
+          },
+          saleReturn: {
+            select: {
+              id: true,
+              code: true,
+              saleId: true,
+              creditApplied: true,
+              refundAmount: true,
+            },
           },
           payments: true,
         },
@@ -462,6 +524,7 @@ export class FinanceService {
   private serialize<
     T extends {
       amount: Prisma.Decimal;
+      creditedAmount: Prisma.Decimal;
       dueDate: Date;
       status: FinancialEntryStatus;
       payments: Array<{ amount: Prisma.Decimal }>;
@@ -471,7 +534,7 @@ export class FinanceService {
       (sum, payment) => sum.plus(payment.amount),
       new Prisma.Decimal(0),
     );
-    const outstanding = entry.amount.minus(paid);
+    const outstanding = entry.amount.minus(paid).minus(entry.creditedAmount);
     const overdue =
       outstanding.gt(0) &&
       entry.status !== FinancialEntryStatus.CANCELADO &&
@@ -481,6 +544,7 @@ export class FinanceService {
       ...entry,
       amount: entry.amount.toString(),
       paid: paid.toString(),
+      creditedAmount: entry.creditedAmount.toString(),
       outstanding: outstanding.toString(),
       overdue,
       payments: entry.payments,
