@@ -5,6 +5,7 @@ import {
   IsArray,
   IsBoolean,
   IsDateString,
+  IsEnum,
   IsNumber,
   IsOptional,
   IsString,
@@ -17,9 +18,17 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { SalesQuoteStatus } from '@prisma/client';
 import { PaginationQueryDto } from '../inventory/inventory.dto.js';
 
 export class SalesQueryDto extends PaginationQueryDto {}
+
+export class SalesQuotesQueryDto extends PaginationQueryDto {
+  @ApiPropertyOptional({ enum: SalesQuoteStatus })
+  @IsOptional()
+  @IsEnum(SalesQuoteStatus)
+  status?: SalesQuoteStatus;
+}
 
 export class PriceListsQueryDto extends PaginationQueryDto {
   @ApiPropertyOptional({ type: Boolean })
@@ -107,6 +116,8 @@ export class CreateSaleDto {
   @Type(() => CreateSaleItemDto)
   items!: CreateSaleItemDto[];
 }
+
+export class CreateSalesQuoteDto extends CreateSaleDto {}
 
 export class CreateSaleReturnItemDto {
   @ApiProperty({ format: 'uuid' })

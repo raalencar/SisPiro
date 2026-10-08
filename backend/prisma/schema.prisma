@@ -65,6 +65,13 @@ enum UserRole {
   FINANCEIRO
 }
 
+enum SalesQuoteStatus {
+  EMITIDO
+  CONVERTIDO
+  CANCELADO
+  EXPIRADO
+}
+
 model User {
   id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name         String        @db.VarChar(150)
@@ -109,20 +116,21 @@ model UsedRefreshToken {
 }
 
 model Product {
-  id            String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  sku           String             @unique @map("codigo_sku") @db.VarChar(50)
-  name          String             @map("nome") @db.VarChar(150)
-  type          ProductType        @map("tipo")
-  isPce         Boolean            @default(false) @map("eh_pce")
-  riskClass     String?            @map("classe_risco") @db.VarChar(20)
-  neqGrams      Decimal            @default(0) @map("massa_neq_gramas") @db.Decimal(10, 3)
-  unit          String             @map("unidade_medida") @db.VarChar(10)
-  createdAt     DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
-  lots          ProductLot[]
-  serviceItems  ServiceOrderItem[]
-  prices        PriceListItem[]
-  saleItems     SaleItem[]
-  purchaseItems PurchaseItem[]
+  id              String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sku             String             @unique @map("codigo_sku") @db.VarChar(50)
+  name            String             @map("nome") @db.VarChar(150)
+  type            ProductType        @map("tipo")
+  isPce           Boolean            @default(false) @map("eh_pce")
+  riskClass       String?            @map("classe_risco") @db.VarChar(20)
+  neqGrams        Decimal            @default(0) @map("massa_neq_gramas") @db.Decimal(10, 3)
+  unit            String             @map("unidade_medida") @db.VarChar(10)
+  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  lots            ProductLot[]
+  serviceItems    ServiceOrderItem[]
+  prices          PriceListItem[]
+  saleItems       SaleItem[]
+  salesQuoteItems SalesQuoteItem[]
+  purchaseItems   PurchaseItem[]
 
   @@map("produtos")
 }
@@ -156,6 +164,7 @@ model ProductLot {
   movements              StockMovement[]
   serviceItems           ServiceOrderItem[]
   saleItems              SaleItem[]
+  salesQuoteItems        SalesQuoteItem[]
   saleReturnItems        SaleReturnItem[]
   purchaseReceipts       PurchaseReceipt[]
 
@@ -176,6 +185,7 @@ model Customer {
   active               Boolean          @default(true) @map("ativo")
   serviceOrders        ServiceOrder[]
   sales                Sale[]
+  salesQuotes          SalesQuote[]
   financialEntries     FinancialEntry[]
 
   @@map("clientes")
@@ -285,6 +295,7 @@ model PriceList {
   createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
   items          PriceListItem[]
   sales          Sale[]
+  salesQuotes    SalesQuote[]
 
   @@index([active, effectiveFrom, effectiveUntil])
   @@map("tabelas_preco")
@@ -307,15 +318,54 @@ model Sale {
   code        Int          @unique @default(autoincrement()) @map("codigo_venda")
   customerId  String?      @map("cliente_id") @db.Uuid
   priceListId String       @map("tabela_preco_id") @db.Uuid
+  quoteId     String?      @unique @map("orcamento_id") @db.Uuid
   total       Decimal      @db.Decimal(12, 2)
   createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
   customer    Customer?    @relation(fields: [customerId], references: [id], onDelete: Restrict)
   priceList   PriceList    @relation(fields: [priceListId], references: [id], onDelete: Restrict)
+  quote       SalesQuote?  @relation(fields: [quoteId], references: [id], onDelete: Restrict)
   items       SaleItem[]
   returns     SaleReturn[]
 
   @@index([createdAt])
   @@map("vendas")
+}
+
+model SalesQuote {
+  id          String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code        Int              @unique @default(autoincrement()) @map("codigo_orcamento")
+  customerId  String?          @map("cliente_id") @db.Uuid
+  priceListId String           @map("tabela_preco_id") @db.Uuid
+  total       Decimal          @db.Decimal(12, 2)
+  status      SalesQuoteStatus @default(EMITIDO)
+  expiresAt   DateTime         @map("expira_em") @db.Timestamptz(3)
+  convertedAt DateTime?        @map("convertido_em") @db.Timestamptz(3)
+  cancelledAt DateTime?        @map("cancelado_em") @db.Timestamptz(3)
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  customer    Customer?        @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  priceList   PriceList        @relation(fields: [priceListId], references: [id], onDelete: Restrict)
+  items       SalesQuoteItem[]
+  sale        Sale?
+
+  @@index([status, expiresAt, createdAt])
+  @@index([customerId, createdAt])
+  @@map("orcamentos_venda")
+}
+
+model SalesQuoteItem {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  quoteId      String     @map("orcamento_id") @db.Uuid
+  productId    String     @map("produto_id") @db.Uuid
+  productLotId String     @map("produto_lote_id") @db.Uuid
+  quantity     Decimal    @db.Decimal(10, 2)
+  unitPrice    Decimal    @map("preco_unitario") @db.Decimal(12, 2)
+  subtotal     Decimal    @db.Decimal(12, 2)
+  quote        SalesQuote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Restrict)
+  productLot   ProductLot @relation(fields: [productLotId], references: [id], onDelete: Restrict)
+
+  @@index([productLotId, quoteId])
+  @@map("itens_orcamento_venda")
 }
 
 model SaleItem {

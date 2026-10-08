@@ -7,6 +7,7 @@ import {
 import {
   Prisma,
   ProductType,
+  SalesQuoteStatus,
   ServiceOrderStatus,
   StockMovementType,
 } from '@prisma/client';
@@ -655,10 +656,7 @@ export class InventoryService {
         productLotId: lotId,
         serviceOrder: {
           status: {
-            in: [
-              ServiceOrderStatus.APROVADO,
-              ServiceOrderStatus.EM_MONTAGEM,
-            ],
+            in: [ServiceOrderStatus.APROVADO, ServiceOrderStatus.EM_MONTAGEM],
           },
         },
       },
@@ -666,17 +664,30 @@ export class InventoryService {
     });
     const reservedQuantity =
       reserved._sum.plannedQuantity ?? new Prisma.Decimal(0);
+    const activeSalesQuotes = await tx.salesQuoteItem.aggregate({
+      where: {
+        productLotId: lotId,
+        quote: {
+          status: SalesQuoteStatus.EMITIDO,
+          expiresAt: { gt: new Date() },
+        },
+      },
+      _sum: { quantity: true },
+    });
+    const quoteReserved =
+      activeSalesQuotes._sum.quantity ?? new Prisma.Decimal(0);
+    const totalReserved = reservedQuantity.plus(quoteReserved);
     const lot = await tx.productLot.findUnique({
       where: { id: lotId },
       select: { quantity: true },
     });
     const available = (lot?.quantity ?? new Prisma.Decimal(0)).minus(
-      reservedQuantity,
+      totalReserved,
     );
     if (available.lt(quantityToRemove)) {
       throw new ConflictException({
         message:
-          'Movimentação bloqueada: o saldo está reservado por ordem de serviço.',
+          'Movimentação bloqueada: o saldo está reservado por ordem de serviço ou orçamento comercial.',
         lotId,
         available: available.toString(),
         requested: quantityToRemove.toString(),

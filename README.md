@@ -40,8 +40,10 @@ comandos e configuração de persistência.
 ## Estado da integração
 
 O backend já expõe APIs de negócio para estoque/WMS, clientes, blasters, ordens
-de serviço, compras/fornecedores, tabelas de preço, vendas/PDV, devoluções e
-contas a pagar/receber, além de autenticação JWT e perfis de acesso por módulo.
+de serviço, compras/fornecedores, tabelas de preço, orçamentos comerciais,
+vendas/PDV, devoluções e contas a pagar/receber, além de autenticação JWT e
+perfis de acesso por módulo. Orçamentos comerciais reservam estoque por sete
+dias e podem ser convertidos em venda preservando os preços cotados.
 Cada recebimento de compra cria atomicamente uma conta a pagar com valor
 proporcional, fornecedor, vencimento e referência fiscal. O frontend integra
 somente os endpoints de liveness e readiness:

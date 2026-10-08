@@ -4,16 +4,25 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, ServiceOrderStatus, StockMovementType } from '@prisma/client';
+import {
+  Prisma,
+  SalesQuoteStatus,
+  ServiceOrderStatus,
+  StockMovementType,
+} from '@prisma/client';
 import { rethrowKnownPrismaError } from '../../common/prisma-errors.js';
 import { PrismaService } from '../../database/prisma.service.js';
 import {
   CreatePriceListDto,
+  CreateSalesQuoteDto,
   CreateSaleDto,
   CreateSaleReturnDto,
   PriceListsQueryDto,
+  SalesQuotesQueryDto,
   SalesQueryDto,
 } from './commercial.dto.js';
+
+const SALES_QUOTE_VALIDITY_DAYS = 7;
 
 @Injectable()
 export class CommercialService {
@@ -141,6 +150,340 @@ export class CommercialService {
       throw new NotFoundException('Venda não encontrada.');
     }
     return sale;
+  }
+
+  async listSalesQuotes(query: SalesQuotesQueryDto) {
+    const now = new Date();
+    const conditions: Prisma.SalesQuoteWhereInput[] = [];
+    if (query.status === SalesQuoteStatus.EXPIRADO) {
+      conditions.push({
+        OR: [
+          { status: SalesQuoteStatus.EXPIRADO },
+          {
+            status: SalesQuoteStatus.EMITIDO,
+            expiresAt: { lte: now },
+          },
+        ],
+      });
+    } else if (query.status === SalesQuoteStatus.EMITIDO) {
+      conditions.push({
+        status: SalesQuoteStatus.EMITIDO,
+        expiresAt: { gt: now },
+      });
+    } else if (query.status) {
+      conditions.push({ status: query.status });
+    }
+    if (query.search) {
+      conditions.push({
+        OR: [
+          ...(Number.isSafeInteger(Number(query.search))
+            ? [{ code: Number(query.search) }]
+            : []),
+          {
+            customer: {
+              legalName: {
+                contains: query.search,
+                mode: 'insensitive',
+              },
+            },
+          },
+        ],
+      });
+    }
+    const where: Prisma.SalesQuoteWhereInput = conditions.length
+      ? { AND: conditions }
+      : {};
+    const [quotes, total] = await Promise.all([
+      this.prisma.salesQuote.findMany({
+        where,
+        include: {
+          customer: true,
+          priceList: true,
+          items: { include: { product: true, productLot: true } },
+          sale: { select: { id: true, code: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+      }),
+      this.prisma.salesQuote.count({ where }),
+    ]);
+    return this.paginated(
+      quotes.map((quote) => this.withEffectiveQuoteStatus(quote, now)),
+      total,
+      query,
+    );
+  }
+
+  async getSalesQuote(id: string) {
+    const quote = await this.prisma.salesQuote.findUnique({
+      where: { id },
+      include: {
+        customer: true,
+        priceList: true,
+        items: { include: { product: true, productLot: true } },
+        sale: { select: { id: true, code: true } },
+      },
+    });
+    if (!quote) {
+      throw new NotFoundException('Orçamento comercial não encontrado.');
+    }
+    return this.withEffectiveQuoteStatus(quote);
+  }
+
+  async createSalesQuote(dto: CreateSalesQuoteDto) {
+    const lotIds = dto.items.map((item) => item.productLotId).sort();
+    return this.prisma.$transaction(
+      async (tx) => {
+        await this.lockLots(tx, lotIds);
+        const [priceList, lots, customer] = await Promise.all([
+          tx.priceList.findUnique({
+            where: { id: dto.priceListId },
+            include: { items: true },
+          }),
+          tx.productLot.findMany({
+            where: { id: { in: lotIds } },
+            include: { product: true },
+          }),
+          dto.customerId
+            ? tx.customer.findUnique({ where: { id: dto.customerId } })
+            : Promise.resolve(null),
+        ]);
+        if (!priceList) {
+          throw new NotFoundException('Tabela de preço não encontrada.');
+        }
+        this.assertPriceListActive(priceList);
+        this.assertCustomerActive(customer, dto.customerId);
+        if (lots.length !== lotIds.length) {
+          throw new NotFoundException('Um ou mais lotes não foram encontrados.');
+        }
+        const lotById = new Map(lots.map((lot) => [lot.id, lot]));
+        const priceByProduct = new Map(
+          priceList.items.map((item) => [item.productId, item.unitPrice]),
+        );
+        const pceClasses = new Set<string>();
+        const quoteLines: Array<{
+          productId: string;
+          productLotId: string;
+          quantity: Prisma.Decimal;
+          unitPrice: Prisma.Decimal;
+          subtotal: Prisma.Decimal;
+        }> = [];
+        const now = new Date();
+
+        for (const item of dto.items) {
+          const lot = lotById.get(item.productLotId)!;
+          const unitPrice = priceByProduct.get(lot.productId);
+          if (!unitPrice) {
+            throw new ConflictException(
+              `Produto ${lot.product.name} não possui preço nesta tabela.`,
+            );
+          }
+          this.assertNotExpired(lot.expiresAt);
+          if (lot.product.isPce) {
+            if (!lot.product.riskClass) {
+              throw new ConflictException(
+                `Produto PCE ${lot.product.name} sem classe de risco não pode ser orçado.`,
+              );
+            }
+            pceClasses.add(lot.product.riskClass);
+          }
+
+          const quantity = new Prisma.Decimal(item.quantity);
+          const serviceReservations = await tx.serviceOrderItem.aggregate({
+            where: {
+              productLotId: lot.id,
+              serviceOrder: {
+                status: {
+                  in: [
+                    ServiceOrderStatus.APROVADO,
+                    ServiceOrderStatus.EM_MONTAGEM,
+                  ],
+                },
+              },
+            },
+            _sum: { plannedQuantity: true },
+          });
+          const quoteReservations = await tx.salesQuoteItem.aggregate({
+            where: {
+              productLotId: lot.id,
+              quote: {
+                status: SalesQuoteStatus.EMITIDO,
+                expiresAt: { gt: now },
+              },
+            },
+            _sum: { quantity: true },
+          });
+          const serviceReserved =
+            serviceReservations._sum.plannedQuantity ??
+            new Prisma.Decimal(0);
+          const quoteReserved =
+            quoteReservations._sum.quantity ?? new Prisma.Decimal(0);
+          const reserved = serviceReserved.plus(quoteReserved);
+          const available = lot.quantity.minus(reserved);
+          if (available.lt(quantity)) {
+            throw new ConflictException({
+              message: `Estoque disponível insuficiente para orçar o lote ${lot.lotNumber}.`,
+              lotId: lot.id,
+              physicalQuantity: lot.quantity.toString(),
+              alreadyReserved: reserved.toString(),
+              requested: quantity.toString(),
+              available: available.toString(),
+            });
+          }
+          quoteLines.push({
+            productId: lot.productId,
+            productLotId: lot.id,
+            quantity,
+            unitPrice,
+            subtotal: unitPrice.mul(quantity).toDecimalPlaces(2),
+          });
+        }
+        this.assertCustomerCanPurchasePce(customer, pceClasses);
+        const total = quoteLines.reduce(
+          (sum, line) => sum.plus(line.subtotal),
+          new Prisma.Decimal(0),
+        );
+        const expiresAt = new Date(
+          now.getTime() + SALES_QUOTE_VALIDITY_DAYS * 24 * 60 * 60 * 1000,
+        );
+        const quote = await tx.salesQuote.create({
+          data: {
+            customerId: customer?.id ?? null,
+            priceListId: priceList.id,
+            total,
+            expiresAt,
+            items: { create: quoteLines },
+          },
+          include: {
+            customer: true,
+            priceList: true,
+            items: { include: { product: true, productLot: true } },
+          },
+        });
+        await tx.auditLog.create({
+          data: {
+            action: 'sales-quote.created',
+            aggregateType: 'SalesQuote',
+            aggregateId: quote.id,
+            after: {
+              code: quote.code,
+              status: quote.status,
+              customerId: quote.customerId,
+              priceListId: quote.priceListId,
+              total: quote.total.toString(),
+              expiresAt: quote.expiresAt.toISOString(),
+              itemCount: quote.items.length,
+            },
+          },
+        });
+        return quote;
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
+    );
+  }
+
+  async cancelSalesQuote(id: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const rows = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT "id" FROM "orcamentos_venda" WHERE "id" = ${id}::uuid FOR UPDATE
+      `;
+      if (!rows.length) {
+        throw new NotFoundException('Orçamento comercial não encontrado.');
+      }
+      const quote = await tx.salesQuote.findUnique({ where: { id } });
+      if (!quote) {
+        throw new NotFoundException('Orçamento comercial não encontrado.');
+      }
+      const effectiveStatus = this.effectiveQuoteStatus(quote);
+      if (effectiveStatus !== SalesQuoteStatus.EMITIDO) {
+        throw new ConflictException(
+          'Somente orçamentos emitidos e dentro da validade podem ser cancelados.',
+        );
+      }
+      const cancelled = await tx.salesQuote.update({
+        where: { id },
+        data: {
+          status: SalesQuoteStatus.CANCELADO,
+          cancelledAt: new Date(),
+        },
+        include: {
+          customer: true,
+          priceList: true,
+          items: { include: { product: true, productLot: true } },
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          action: 'sales-quote.cancelled',
+          aggregateType: 'SalesQuote',
+          aggregateId: id,
+          before: { status: quote.status },
+          after: { status: cancelled.status },
+        },
+      });
+      return cancelled;
+    });
+  }
+
+  async convertSalesQuote(id: string) {
+    return this.prisma.$transaction(
+      async (tx) => {
+        const rows = await tx.$queryRaw<Array<{ id: string }>>`
+          SELECT "id" FROM "orcamentos_venda" WHERE "id" = ${id}::uuid FOR UPDATE
+        `;
+        if (!rows.length) {
+          throw new NotFoundException('Orçamento comercial não encontrado.');
+        }
+        const quote = await tx.salesQuote.findUnique({
+          where: { id },
+          include: { items: true },
+        });
+        if (!quote) {
+          throw new NotFoundException('Orçamento comercial não encontrado.');
+        }
+        if (this.effectiveQuoteStatus(quote) !== SalesQuoteStatus.EMITIDO) {
+          throw new ConflictException(
+            'Somente orçamento emitido e dentro da validade pode ser convertido.',
+          );
+        }
+        const sale = await this.completeSaleInTransaction(
+          tx,
+          {
+            customerId: quote.customerId ?? undefined,
+            priceListId: quote.priceListId,
+            items: quote.items.map((item) => ({
+              productLotId: item.productLotId,
+              quantity: item.quantity.toNumber(),
+            })),
+          },
+          quote,
+        );
+        const convertedAt = new Date();
+        const updatedQuote = await tx.salesQuote.update({
+          where: { id },
+          data: {
+            status: SalesQuoteStatus.CONVERTIDO,
+            convertedAt,
+          },
+        });
+        await tx.auditLog.create({
+          data: {
+            action: 'sales-quote.converted',
+            aggregateType: 'SalesQuote',
+            aggregateId: id,
+            before: { status: quote.status },
+            after: {
+              status: updatedQuote.status,
+              saleId: sale.id,
+              saleCode: sale.code,
+            },
+          },
+        });
+        return { quote: updatedQuote, sale };
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
+    );
   }
 
   async listSaleReturns(saleId: string) {
@@ -330,9 +673,27 @@ export class CommercialService {
   }
 
   async createSale(dto: CreateSaleDto) {
-    const lotIds = dto.items.map((item) => item.productLotId).sort();
     return this.prisma.$transaction(
-      async (tx) => {
+      (tx) => this.completeSaleInTransaction(tx, dto),
+      { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
+    );
+  }
+
+  private async completeSaleInTransaction(
+    tx: Prisma.TransactionClient,
+    dto: CreateSaleDto,
+    quote?: {
+      id: string;
+      items: Array<{
+        productId: string;
+        productLotId: string;
+        quantity: Prisma.Decimal;
+        unitPrice: Prisma.Decimal;
+        subtotal: Prisma.Decimal;
+      }>;
+    },
+  ) {
+        const lotIds = dto.items.map((item) => item.productLotId).sort();
         await this.lockLots(tx, lotIds);
         const [priceList, lots, customer] = await Promise.all([
           tx.priceList.findUnique({
@@ -350,19 +711,19 @@ export class CommercialService {
         if (!priceList) {
           throw new NotFoundException('Tabela de preço não encontrada.');
         }
-        this.assertPriceListActive(priceList);
-        if (dto.customerId && !customer) {
-          throw new NotFoundException('Cliente não encontrado.');
+        if (!quote) {
+          this.assertPriceListActive(priceList);
         }
-        if (customer && !customer.active) {
-          throw new ConflictException('Cliente inativo não pode realizar venda.');
-        }
+        this.assertCustomerActive(customer, dto.customerId);
         if (lots.length !== lotIds.length) {
           throw new NotFoundException('Um ou mais lotes não foram encontrados.');
         }
         const lotById = new Map(lots.map((lot) => [lot.id, lot]));
         const priceByProduct = new Map(
           priceList.items.map((item) => [item.productId, item.unitPrice]),
+        );
+        const quotedItemByLot = new Map(
+          quote?.items.map((item) => [item.productLotId, item]),
         );
         const saleLines: Array<{
           productId: string;
@@ -375,7 +736,13 @@ export class CommercialService {
 
         for (const item of dto.items) {
           const lot = lotById.get(item.productLotId)!;
-          const unitPrice = priceByProduct.get(lot.productId);
+          const quotedItem = quotedItemByLot.get(lot.id);
+          const unitPrice =
+            quotedItem?.productId === lot.productId
+              ? quotedItem.unitPrice
+              : quote
+                ? undefined
+                : priceByProduct.get(lot.productId);
           if (!unitPrice) {
             throw new ConflictException(
               `Produto ${lot.product.name} não possui preço nesta tabela.`,
@@ -407,55 +774,42 @@ export class CommercialService {
           });
           const reservedQuantity =
             reserved._sum.plannedQuantity ?? new Prisma.Decimal(0);
-          const available = lot.quantity.minus(reservedQuantity);
+          const activeQuoteReservations = await tx.salesQuoteItem.aggregate({
+            where: {
+              productLotId: lot.id,
+              quote: {
+                status: SalesQuoteStatus.EMITIDO,
+                expiresAt: { gt: new Date() },
+                ...(quote ? { id: { not: quote.id } } : {}),
+              },
+            },
+            _sum: { quantity: true },
+          });
+          const salesQuotesReserved =
+            activeQuoteReservations._sum.quantity ??
+            new Prisma.Decimal(0);
+          const totalReserved = reservedQuantity.plus(salesQuotesReserved);
+          const available = lot.quantity.minus(totalReserved);
           if (available.lt(quantity)) {
             throw new ConflictException({
               message: `Estoque disponível insuficiente para venda do lote ${lot.lotNumber}.`,
               lotId: lot.id,
               physicalQuantity: lot.quantity.toString(),
-              alreadyReserved: reservedQuantity.toString(),
+              alreadyReserved: totalReserved.toString(),
               requested: quantity.toString(),
               available: available.toString(),
             });
           }
-          const subtotal = unitPrice.mul(quantity).toDecimalPlaces(2);
           saleLines.push({
             productId: lot.productId,
             productLotId: lot.id,
             quantity,
             unitPrice,
-            subtotal,
+            subtotal: quotedItem?.subtotal ??
+              unitPrice.mul(quantity).toDecimalPlaces(2),
           });
         }
-        if (pceClasses.size > 0) {
-          if (!customer) {
-            throw new ConflictException(
-              'Venda de PCE exige cliente identificado com CR válido e classes autorizadas.',
-            );
-          }
-          const today = new Date().toISOString().slice(0, 10);
-          const crExpires = customer.crExpiresAt?.toISOString().slice(0, 10);
-          const unauthorized = [...pceClasses].filter(
-            (riskClass) =>
-              !customer.authorizedPceClasses.includes(riskClass),
-          );
-          if (!customer.hasCr || !crExpires || crExpires < today || unauthorized.length) {
-            throw new ConflictException({
-              message: 'Cliente não está autorizado para os PCE desta venda.',
-              reasons: [
-                ...(!customer.hasCr
-                  ? ['Cliente sem Certificado de Registro informado.']
-                  : []),
-                ...(customer.hasCr && (!crExpires || crExpires < today)
-                  ? ['Certificado de Registro vencido ou sem validade.']
-                  : []),
-                ...(unauthorized.length
-                  ? [`Classes não autorizadas: ${unauthorized.join(', ')}.`]
-                  : []),
-              ],
-            });
-          }
-        }
+        this.assertCustomerCanPurchasePce(customer, pceClasses);
 
         const total = saleLines.reduce(
           (sum, item) => sum.plus(item.subtotal),
@@ -465,6 +819,7 @@ export class CommercialService {
           data: {
             customerId: dto.customerId ?? null,
             priceListId: priceList.id,
+            ...(quote ? { quoteId: quote.id } : {}),
             total,
             items: { create: saleLines },
           },
@@ -516,13 +871,11 @@ export class CommercialService {
               priceListId: sale.priceListId,
               total: sale.total.toString(),
               itemCount: sale.items.length,
+              ...(quote ? { quoteId: quote.id } : {}),
             },
           },
         });
         return sale;
-      },
-      { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
-    );
   }
 
   private assertPriceListActive(priceList: {
@@ -542,6 +895,80 @@ export class CommercialService {
         'Tabela de preço inativa ou fora do período de vigência.',
       );
     }
+  }
+
+  private assertCustomerActive(
+    customer: { active: boolean } | null,
+    customerId?: string,
+  ) {
+    if (customerId && !customer) {
+      throw new NotFoundException('Cliente não encontrado.');
+    }
+    if (customer && !customer.active) {
+      throw new ConflictException('Cliente inativo não pode realizar venda.');
+    }
+  }
+
+  private assertCustomerCanPurchasePce(
+    customer: {
+      hasCr: boolean;
+      crExpiresAt: Date | null;
+      authorizedPceClasses: string[];
+    } | null,
+    pceClasses: Set<string>,
+  ) {
+    if (pceClasses.size === 0) {
+      return;
+    }
+    if (!customer) {
+      throw new ConflictException(
+        'Venda de PCE exige cliente identificado com CR válido e classes autorizadas.',
+      );
+    }
+    const today = new Date().toISOString().slice(0, 10);
+    const crExpires = customer.crExpiresAt?.toISOString().slice(0, 10);
+    const unauthorized = [...pceClasses].filter(
+      (riskClass) => !customer.authorizedPceClasses.includes(riskClass),
+    );
+    if (!customer.hasCr || !crExpires || crExpires < today || unauthorized.length) {
+      throw new ConflictException({
+        message: 'Cliente não está autorizado para os PCE desta venda.',
+        reasons: [
+          ...(!customer.hasCr
+            ? ['Cliente sem Certificado de Registro informado.']
+            : []),
+          ...(customer.hasCr && (!crExpires || crExpires < today)
+            ? ['Certificado de Registro vencido ou sem validade.']
+            : []),
+          ...(unauthorized.length
+            ? [`Classes não autorizadas: ${unauthorized.join(', ')}.`]
+            : []),
+        ],
+      });
+    }
+  }
+
+  private effectiveQuoteStatus(quote: {
+    status: SalesQuoteStatus;
+    expiresAt: Date;
+  }) {
+    return quote.status === SalesQuoteStatus.EMITIDO &&
+      quote.expiresAt <= new Date()
+      ? SalesQuoteStatus.EXPIRADO
+      : quote.status;
+  }
+
+  private withEffectiveQuoteStatus<T extends {
+    status: SalesQuoteStatus;
+    expiresAt: Date;
+  }>(quote: T, now = new Date()) {
+    return {
+      ...quote,
+      status:
+        quote.status === SalesQuoteStatus.EMITIDO && quote.expiresAt <= now
+          ? SalesQuoteStatus.EXPIRADO
+          : quote.status,
+    };
   }
 
   private assertNotExpired(expiresAt: Date) {

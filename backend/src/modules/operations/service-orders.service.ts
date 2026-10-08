@@ -7,6 +7,7 @@ import {
 import {
   Prisma,
   ProductType,
+  SalesQuoteStatus,
   ServiceOrderStatus,
   StockMovementType,
 } from '@prisma/client';
@@ -39,8 +40,14 @@ export class ServiceOrdersService {
       ...(query.search
         ? {
             OR: [
-              { eventLocation: { contains: query.search, mode: 'insensitive' } },
-              { customer: { legalName: { contains: query.search, mode: 'insensitive' } } },
+              {
+                eventLocation: { contains: query.search, mode: 'insensitive' },
+              },
+              {
+                customer: {
+                  legalName: { contains: query.search, mode: 'insensitive' },
+                },
+              },
               ...(Number.isSafeInteger(Number(query.search))
                 ? [{ code: Number(query.search) }]
                 : []),
@@ -259,13 +266,26 @@ export class ServiceOrdersService {
         });
         const reserved =
           activeReservations._sum.plannedQuantity ?? new Prisma.Decimal(0);
-        const available = lot.quantity.minus(reserved);
+        const activeSalesQuotes = await tx.salesQuoteItem.aggregate({
+          where: {
+            productLotId: lot.id,
+            quote: {
+              status: SalesQuoteStatus.EMITIDO,
+              expiresAt: { gt: new Date() },
+            },
+          },
+          _sum: { quantity: true },
+        });
+        const quoteReserved =
+          activeSalesQuotes._sum.quantity ?? new Prisma.Decimal(0);
+        const totalReserved = reserved.plus(quoteReserved);
+        const available = lot.quantity.minus(totalReserved);
         if (available.lt(item.plannedQuantity)) {
           throw new ConflictException({
             message: `Estoque disponível insuficiente para o lote ${lot.lotNumber}.`,
             lotId: lot.id,
             physicalQuantity: lot.quantity.toString(),
-            alreadyReserved: reserved.toString(),
+            alreadyReserved: totalReserved.toString(),
             requested: item.plannedQuantity.toString(),
             available: available.toString(),
           });
@@ -290,18 +310,24 @@ export class ServiceOrdersService {
           },
         },
       });
-      await this.audit(tx, 'service-order.approved', id, {
-        status: order.status,
-      }, {
-        status: updated.status,
-        responsibleBlasterId: updated.responsibleBlasterId,
-        artNumber: updated.artNumber,
-        reservedItems: updated.items.map((item) => ({
-          itemId: item.id,
-          productLotId: item.productLotId,
-          quantity: item.plannedQuantity.toString(),
-        })),
-      });
+      await this.audit(
+        tx,
+        'service-order.approved',
+        id,
+        {
+          status: order.status,
+        },
+        {
+          status: updated.status,
+          responsibleBlasterId: updated.responsibleBlasterId,
+          artNumber: updated.artNumber,
+          reservedItems: updated.items.map((item) => ({
+            itemId: item.id,
+            productLotId: item.productLotId,
+            quantity: item.plannedQuantity.toString(),
+          })),
+        },
+      );
       return this.serializeOrder(updated);
     });
   }
@@ -323,7 +349,11 @@ export class ServiceOrdersService {
         reasons: eligibility.reasons,
       });
     }
-    return this.transition(id, ServiceOrderStatus.APROVADO, ServiceOrderStatus.EM_MONTAGEM);
+    return this.transition(
+      id,
+      ServiceOrderStatus.APROVADO,
+      ServiceOrderStatus.EM_MONTAGEM,
+    );
   }
 
   async cancel(id: string) {
@@ -376,7 +406,9 @@ export class ServiceOrdersService {
           'O relatório deve informar a quantidade disparada de cada item da OS.',
         );
       }
-      const reportByItem = new Map(dto.items.map((item) => [item.itemId, item]));
+      const reportByItem = new Map(
+        dto.items.map((item) => [item.itemId, item]),
+      );
       const itemIds = new Set(order.items.map((item) => item.id));
       if (dto.items.some((item) => !itemIds.has(item.itemId))) {
         throw new BadRequestException(
@@ -384,7 +416,9 @@ export class ServiceOrdersService {
         );
       }
 
-      const lotIds = [...new Set(order.items.map((item) => item.productLotId))].sort();
+      const lotIds = [
+        ...new Set(order.items.map((item) => item.productLotId)),
+      ].sort();
       await this.lockLots(tx, lotIds);
       const totalsByLot = new Map<string, Prisma.Decimal>();
       for (const item of order.items) {
@@ -432,13 +466,19 @@ export class ServiceOrdersService {
             where: { id: lot.id },
             data: { quantity: lot.quantity.minus(fired) },
           });
-          await this.audit(tx, 'service-order.material-consumed', id, undefined, {
-            orderCode: order.code,
-            productLotId: lot.id,
-            quantity: fired.toString(),
-            neqKg: fired.mul(lot.product.neqGrams).div(1000).toString(),
-            movementId: movement.id,
-          });
+          await this.audit(
+            tx,
+            'service-order.material-consumed',
+            id,
+            undefined,
+            {
+              orderCode: order.code,
+              productLotId: lot.id,
+              quantity: fired.toString(),
+              neqKg: fired.mul(lot.product.neqGrams).div(1000).toString(),
+              movementId: movement.id,
+            },
+          );
         }
       }
 
@@ -466,17 +506,23 @@ export class ServiceOrdersService {
           },
         },
       });
-      await this.audit(tx, 'service-order.executed', id, {
-        status: order.status,
-      }, {
-        status: updated.status,
-        reportNotes: dto.reportNotes?.trim() ?? null,
-        firedItems: dto.items.map((item) => ({
-          itemId: item.itemId,
-          quantity: item.firedQuantity,
-        })),
-        unusedReservationsReleased: true,
-      });
+      await this.audit(
+        tx,
+        'service-order.executed',
+        id,
+        {
+          status: order.status,
+        },
+        {
+          status: updated.status,
+          reportNotes: dto.reportNotes?.trim() ?? null,
+          firedItems: dto.items.map((item) => ({
+            itemId: item.itemId,
+            quantity: item.firedQuantity,
+          })),
+          unusedReservationsReleased: true,
+        },
+      );
       return this.serializeOrder(updated);
     });
   }
@@ -547,8 +593,13 @@ export class ServiceOrdersService {
   }
 
   private assertNotExpired(expiresAt: Date): void {
-    if (expiresAt.toISOString().slice(0, 10) < new Date().toISOString().slice(0, 10)) {
-      throw new ConflictException('Lote vencido não pode ser reservado para uma OS.');
+    if (
+      expiresAt.toISOString().slice(0, 10) <
+      new Date().toISOString().slice(0, 10)
+    ) {
+      throw new ConflictException(
+        'Lote vencido não pode ser reservado para uma OS.',
+      );
     }
   }
 
@@ -589,23 +640,27 @@ export class ServiceOrdersService {
     });
   }
 
-  private serializeOrder<T extends {
-    id: string;
-    code: number;
-    status: ServiceOrderStatus;
-    items: Array<{
+  private serializeOrder<
+    T extends {
       id: string;
-      plannedQuantity: Prisma.Decimal;
-      firedQuantity: Prisma.Decimal | null;
-      product: { neqGrams: Prisma.Decimal; isPce: boolean; riskClass: string | null };
-    }>;
-  }>(order: T) {
+      code: number;
+      status: ServiceOrderStatus;
+      items: Array<{
+        id: string;
+        plannedQuantity: Prisma.Decimal;
+        firedQuantity: Prisma.Decimal | null;
+        product: {
+          neqGrams: Prisma.Decimal;
+          isPce: boolean;
+          riskClass: string | null;
+        };
+      }>;
+    },
+  >(order: T) {
     const reservedNeqKg = order.items
       .reduce(
         (total, item) =>
-          total.plus(
-            item.plannedQuantity.mul(item.product.neqGrams).div(1000),
-          ),
+          total.plus(item.plannedQuantity.mul(item.product.neqGrams).div(1000)),
         new Prisma.Decimal(0),
       )
       .toString();

@@ -20,6 +20,7 @@ describe('Commercial sales API (e2e)', () => {
   const lotIds: string[] = [];
   const priceListIds: string[] = [];
   const saleIds: string[] = [];
+  const salesQuoteIds: string[] = [];
   const orderIds: string[] = [];
 
   beforeAll(async () => {
@@ -43,6 +44,9 @@ describe('Commercial sales API (e2e)', () => {
   afterAll(async () => {
     await prisma.saleReturn.deleteMany({ where: { saleId: { in: saleIds } } });
     await prisma.sale.deleteMany({ where: { id: { in: saleIds } } });
+    await prisma.salesQuote.deleteMany({
+      where: { id: { in: salesQuoteIds } },
+    });
     await prisma.serviceOrder.deleteMany({
       where: { id: { in: orderIds } },
     });
@@ -53,6 +57,7 @@ describe('Commercial sales API (e2e)', () => {
       where: {
         OR: [
           { aggregateId: { in: saleIds } },
+          { aggregateId: { in: salesQuoteIds } },
           { aggregateId: { in: orderIds } },
           { aggregateId: { in: priceListIds } },
           { aggregateId: { in: customerIds } },
@@ -256,6 +261,268 @@ describe('Commercial sales API (e2e)', () => {
       .expect(201);
   });
 
+  it('reserves quoted stock for seven days and converts atomically at snapshot prices', async () => {
+    const product = await createProduct('QCONV', false);
+    const lot = await createLot(
+      product.body.id as string,
+      `QUOTE-${suffix}`,
+      10,
+    );
+    const list = await createPriceList(product.body.id as string, 7.25);
+    const quote = await createSalesQuote(list.id, lot.body.id as string, 4);
+    salesQuoteIds.push(quote.body.id as string);
+
+    expect(quote.body.status).toBe('EMITIDO');
+    expect(quote.body.total).toBe('29');
+    expect(new Date(quote.body.expiresAt).getTime()).toBeGreaterThan(
+      Date.now() + 6 * 24 * 60 * 60 * 1000,
+    );
+    expect(new Date(quote.body.expiresAt).getTime()).toBeLessThan(
+      Date.now() + 8 * 24 * 60 * 60 * 1000,
+    );
+
+    await request(app.getHttpServer())
+      .post('/api/v1/sales')
+      .send({
+        priceListId: list.id,
+        items: [{ productLotId: lot.body.id, quantity: 7 }],
+      })
+      .expect(409);
+    await request(app.getHttpServer())
+      .get('/api/v1/sales/quotes?status=EMITIDO')
+      .expect(200)
+      .expect(({ body }) => {
+        expect(
+          body.data.some((item: { id: string }) => item.id === quote.body.id),
+        ).toBe(true);
+      });
+
+    const converted = await request(app.getHttpServer())
+      .post(`/api/v1/sales/quotes/${quote.body.id}/convert`)
+      .expect(201);
+    saleIds.push(converted.body.sale.id as string);
+    expect(converted.body.quote.status).toBe('CONVERTIDO');
+    expect(converted.body.sale.quoteId).toBe(quote.body.id);
+    expect(converted.body.sale.total).toBe('29');
+    expect(converted.body.sale.items[0].unitPrice).toBe('7.25');
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/sales/quotes/${quote.body.id}/convert`)
+      .expect(409);
+    const stock = await request(app.getHttpServer())
+      .get(`/api/v1/inventory/lots/${lot.body.id}`)
+      .expect(200);
+    expect(stock.body.quantity).toBe('6');
+  });
+
+  it('releases stock when a quote is cancelled or expired', async () => {
+    const product = await createProduct('QREL', false);
+    const cancelledLot = await createLot(
+      product.body.id as string,
+      `CANCEL-${suffix}`,
+      10,
+    );
+    const list = await createPriceList(product.body.id as string, 2);
+    const cancelledQuote = await createSalesQuote(
+      list.id,
+      cancelledLot.body.id as string,
+      6,
+    );
+    salesQuoteIds.push(cancelledQuote.body.id as string);
+    await request(app.getHttpServer())
+      .post(`/api/v1/sales/quotes/${cancelledQuote.body.id}/cancel`)
+      .expect(201);
+    const saleAfterCancel = await request(app.getHttpServer())
+      .post('/api/v1/sales')
+      .send({
+        priceListId: list.id,
+        items: [{ productLotId: cancelledLot.body.id, quantity: 10 }],
+      })
+      .expect(201);
+    saleIds.push(saleAfterCancel.body.id as string);
+
+    const expiredLot = await createLot(
+      product.body.id as string,
+      `EXPIRE-${suffix}`,
+      5,
+    );
+    const expiredQuote = await createSalesQuote(
+      list.id,
+      expiredLot.body.id as string,
+      4,
+    );
+    salesQuoteIds.push(expiredQuote.body.id as string);
+    await prisma.salesQuote.update({
+      where: { id: expiredQuote.body.id as string },
+      data: { expiresAt: new Date(Date.now() - 1000) },
+    });
+
+    await request(app.getHttpServer())
+      .get(`/api/v1/sales/quotes/${expiredQuote.body.id}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.status).toBe('EXPIRADO');
+      });
+    await request(app.getHttpServer())
+      .post(`/api/v1/sales/quotes/${expiredQuote.body.id}/cancel`)
+      .expect(409);
+    const saleAfterExpiry = await request(app.getHttpServer())
+      .post('/api/v1/sales')
+      .send({
+        priceListId: list.id,
+        items: [{ productLotId: expiredLot.body.id, quantity: 5 }],
+      })
+      .expect(201);
+    saleIds.push(saleAfterExpiry.body.id as string);
+  });
+
+  it('serializes concurrent quote reservations for the same lot', async () => {
+    const product = await createProduct('QRACE', false);
+    const lot = await createLot(
+      product.body.id as string,
+      `QRACE-${suffix}`,
+      10,
+    );
+    const list = await createPriceList(product.body.id as string, 5);
+
+    const quotes = await Promise.all([
+      request(app.getHttpServer())
+        .post('/api/v1/sales/quotes')
+        .send({
+          priceListId: list.id,
+          items: [{ productLotId: lot.body.id, quantity: 6 }],
+        }),
+      request(app.getHttpServer())
+        .post('/api/v1/sales/quotes')
+        .send({
+          priceListId: list.id,
+          items: [{ productLotId: lot.body.id, quantity: 6 }],
+        }),
+    ]);
+    for (const response of quotes) {
+      if (response.status === 201) {
+        salesQuoteIds.push(response.body.id as string);
+      }
+    }
+    expect(
+      quotes
+        .map((response) => response.status)
+        .sort((first, second) => first - second),
+    ).toEqual([201, 409]);
+  });
+
+  it('protects quoted stock from manual movements and service-order approval', async () => {
+    const product = await createProduct('QLOCK', false);
+    const lot = await createLot(
+      product.body.id as string,
+      `QLOCK-${suffix}`,
+      10,
+    );
+    const list = await createPriceList(product.body.id as string, 3);
+    const quote = await createSalesQuote(list.id, lot.body.id as string, 6);
+    salesQuoteIds.push(quote.body.id as string);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/inventory/movements')
+      .send({
+        type: 'SAIDA',
+        productLotId: lot.body.id,
+        quantity: 5,
+        reference: `QUOTE-LOCK-${suffix}`,
+      })
+      .expect(409);
+
+    const customer = await request(app.getHttpServer())
+      .post('/api/v1/customers')
+      .send({
+        legalName: `Cliente OS orçamento ${suffix}`,
+        taxId: makeValidCnpj(),
+      })
+      .expect(201);
+    customerIds.push(customer.body.id as string);
+    const blaster = await request(app.getHttpServer())
+      .post('/api/v1/blasters')
+      .send({
+        name: `Blaster OS orçamento ${suffix}`,
+        taxId: makeValidCpf(),
+        licenseNumber: `LIC-QUOTE-${suffix}`,
+        licenseExpiresAt: '2099-12-31',
+      })
+      .expect(201);
+    blasterIds.push(blaster.body.id as string);
+    const order = await request(app.getHttpServer())
+      .post('/api/v1/operations/orders')
+      .send({
+        customerId: customer.body.id,
+        eventAt: '2099-12-30T20:00:00-03:00',
+        eventLocation: 'Evento reservado por orçamento comercial',
+        items: [
+          {
+            productId: product.body.id,
+            productLotId: lot.body.id,
+            plannedQuantity: 5,
+          },
+        ],
+      })
+      .expect(201);
+    orderIds.push(order.body.id as string);
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/operations/orders/${order.body.id}/approve`)
+      .send({ responsibleBlasterId: blaster.body.id })
+      .expect(409);
+    await request(app.getHttpServer())
+      .post(`/api/v1/operations/orders/${order.body.id}/cancel`)
+      .expect(201);
+  });
+
+  it('requires an authorized buyer when issuing a PCE sales quote', async () => {
+    const product = await createProduct('QPCE', true);
+    const lot = await createLot(product.body.id as string, `QPCE-${suffix}`, 5);
+    const list = await createPriceList(product.body.id as string, 8);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/sales/quotes')
+      .send({
+        priceListId: list.id,
+        items: [{ productLotId: lot.body.id, quantity: 1 }],
+      })
+      .expect(409);
+
+    const customer = await request(app.getHttpServer())
+      .post('/api/v1/customers')
+      .send({
+        legalName: `Cliente orçamento PCE ${suffix}`,
+        taxId: makeValidCnpj(),
+        hasCr: true,
+        crNumber: `CR-QUOTE-${suffix}`,
+        crExpiresAt: '2099-12-31',
+        authorizedPceClasses: ['1.3G'],
+      })
+      .expect(201);
+    customerIds.push(customer.body.id as string);
+
+    const quote = await request(app.getHttpServer())
+      .post('/api/v1/sales/quotes')
+      .send({
+        customerId: customer.body.id,
+        priceListId: list.id,
+        items: [{ productLotId: lot.body.id, quantity: 1 }],
+      })
+      .expect(201);
+    salesQuoteIds.push(quote.body.id as string);
+    await request(app.getHttpServer())
+      .patch(`/api/v1/customers/${customer.body.id}`)
+      .send({ active: false })
+      .expect(200);
+    await request(app.getHttpServer())
+      .post(`/api/v1/sales/quotes/${quote.body.id}/convert`)
+      .expect(409);
+    expect(
+      await prisma.sale.count({ where: { quoteId: quote.body.id as string } }),
+    ).toBe(0);
+  });
+
   async function createProduct(label: string, isPce: boolean) {
     const response = await request(app.getHttpServer())
       .post('/api/v1/inventory/products')
@@ -313,6 +580,20 @@ describe('Commercial sales API (e2e)', () => {
       .expect(201);
     priceListIds.push(response.body.id as string);
     return response.body as { id: string };
+  }
+
+  function createSalesQuote(
+    priceListId: string,
+    productLotId: string,
+    quantity: number,
+  ) {
+    return request(app.getHttpServer())
+      .post('/api/v1/sales/quotes')
+      .send({
+        priceListId,
+        items: [{ productLotId, quantity }],
+      })
+      .expect(201);
   }
 });
 

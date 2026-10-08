@@ -180,6 +180,10 @@ documental. Criações e atualizações registram audit log na mesma transação
 | `GET` | `/sales` | Lista vendas finalizadas com paginação |
 | `GET` | `/sales/:id` | Consulta venda, cliente, preços e itens |
 | `POST` | `/sales` | Finaliza checkout/PDV e baixa estoque atomicamente |
+| `GET` / `POST` | `/sales/quotes` | Lista orçamentos comerciais ou emite orçamento com reserva de sete dias |
+| `GET` | `/sales/quotes/:id` | Consulta orçamento, itens e estado da reserva |
+| `POST` | `/sales/quotes/:id/cancel` | Cancela orçamento e libera a reserva |
+| `POST` | `/sales/quotes/:id/convert` | Converte orçamento vigente em venda |
 | `GET` | `/sales/:id/returns` | Consulta devoluções registradas para uma venda |
 | `POST` | `/sales/:id/returns` | Registra devolução parcial/total e reentrada rastreável |
 
@@ -188,8 +192,17 @@ subtotais são copiados para a venda no checkout, preservando o valor praticado.
 Venda de balcão sem cliente identificado é permitida somente para produtos não
 PCE. Produtos PCE exigem cliente ativo, CR dentro da validade e autorização para
 todas as classes incluídas. A finalização bloqueia lotes vencidos, saldo já
-reservado por OS e estoque insuficiente, criando movimentações de saída e
-auditoria na mesma transação. O checkout concorrente do mesmo lote é serializado.
+reservado por OS ou por orçamento comercial vigente e estoque insuficiente,
+criando movimentações de saída e auditoria na mesma transação. O checkout
+concorrente do mesmo lote é serializado.
+
+Orçamentos comerciais preservam os preços cotados e reservam os lotes por sete
+dias. A emissão valida cliente, tabela de preço, elegibilidade PCE, validade do
+lote e saldo não comprometido, inclusive diante de outras reservas concorrentes.
+Orçamentos expirados deixam de reservar saldo; cancelamento libera a reserva.
+A conversão em venda preserva os preços cotados e baixa o estoque atomicamente.
+Ordens de serviço e saídas, transferências ou ajustes negativos de estoque
+respeitam essas reservas e não podem consumir o saldo comprometido.
 
 Devoluções identificam os itens da venda original e aceitam quantidades parciais,
 limitadas ao saldo ainda não devolvido. O sistema reentra os produtos no lote
@@ -198,8 +211,8 @@ exceder capacidade NEQ; registro, movimentações e auditoria são atômicos. Is
 controla a devolução física, mas não realiza estorno financeiro nem cancelamento
 de documento fiscal.
 
-Este ciclo ainda não oferece orçamentos/carrinho persistente, tabela promocional
-ou integração fiscal. Não emite NF-e, NFS-e, MDF-e ou Guia de Tráfego.
+Este ciclo ainda não oferece tabela promocional ou integração fiscal. Não emite
+NF-e, NFS-e, MDF-e ou Guia de Tráfego.
 
 ### Endpoints de ordens de serviço
 
@@ -214,9 +227,10 @@ ou integração fiscal. Não emite NF-e, NFS-e, MDF-e ou Guia de Tráfego.
 
 A criação gera um orçamento sem reservar estoque. A aprovação verifica
 elegibilidade do cliente e do blaster, validade dos lotes e disponibilidade,
-serializando aprovações concorrentes por lote. A reserva é derivada dos itens
-planejados das OS em `APROVADO` ou `EM_MONTAGEM`; saídas, transferências e
-ajustes negativos independentes não podem consumir quantidades reservadas.
+considerando também os orçamentos comerciais vigentes e serializando aprovações
+concorrentes por lote. A reserva de OS é derivada dos itens planejados em
+`APROVADO` ou `EM_MONTAGEM`; saídas, transferências e ajustes negativos
+independentes não podem consumir quantidades reservadas por OS ou orçamento.
 Cancelar ou encerrar a OS libera a reserva. No encerramento, a baixa é baseada
 na quantidade efetivamente queimada, e as sobras voltam a ficar disponíveis.
 O relatório de queima e as movimentações ficam registrados na auditoria.
@@ -265,7 +279,7 @@ as rotas e regras detalhadas devem ser definidas antes de iniciar cada módulo.
 | Acesso e operadores | Login JWT, refresh rotativo, usuários e perfis por módulo implementados; auditoria de autenticação identifica ator | Recuperação de senha, MFA, limitação de tentativas, transporte seguro de refresh no cliente e propagação de ator nos demais logs de negócio |
 | Financeiro de vendas e OS | Contas avulsas são manuais; compras geram contas a pagar por recebimento | Definir e implementar geração de contas a receber conforme checkout/venda e regras de cobrança de OS |
 | Devolução e financeiro | Devolução reentra estoque; não gera estorno financeiro | Definir e registrar estorno/crédito vinculado à devolução e à venda original |
-| Orçamentos comerciais | OS cria orçamento operacional; não existe carrinho/orçamento persistente de venda | Persistência, consulta e conversão de orçamento/carrinho em venda |
+| Orçamentos comerciais | Emissão, consulta, cancelamento e conversão em venda implementados; reserva de lote por sete dias integrada a vendas, OS e movimentações | Revisar regras comerciais e evoluir conforme necessidade (por exemplo, edição e envio do orçamento) |
 | Preços promocionais | Tabelas de preço básicas implementadas | Regras de promoção, vigência e precedência de preços |
 | Fiscal e regulatório | Sem emissão fiscal ou integração oficial | Integrações e fluxos de NF-e, NFS-e, MDF-e e Guias de Tráfego, sujeitos à validação regulatória |
 | Bancos | Sem integração bancária ou conciliação | Importação/integração de extratos, conciliação e tratamento de divergências |

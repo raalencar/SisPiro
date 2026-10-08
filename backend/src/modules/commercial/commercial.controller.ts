@@ -20,7 +20,9 @@ import {
   CreatePriceListDto,
   CreateSaleDto,
   CreateSaleReturnDto,
+  CreateSalesQuoteDto,
   PriceListsQueryDto,
+  SalesQuotesQueryDto,
   SalesQueryDto,
 } from './commercial.dto.js';
 import { CommercialService } from './commercial.service.js';
@@ -52,6 +54,47 @@ export class CommercialController {
   @ApiParam({ name: 'id', format: 'uuid' })
   getPriceList(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.commercial.getPriceList(id);
+  }
+
+  @Get('sales/quotes')
+  @ApiOperation({ summary: 'Lista orçamentos comerciais e suas reservas.' })
+  listSalesQuotes(@Query() query: SalesQuotesQueryDto) {
+    return this.commercial.listSalesQuotes(query);
+  }
+
+  @Post('sales/quotes')
+  @ApiOperation({
+    summary:
+      'Emite orçamento por sete dias e reserva o estoque dos lotes atomicamente.',
+  })
+  @ApiCreatedResponse({ description: 'Orçamento emitido com validade.' })
+  createSalesQuote(@Body() dto: CreateSalesQuoteDto) {
+    return this.commercial.createSalesQuote(dto);
+  }
+
+  @Get('sales/quotes/:id')
+  @ApiOperation({ summary: 'Consulta orçamento, itens e situação da reserva.' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  getSalesQuote(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.commercial.getSalesQuote(id);
+  }
+
+  @Post('sales/quotes/:id/cancel')
+  @ApiOperation({ summary: 'Cancela orçamento e libera a reserva de estoque.' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  cancelSalesQuote(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.commercial.cancelSalesQuote(id);
+  }
+
+  @Post('sales/quotes/:id/convert')
+  @ApiOperation({
+    summary:
+      'Converte orçamento vigente em venda, preservando preços e baixando estoque atomicamente.',
+  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiCreatedResponse({ description: 'Orçamento convertido em venda.' })
+  convertSalesQuote(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.commercial.convertSalesQuote(id);
   }
 
   @Get('sales')
