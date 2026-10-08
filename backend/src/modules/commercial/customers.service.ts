@@ -50,6 +50,37 @@ export class CustomersService {
     return this.paginated(data, total, query);
   }
 
+  async listOperationalOptions(query: CustomersQueryDto) {
+    const where: Prisma.CustomerWhereInput = {
+      ...(query.active !== undefined
+        ? { active: query.active === 'true' }
+        : {}),
+      ...(query.search
+        ? {
+            legalName: { contains: query.search, mode: 'insensitive' },
+          }
+        : {}),
+    };
+    const [data, total] = await Promise.all([
+      this.prisma.customer.findMany({
+        where,
+        select: {
+          id: true,
+          legalName: true,
+          hasCr: true,
+          crExpiresAt: true,
+          authorizedPceClasses: true,
+          active: true,
+        },
+        orderBy: { legalName: 'asc' },
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+      }),
+      this.prisma.customer.count({ where }),
+    ]);
+    return this.paginated(data, total, query);
+  }
+
   async get(id: string) {
     const customer = await this.prisma.customer.findUnique({ where: { id } });
     if (!customer) {

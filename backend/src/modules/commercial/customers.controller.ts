@@ -40,6 +40,16 @@ export class CustomersController {
     return this.customers.list(query);
   }
 
+  @Get('operational-options')
+  @Roles(UserRole.OPERACOES)
+  @ApiOperation({
+    summary:
+      'Lista somente os dados necessários para selecionar um cliente em uma OS.',
+  })
+  operationalOptions(@Query() query: CustomersQueryDto) {
+    return this.customers.listOperationalOptions(query);
+  }
+
   @Post()
   @ApiOperation({ summary: 'Cadastra cliente com CPF/CNPJ e dados de CR.' })
   @ApiCreatedResponse({ description: 'Cliente cadastrado.' })

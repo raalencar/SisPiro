@@ -133,13 +133,17 @@ Todos usam o prefixo configurado (`/api/v1` por padrão):
 | `GET` / `POST` | `/inventory/magazines` | Lista/cria paióis; lista inclui NEQ atual e capacidade restante |
 | `GET` | `/inventory/magazines/:id` | Consulta paiol e capacidade |
 | `GET` / `POST` | `/inventory/lots` | Lista lotes ou registra lote com recebimento inicial |
+| `GET` | `/inventory/operational-lots` | `OPERACOES`: opções de lote com dados mínimos para criar OS |
 | `GET` | `/inventory/lots/:id` | Consulta lote, produto, paiol e NEQ |
 | `GET` / `POST` | `/inventory/movements` | Consulta histórico ou registra movimentação |
 | `GET` | `/inventory/reports/stock-summary` | Resume saldo físico, reservas, disponibilidade e lotes vencidos/próximos do vencimento |
 
-As listas aceitam `page` e `limit` (máximo 100); produtos aceitam `search`,
-`type` e `isPce`, lotes aceitam `search`, `productId` e `magazineId`, e
-movimentações aceitam `search`, `productLotId` e `type`.
+As rotas de estoque exigem `ESTOQUE`, exceto `/inventory/operational-lots`,
+liberada somente para `OPERACOES` e com seleção de campos reduzida (sem dados
+de fabricante/importador). As listas aceitam `page` e `limit` (máximo 100);
+produtos aceitam `search`, `type` e `isPce`, lotes aceitam `search`,
+`productId` e `magazineId`, e movimentações aceitam `search`, `productLotId` e
+`type`.
 
 O recebimento inicial e as entradas/ajustes positivos validam a capacidade em
 NEQ/kg dentro de transações que bloqueiam a linha do paiol. Transferências também
@@ -186,8 +190,10 @@ consulta sistemas oficiais.
 | --- | --- | --- |
 | `GET` / `POST` | `/customers` | Lista e cadastra clientes |
 | `GET` / `PATCH` | `/customers/:id` | Consulta e atualiza cadastro, CR e classes autorizadas |
+| `GET` | `/customers/operational-options` | `OPERACOES`: opções de cliente sem CPF/CNPJ ou número do CR |
 | `POST` | `/customers/:id/pce-eligibility` | Avalia CR cadastrado para as classes solicitadas |
 | `GET` / `POST` | `/blasters` | Lista e cadastra blasters |
+| `GET` | `/blasters/operational-options` | `OPERACOES`: opções para OS sem CPF |
 | `GET` / `PATCH` | `/blasters/:id` | Consulta e atualiza cadastro e habilitação |
 | `POST` | `/blasters/:id/eligibility` | Avalia a validade cadastrada para uma data de evento |
 
@@ -289,6 +295,11 @@ NF-e, NFS-e, MDF-e ou Guia de Tráfego.
 | `POST` | `/operations/orders/:id/start` | Inicia montagem mantendo a reserva |
 | `POST` | `/operations/orders/:id/cancel` | Cancela orçamento/aprovação e libera a reserva |
 | `POST` | `/operations/orders/:id/close` | Registra queima, baixa consumo real e gera conta a receber |
+
+As rotas de OS exigem `OPERACOES`. O perfil pode consultar apenas as opções
+operacionais necessárias de clientes, blasters e lotes pelos endpoints acima;
+cadastros completos e mutações de clientes/estoque continuam restritos aos
+perfis originais. Respostas de OS não incluem CPF/CNPJ nem número do CR.
 
 A criação gera um orçamento sem reservar estoque. A aprovação verifica
 elegibilidade do cliente e do blaster, validade dos lotes e disponibilidade,

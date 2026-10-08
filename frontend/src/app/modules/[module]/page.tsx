@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { InventoryWorkspace } from "@/components/inventory-workspace";
 import { ModuleEmptyState } from "@/components/module-empty-state";
+import { OperationsWorkspace } from "@/components/operations-workspace";
 import { getModule, modules } from "@/lib/modules";
 
 export function generateStaticParams() {
@@ -32,6 +33,9 @@ export default async function ModulePage({
   }
   if (slug === "products") {
     return <InventoryWorkspace key={slug} initialTab="products" />;
+  }
+  if (slug === "operations") {
+    return <OperationsWorkspace key={slug} />;
   }
 
   return <ModuleEmptyState module={currentModule} />;

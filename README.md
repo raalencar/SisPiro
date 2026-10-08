@@ -9,14 +9,14 @@ A API oferece autenticação e perfis de acesso, estoque/WMS, cadastros
 operacionais e fluxos de compras, vendas, ordens de serviço e financeiro. A
 interface já integra autenticação e estoque: consultas de produtos, lotes,
 paióis, movimentações e resumos disponíveis na API, além dos cadastros e
-operações de estoque suportados.
+operações de estoque suportados. Também integra ordens de serviço, desde a
+criação do orçamento até a aprovação, montagem e encerramento da execução.
 
-Clientes, blasters, compras, comercial, operações/OS e financeiro ainda
-precisam de telas conectadas às APIs existentes. Emissão fiscal, Guias de
-Tráfego, integração bancária/conciliação, recuperação de senha e MFA são
-lacunas conhecidas. O documento
-[Status da implementação](./docs/STATUS-IMPLEMENTACAO.md) lista o que foi
-entregue e as próximas etapas por backend e frontend.
+Clientes, blasters, compras, comercial e financeiro ainda precisam de telas
+conectadas às APIs existentes. Emissão fiscal, Guias de Tráfego, integração
+bancária/conciliação, recuperação de senha e MFA são lacunas conhecidas. O
+documento [Status da implementação](./docs/STATUS-IMPLEMENTACAO.md) lista o que
+foi entregue e as próximas etapas por backend e frontend.
 
 ## Frontend
 

@@ -34,6 +34,13 @@ implantada da API.
   implantada.
 - Formulários de produto, paiol, recebimento de lote e movimentações de entrada,
   saída, ajuste e transferência.
+- Ordens de serviço: lista com busca/filtro/paginação, resumo por período,
+  detalhes e transições suportadas de criação, aprovação, início, cancelamento
+  e encerramento com quantidades efetivamente disparadas.
+- Seleção de clientes, blasters e lotes via endpoints operacionais de leitura
+  reduzida, sem expor CPF/CNPJ ou número do CR nessa jornada.
+- Endpoints de referência dedicados para `OPERACOES`, sem ampliar o acesso aos
+  cadastros completos nem às mutações de clientes e estoque.
 - Estados explícitos de carregamento/erro e apresentação das mensagens de
   validação retornadas pela API.
 - Documentação de setup e escopo em [`frontend/README.md`](../frontend/README.md).
@@ -57,7 +64,8 @@ implantada da API.
 - Definir integração bancária, importação de extratos, conciliação e tratamento
   de divergências.
 - Avaliar necessidade de relatórios operacionais/regulatórios adicionais,
-  projeções financeiras, envio/edição de orçamentos e evolução de promoções.
+  projeções financeiras, edição/envio de orçamentos comerciais e evolução de
+  promoções.
 - Continuar especificando regras de negócio e contratos OpenAPI antes de ampliar
   endpoints ou telas.
 
@@ -73,11 +81,12 @@ as listas de produtos, lotes, paióis e movimentos.
 ## Trabalho pendente no frontend
 
 - Integrar à interface as APIs já disponíveis para clientes, blasters, compras,
-  vendas/orçamentos/devoluções, ordens de serviço e financeiro/relatórios.
+  vendas/orçamentos/devoluções e financeiro/relatórios.
 - Definir fluxos por perfil e ocultar/desabilitar ações indisponíveis para o
   usuário; a autorização continua obrigatoriamente no backend.
 - Validar as jornadas completas com usuários/perfis não administradores, erros
   de autorização, sessão expirada e refresh em navegadores suportados.
+- Fazer smoke test visual autenticado da jornada de OS contra o seed local.
 - Validar responsividade e acessibilidade das telas integradas com usuários.
 - Implementar telas de faturamento e regulatório somente após endpoints e regras
   oficiais estarem disponíveis e aprovados.
@@ -90,18 +99,26 @@ as listas de produtos, lotes, paióis e movimentos.
   divisão requer lotes distintos rastreáveis.
 - A API permanece responsável pela autorização final, capacidade NEQ, validade,
   reservas, consistência transacional e auditoria.
+- A tela de OS não oferece edição de orçamento nem cancelamento após início de
+  montagem; esses endpoints não existem no backend. A autorização final das
+  operações continua no backend.
 - Dados com prefixo/identificação DEMO são fictícios e não devem ser usados em
   operação real nem em produção.
 
 ## Verificação executada nesta entrega
 
 - Frontend: `npm run lint`, `npm run typecheck`, `npm test` (13 testes) e
-  `npm run build`.
-- Frontend no navegador: login DEMO e consulta de produtos, lotes, paióis e
-  movimentações.
-- API local: readiness respondeu com PostgreSQL e Redis disponíveis; o
-  endpoint do resumo divergiu da versão esperada no código-fonte, como anotado
-  acima.
+  `npm run build` passaram.
+- Backend: `npm run lint`, `npm test` (28 testes), `npm run build` e
+  `npm run test:e2e` (28 testes) passaram; os testes e2e incluem permissões
+  específicas do perfil `OPERACOES` e retorno de referências sem dados fiscais
+  identificadores.
+- API local: readiness respondeu com PostgreSQL e Redis disponíveis.
+- O navegador confirmou a rota de operações e o redirecionamento para login
+  quando não há sessão. O smoke test visual autenticado do fluxo completo de OS
+  permanece pendente.
+- A divergência previamente observada no resumo de estoque da instância local
+  continua registrada na seção de compatibilidade acima.
 
 Para requisitos de execução, endpoints e regras detalhadas, consulte
 [`backend/README.md`](../backend/README.md) e

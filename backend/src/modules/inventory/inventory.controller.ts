@@ -92,6 +92,16 @@ export class InventoryController {
     return this.inventory.listLots(query);
   }
 
+  @Get('operational-lots')
+  @Roles(UserRole.OPERACOES)
+  @ApiOperation({
+    summary:
+      'Lista somente os dados de lote necessários para selecionar itens em uma OS.',
+  })
+  listOperationalLots(@Query() query: LotsQueryDto) {
+    return this.inventory.listOperationalLots(query);
+  }
+
   @Get('lots/:id')
   @ApiOperation({ summary: 'Consulta lote, produto, paiol e NEQ.' })
   @ApiParam({ name: 'id', format: 'uuid' })

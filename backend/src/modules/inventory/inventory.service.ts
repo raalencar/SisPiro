@@ -249,6 +249,70 @@ export class InventoryService {
     );
   }
 
+  async listOperationalLots(query: LotsQueryDto) {
+    const where: Prisma.ProductLotWhereInput = {
+      ...(query.productId ? { productId: query.productId } : {}),
+      ...(query.magazineId ? { magazineId: query.magazineId } : {}),
+      ...(query.search
+        ? {
+            OR: [
+              { lotNumber: { contains: query.search, mode: 'insensitive' } },
+              {
+                product: {
+                  name: { contains: query.search, mode: 'insensitive' },
+                },
+              },
+            ],
+          }
+        : {}),
+    };
+    const [data, total] = await Promise.all([
+      this.prisma.productLot.findMany({
+        where,
+        select: {
+          id: true,
+          productId: true,
+          magazineId: true,
+          lotNumber: true,
+          quantity: true,
+          expiresAt: true,
+          product: {
+            select: {
+              id: true,
+              sku: true,
+              name: true,
+              type: true,
+              isPce: true,
+              riskClass: true,
+              neqGrams: true,
+              unit: true,
+            },
+          },
+          magazine: {
+            select: {
+              id: true,
+              name: true,
+              active: true,
+              fireLicenseExpiresAt: true,
+            },
+          },
+        },
+        orderBy: [{ expiresAt: 'asc' }, { lotNumber: 'asc' }],
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+      }),
+      this.prisma.productLot.count({ where }),
+    ]);
+    return this.paginated(
+      data.map((lot) => ({
+        ...lot,
+        neqKg: lot.quantity.mul(lot.product.neqGrams).div(1000).toString(),
+      })),
+      total,
+      query,
+    );
+  }
+
   async stockReport() {
     const now = new Date();
     const today = this.dateOnly(now.toISOString().slice(0, 10));

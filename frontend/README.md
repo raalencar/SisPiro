@@ -38,9 +38,15 @@ desenvolvimento.
 - **Operações de estoque:** cadastro de produtos e paióis, recebimento de lote,
   entrada, saída, ajuste e transferência, sempre delegando ao backend as
   validações de licença, validade, reservas e capacidade NEQ.
+- **Ordens de serviço:** lista e relatório por período, criação de orçamento,
+  consulta detalhada, aprovação com blaster/ART, início da montagem,
+  cancelamento permitido pelo backend e encerramento com quantidades
+  efetivamente disparadas. Aprovação e fechamento delegam reservas, consumo e
+  lançamento a receber às transações do backend.
 - **Autorização:** a API é a autoridade para autenticação e perfis. A tela
-  informa erros de acesso retornados pelo backend; ocultação de ações por perfil
-  ainda não foi implementada.
+  apresenta somente as transições compatíveis com a situação atual da OS e
+  informa erros de acesso retornados pelo backend; a API continua validando
+  perfil e regras de negócio.
 
 A API ainda não possui endpoints de edição ou exclusão de produtos, paióis,
 lotes e movimentos; a interface não oferece esses controles. Lotes e
@@ -52,8 +58,15 @@ movimentações preservam a trilha de auditoria.
 - `/modules/inventory` — posição de estoque e abas de produtos, lotes, paióis e
   movimentações.
 - `/modules/products` — catálogo de produtos (atalho para a área de estoque).
+- `/modules/operations` — ordens de serviço, relatório operacional e ações de
+  orçamento, aprovação, montagem, cancelamento e encerramento.
 - Os demais módulos ainda apresentam estado informativo; suas APIs não estão
   integradas às telas.
+
+O fluxo de OS não oferece edição do orçamento nem cancelamento após início da
+montagem porque essas operações não existem na API. A seleção de referências
+usa endpoints de leitura limitados ao necessário para operações; CPF/CNPJ e
+número do CR não são retornados nessas opções.
 
 ## Verificação
 

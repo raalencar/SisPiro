@@ -11,11 +11,7 @@ export type HealthResponse = {
   status: "ok";
 };
 
-export type ApiErrorKind =
-  | "http"
-  | "network"
-  | "timeout"
-  | "invalid-response";
+export type ApiErrorKind = "http" | "network" | "timeout" | "invalid-response";
 
 export class ApiError extends Error {
   constructor(
@@ -29,9 +25,13 @@ export class ApiError extends Error {
 }
 
 function apiBaseUrl(): string {
-  const origin = (process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL).replace(/\/+$/, "");
-  const prefix = (process.env.NEXT_PUBLIC_API_PREFIX || DEFAULT_API_PREFIX)
-    .replace(/^\/+|\/+$/g, "");
+  const origin = (process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL).replace(
+    /\/+$/,
+    "",
+  );
+  const prefix = (
+    process.env.NEXT_PUBLIC_API_PREFIX || DEFAULT_API_PREFIX
+  ).replace(/^\/+|\/+$/g, "");
 
   return `${origin}/${prefix}`;
 }
@@ -44,7 +44,10 @@ function apiMessage(payload: unknown, status: number): string {
   if (typeof payload === "object" && payload !== null && "message" in payload) {
     const message = payload.message;
     if (typeof message === "string") return message;
-    if (Array.isArray(message) && message.every((item) => typeof item === "string")) {
+    if (
+      Array.isArray(message) &&
+      message.every((item) => typeof item === "string")
+    ) {
       return message.join(" ");
     }
   }
@@ -65,7 +68,9 @@ async function fetchJson(
         ...init,
         headers: {
           Accept: "application/json",
-          ...(init.body === undefined ? {} : { "Content-Type": "application/json" }),
+          ...(init.body === undefined
+            ? {}
+            : { "Content-Type": "application/json" }),
           ...init.headers,
         },
         signal: controller.signal,
@@ -144,8 +149,9 @@ export async function requestJson<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
-  const isInventoryRequest = path.startsWith("/api/inventory/");
-  if (isInventoryRequest) await ensureSessionAndNotify();
+  const isBusinessRequest =
+    path.startsWith("/api/inventory/") || path.startsWith("/api/operations/");
+  if (isBusinessRequest) await ensureSessionAndNotify();
 
   let payload: unknown;
   try {
@@ -159,7 +165,7 @@ export async function requestJson<T>(
     );
   } catch (error) {
     if (
-      !isInventoryRequest ||
+      !isBusinessRequest ||
       !(error instanceof ApiError) ||
       error.status !== 401
     ) {
@@ -256,7 +262,9 @@ function isHealthResponse(value: unknown): value is HealthResponse {
   );
 }
 
-async function getHealth(path: "health/live" | "health/ready"): Promise<HealthResponse> {
+async function getHealth(
+  path: "health/live" | "health/ready",
+): Promise<HealthResponse> {
   const response = await getJson(path);
   if (!isHealthResponse(response)) {
     throw new ApiError(
@@ -288,10 +296,7 @@ export type PageResult<T> = {
 
 export type ProductType = "MERCADORIA" | "SERVICO" | "INSUMO";
 export type StockMovementType =
-  | "ENTRADA"
-  | "SAIDA"
-  | "TRANSFERENCIA"
-  | "AJUSTE";
+  "ENTRADA" | "SAIDA" | "TRANSFERENCIA" | "AJUSTE";
 
 export type Product = {
   id: string;
@@ -325,6 +330,92 @@ export type ProductLot = {
   neqKg: string;
   product: Product;
   magazine: Magazine;
+};
+
+export type OperationalCustomer = {
+  id: string;
+  legalName: string;
+  hasCr: boolean;
+  crExpiresAt: string | null;
+  authorizedPceClasses: string[];
+  active: boolean;
+};
+
+export type OperationalBlaster = {
+  id: string;
+  name: string;
+  licenseExpiresAt: string;
+  active: boolean;
+};
+
+export type OperationalLot = {
+  id: string;
+  productId: string;
+  magazineId: string;
+  lotNumber: string;
+  quantity: string;
+  expiresAt: string;
+  neqKg: string;
+  product: Pick<
+    Product,
+    "id" | "sku" | "name" | "type" | "isPce" | "riskClass" | "neqGrams" | "unit"
+  >;
+  magazine: {
+    id: string;
+    name: string;
+    active: boolean;
+    fireLicenseExpiresAt: string;
+  };
+};
+
+export type ServiceOrderStatus =
+  "ORCAMENTO" | "APROVADO" | "EM_MONTAGEM" | "CONCLUIDO" | "CANCELADO";
+
+export type ServiceOrderItem = {
+  id: string;
+  productId: string;
+  productLotId: string;
+  plannedQuantity: string;
+  firedQuantity: string | null;
+  neqKg: string;
+  product: Product;
+  productLot: ProductLot;
+};
+
+export type ServiceOrder = {
+  id: string;
+  code: number;
+  status: ServiceOrderStatus;
+  customerId: string;
+  customer: OperationalCustomer;
+  contractedAmount: string;
+  eventAt: string;
+  eventLocation: string;
+  responsibleBlasterId: string | null;
+  responsibleBlaster: OperationalBlaster | null;
+  artNumber: string | null;
+  dueDate: string | null;
+  reportNotes: string | null;
+  reservationActive: boolean;
+  reservedNeqKg: string;
+  items: ServiceOrderItem[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ServiceOrderReport = {
+  period: { from: string; to: string; basis: string };
+  totals: {
+    orderCount: number;
+    ordersWithoutContractedAmount: number;
+    contractedAmount: string;
+  };
+  byStatus: Array<{
+    status: ServiceOrderStatus;
+    orderCount: number;
+    ordersWithoutContractedAmount: number;
+    contractedAmount: string;
+  }>;
 };
 
 export type StockMovement = {
@@ -403,7 +494,8 @@ function paginatedPath(path: string, page: number, search?: string): string {
 }
 
 export const inventoryApi = {
-  getStockReport: () => requestJson<StockReport>("/api/inventory/reports/stock-summary"),
+  getStockReport: () =>
+    requestJson<StockReport>("/api/inventory/reports/stock-summary"),
   getProducts: (page = 1, search?: string) =>
     requestJson<PageResult<Product>>(paginatedPath("products", page, search)),
   getMagazines: (page = 1, search?: string) =>
@@ -411,7 +503,9 @@ export const inventoryApi = {
   getLots: (page = 1, search?: string) =>
     requestJson<PageResult<ProductLot>>(paginatedPath("lots", page, search)),
   getMovements: (page = 1, search?: string) =>
-    requestJson<PageResult<StockMovement>>(paginatedPath("movements", page, search)),
+    requestJson<PageResult<StockMovement>>(
+      paginatedPath("movements", page, search),
+    ),
   createProduct: (body: {
     sku: string;
     name: string;
@@ -455,6 +549,92 @@ export const inventoryApi = {
     reference?: string;
   }) =>
     requestJson<StockMovement>("/api/inventory/movements", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+};
+
+function operationsPath(path: string, query?: URLSearchParams): string {
+  const suffix = query?.toString();
+  return `/api/operations/${path}${suffix ? `?${suffix}` : ""}`;
+}
+
+function pageQuery(page: number, search?: string): URLSearchParams {
+  const query = new URLSearchParams({ page: String(page), limit: "100" });
+  if (search?.trim()) query.set("search", search.trim());
+  return query;
+}
+
+export const operationsApi = {
+  getOrders: (page = 1, search?: string, status?: ServiceOrderStatus) => {
+    const query = pageQuery(page, search);
+    if (status) query.set("status", status);
+    return requestJson<PageResult<ServiceOrder>>(
+      operationsPath("orders", query),
+    );
+  },
+  getReport: (from: string, to: string) => {
+    const query = new URLSearchParams({ from, to });
+    return requestJson<ServiceOrderReport>(
+      operationsPath("orders/reports/summary", query),
+    );
+  },
+  getOrder: (id: string) =>
+    requestJson<ServiceOrder>(operationsPath(`orders/${id}`)),
+  getCustomers: (page = 1, search?: string) =>
+    requestJson<PageResult<OperationalCustomer>>(
+      operationsPath("references/customers", pageQuery(page, search)),
+    ),
+  getBlasters: (page = 1, search?: string) =>
+    requestJson<PageResult<OperationalBlaster>>(
+      operationsPath("references/blasters", pageQuery(page, search)),
+    ),
+  getLots: (page = 1, search?: string) =>
+    requestJson<PageResult<OperationalLot>>(
+      operationsPath("references/lots", pageQuery(page, search)),
+    ),
+  createOrder: (body: {
+    customerId: string;
+    contractedAmount: number;
+    eventAt: string;
+    eventLocation: string;
+    items: Array<{
+      productId: string;
+      productLotId: string;
+      plannedQuantity: number;
+    }>;
+  }) =>
+    requestJson<ServiceOrder>(operationsPath("orders"), {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  approveOrder: (
+    id: string,
+    body: { responsibleBlasterId: string; artNumber?: string },
+  ) =>
+    requestJson<ServiceOrder>(operationsPath(`orders/${id}/approve`), {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  startOrder: (id: string) =>
+    requestJson<ServiceOrder>(operationsPath(`orders/${id}/start`), {
+      method: "POST",
+      body: JSON.stringify({}),
+    }),
+  cancelOrder: (id: string) =>
+    requestJson<ServiceOrder>(operationsPath(`orders/${id}/cancel`), {
+      method: "POST",
+      body: JSON.stringify({}),
+    }),
+  closeOrder: (
+    id: string,
+    body: {
+      dueDate: string;
+      reportNotes?: string;
+      items: Array<{ itemId: string; firedQuantity: number }>;
+    },
+  ) =>
+    requestJson<ServiceOrder>(operationsPath(`orders/${id}/close`), {
       method: "POST",
       body: JSON.stringify(body),
     }),

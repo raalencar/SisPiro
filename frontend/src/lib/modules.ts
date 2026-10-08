@@ -78,10 +78,10 @@ export const modules: ErpModule[] = [
     description: "Planejamento de eventos e ordens de serviço.",
     icon: "spark",
     group: "Operações",
-    emptyTitle: "As ordens de serviço ainda não estão disponíveis",
+    emptyTitle: "Ordens de serviço conectadas",
     emptyDescription:
-      "A API já oferece operações de ordens de serviço. A tela deste módulo ainda não está conectada e não exibe nem altera ordens.",
-    statusLabel: "API disponível",
+      "Acompanhe orçamentos, reservas e execução de eventos. As regras e transições são validadas pelo backend.",
+    statusLabel: "Tela integrada",
   },
   {
     slug: "teams",

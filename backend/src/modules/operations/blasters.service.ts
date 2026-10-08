@@ -65,6 +65,43 @@ export class BlastersService {
     };
   }
 
+  async listOperationalOptions(query: BlastersQueryDto) {
+    const where: Prisma.BlasterWhereInput = {
+      ...(query.active !== undefined
+        ? { active: query.active === 'true' }
+        : {}),
+      ...(query.search
+        ? {
+            name: { contains: query.search, mode: 'insensitive' },
+          }
+        : {}),
+    };
+    const [data, total] = await Promise.all([
+      this.prisma.blaster.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          licenseExpiresAt: true,
+          active: true,
+        },
+        orderBy: { name: 'asc' },
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+      }),
+      this.prisma.blaster.count({ where }),
+    ]);
+    return {
+      data,
+      meta: {
+        page: query.page,
+        limit: query.limit,
+        total,
+        totalPages: Math.ceil(total / query.limit),
+      },
+    };
+  }
+
   async get(id: string) {
     const blaster = await this.prisma.blaster.findUnique({ where: { id } });
     if (!blaster) {

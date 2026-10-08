@@ -751,6 +751,15 @@ export class ServiceOrdersService {
       id: string;
       code: number;
       status: ServiceOrderStatus;
+      customer?: {
+        taxId?: string;
+        crNumber?: string | null;
+        [key: string]: unknown;
+      };
+      responsibleBlaster?: {
+        taxId?: string;
+        [key: string]: unknown;
+      } | null;
       items: Array<{
         id: string;
         plannedQuantity: Prisma.Decimal;
@@ -763,6 +772,13 @@ export class ServiceOrdersService {
       }>;
     },
   >(order: T) {
+    const { customer, responsibleBlaster, ...orderData } = order;
+    const safeCustomer = customer
+      ? (({ taxId: _taxId, crNumber: _crNumber, ...data }) => data)(customer)
+      : undefined;
+    const safeBlaster = responsibleBlaster
+      ? (({ taxId: _taxId, ...data }) => data)(responsibleBlaster)
+      : responsibleBlaster;
     const reservedNeqKg = order.items
       .reduce(
         (total, item) =>
@@ -771,7 +787,9 @@ export class ServiceOrdersService {
       )
       .toString();
     return {
-      ...order,
+      ...orderData,
+      ...(safeCustomer ? { customer: safeCustomer } : {}),
+      ...(safeBlaster ? { responsibleBlaster: safeBlaster } : {}),
       reservationActive: RESERVED_STATUSES.includes(order.status),
       reservedNeqKg,
       items: order.items.map((item) => ({

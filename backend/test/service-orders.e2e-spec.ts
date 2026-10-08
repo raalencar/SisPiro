@@ -5,6 +5,7 @@ import {
   authenticateE2eAdmin,
   request,
 } from './helpers/authenticated-request.js';
+import supertest from 'supertest';
 import { App } from 'supertest/types.js';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/database/prisma.service.js';
@@ -20,6 +21,7 @@ describe('Service order APIs (e2e)', () => {
   const lotIds: string[] = [];
   const orderIds: string[] = [];
   const financialEntryIds: string[] = [];
+  const operationalUserIds: string[] = [];
 
   beforeAll(async () => {
     const moduleFixture = await Test.createTestingModule({
@@ -64,8 +66,12 @@ describe('Service order APIs (e2e)', () => {
           { aggregateId: { in: productIds } },
           { aggregateId: { in: magazineIds } },
           { aggregateId: { in: lotIds } },
+          { aggregateId: { in: operationalUserIds } },
         ],
       },
+    });
+    await prisma.user.deleteMany({
+      where: { id: { in: operationalUserIds } },
     });
     await prisma.productLot.deleteMany({ where: { id: { in: lotIds } } });
     await prisma.magazine.deleteMany({ where: { id: { in: magazineIds } } });
@@ -408,6 +414,74 @@ describe('Service order APIs (e2e)', () => {
         .map((response) => response.status)
         .sort((first, second) => first - second),
     ).toEqual([201, 409]);
+  });
+
+  it('allows operations users only the minimal OS reference reads', async () => {
+    const password = `OS e2e Operacoes ${suffix}`;
+    const user = await request(app.getHttpServer())
+      .post('/api/v1/users')
+      .send({
+        name: 'Usuário de operações E2E',
+        email: `operacoes-${suffix}@local.test`,
+        password,
+        roles: ['OPERACOES'],
+      })
+      .expect(201);
+    operationalUserIds.push(user.body.id as string);
+
+    const login = await supertest(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ email: `operacoes-${suffix}@local.test`, password })
+      .expect(200);
+    const asOperations = () => {
+      const client = supertest(app.getHttpServer());
+      const authorization = `Bearer ${login.body.accessToken as string}`;
+      return {
+        get: (path: string) =>
+          client.get(path).set('Authorization', authorization),
+        post: (path: string) =>
+          client.post(path).set('Authorization', authorization),
+      };
+    };
+
+    const operationalRequest = asOperations();
+    const customers = await operationalRequest
+      .get('/api/v1/customers/operational-options')
+      .expect(200);
+    const customer = customers.body.data.find(
+      (entry: { id: string }) => entry.id === customerIds[0],
+    );
+    expect(customer).toBeDefined();
+    expect(customer).not.toHaveProperty('taxId');
+    expect(customer).not.toHaveProperty('crNumber');
+
+    const blasters = await operationalRequest
+      .get('/api/v1/blasters/operational-options')
+      .expect(200);
+    const blaster = blasters.body.data.find(
+      (entry: { id: string }) => entry.id === blasterIds[0],
+    );
+    expect(blaster).toBeDefined();
+    expect(blaster).not.toHaveProperty('taxId');
+
+    const lots = await operationalRequest
+      .get('/api/v1/inventory/operational-lots')
+      .expect(200);
+    const lot = lots.body.data.find(
+      (entry: { id: string }) => entry.id === lotIds[0],
+    );
+    expect(lot).toBeDefined();
+    expect(lot).not.toHaveProperty('manufacturerOrImporter');
+
+    await operationalRequest.get('/api/v1/operations/orders').expect(200);
+    await operationalRequest.get('/api/v1/customers').expect(403);
+    await operationalRequest.get('/api/v1/inventory/products').expect(403);
+    await operationalRequest.get('/api/v1/inventory/lots').expect(403);
+    await operationalRequest.post('/api/v1/customers').send({}).expect(403);
+    await operationalRequest
+      .post('/api/v1/inventory/products')
+      .send({})
+      .expect(403);
   });
 });
 

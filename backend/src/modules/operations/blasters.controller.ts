@@ -38,6 +38,15 @@ export class BlastersController {
     return this.blasters.list(query);
   }
 
+  @Get('operational-options')
+  @ApiOperation({
+    summary:
+      'Lista somente os dados de habilitação necessários para selecionar blaster em uma OS.',
+  })
+  operationalOptions(@Query() query: BlastersQueryDto) {
+    return this.blasters.listOperationalOptions(query);
+  }
+
   @Post()
   @ApiOperation({
     summary: 'Cadastra blaster com CPF e validade da habilitação.',
