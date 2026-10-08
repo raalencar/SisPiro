@@ -294,6 +294,7 @@ legadas sem valor contratado permanecem na contagem e são sinalizadas em
 | `POST` | `/finance/entries/:id/cancel` | Cancela lançamento aberto sem pagamentos |
 | `GET` | `/finance/cash-flow?from=AAAA-MM-DD&to=AAAA-MM-DD` | Resume entradas e saídas efetivamente pagas por dia |
 | `GET` | `/finance/dashboard?from=AAAA-MM-DD&to=AAAA-MM-DD` | Resume fluxo realizado e saldos atuais a pagar/receber por vencimento |
+| `GET` | `/finance/reports/payment-breakdown?from=AAAA-MM-DD&to=AAAA-MM-DD` | Detalha pagamentos por categoria, método e direção |
 
 Lançamentos armazenam direção, categoria, contraparte, valor e vencimento; o
 cliente é opcional para contas a receber. Pagamentos são imutáveis neste fluxo,
@@ -307,6 +308,10 @@ vencimento anterior a `from` aparecem separadas das que vencem entre `from` e
 `to`. Pagamentos parciais e créditos aplicados reduzem o saldo; lançamentos
 cancelados não são incluídos. Os saldos representam a situação atual e não uma
 reconstrução histórica no fim do período.
+O detalhamento por categoria e método considera somente pagamentos e
+recebimentos registrados no intervalo, pela data de ocorrência; agrupa por
+categoria, método e combinação dos dois, e separa entradas de saídas. Contas
+sem pagamento não são incluídas nesse relatório.
 
 Lançamentos avulsos continuam manuais; cada recebimento de compra gera
 automaticamente uma conta a pagar vinculada à etapa recebida, a conclusão de
@@ -341,7 +346,7 @@ as rotas e regras detalhadas devem ser definidas antes de iniciar cada módulo.
 | Preços promocionais | Campanhas de preço fixo, vigência inclusiva, aplicação automática sem aumento sobre o preço de tabela e bloqueio de sobreposição por produto implementados | Evoluir conforme necessidade (por exemplo, descontos percentuais, segmentação e campanhas promocionais) |
 | Fiscal e regulatório | Sem emissão fiscal ou integração oficial | Integrações e fluxos de NF-e, NFS-e, MDF-e e Guias de Tráfego, sujeitos à validação regulatória |
 | Bancos | Sem integração bancária ou conciliação | Importação/integração de extratos, conciliação e tratamento de divergências |
-| Relatórios | Resumos de vendas por produto/cliente, OS por status, painel financeiro e posição de estoque com alertas de validade disponíveis | Outros relatórios operacionais, regulatórios e projeções financeiras |
+| Relatórios | Resumos de vendas por produto/cliente, OS por status, painéis financeiros por vencimento/categoria/método e posição de estoque com alertas de validade disponíveis | Outros relatórios operacionais, regulatórios e projeções financeiras |
 | Frontend de negócio | Telas de negócio ainda não consomem as APIs | Integrar os módulos existentes à interface |
 
 Esta lista registra lacunas conhecidas, não constitui contrato final de API nem

@@ -136,13 +136,14 @@ describe('Finance API (e2e)', () => {
       direction: 'PAGAR' | 'RECEBER',
       amount: number,
       dueDate: string,
+      category = 'Teste de relatório',
     ) => {
       const response = await request(app.getHttpServer())
         .post('/api/v1/finance/entries')
         .send({
           direction,
           description: `Resumo financeiro ${randomUUID()}`,
-          category: 'Teste de relatório',
+          category,
           counterparty: 'Contraparte de teste',
           amount,
           dueDate,
@@ -211,6 +212,91 @@ describe('Finance API (e2e)', () => {
     ).toBe(10);
     await request(app.getHttpServer())
       .get(`/api/v1/finance/dashboard?from=${tomorrow}&to=${today}`)
+      .expect(400);
+
+    const paymentReportBefore = await request(app.getHttpServer())
+      .get(
+        `/api/v1/finance/reports/payment-breakdown?from=${today}&to=${tomorrow}`,
+      )
+      .expect(200);
+    const receivableCategory = `Recebimentos teste ${randomUUID()}`;
+    const payableCategory = `Pagamentos teste ${randomUUID()}`;
+    const categorizedReceivable = await createEntry(
+      'RECEBER',
+      100,
+      tomorrow,
+      receivableCategory,
+    );
+    const categorizedPayable = await createEntry(
+      'PAGAR',
+      20,
+      tomorrow,
+      payableCategory,
+    );
+    entryIds.push(categorizedReceivable.id, categorizedPayable.id);
+    await Promise.all([
+      request(app.getHttpServer())
+        .post(`/api/v1/finance/entries/${categorizedReceivable.id}/payments`)
+        .send({ amount: 25, method: 'PIX' })
+        .expect(201),
+      request(app.getHttpServer())
+        .post(`/api/v1/finance/entries/${categorizedPayable.id}/payments`)
+        .send({ amount: 8, method: 'BOLETO' })
+        .expect(201),
+    ]);
+    await request(app.getHttpServer())
+      .post(`/api/v1/finance/entries/${categorizedReceivable.id}/payments`)
+      .send({ amount: 10, method: 'DINHEIRO' })
+      .expect(201);
+    const paymentReport = await request(app.getHttpServer())
+      .get(
+        `/api/v1/finance/reports/payment-breakdown?from=${today}&to=${tomorrow}`,
+      )
+      .expect(200);
+    expect(paymentReport.body.basis).toBe(
+      'pagamentos e recebimentos pela data de ocorrência',
+    );
+    expect(paymentReport.body.totals.paymentCount).toBe(
+      paymentReportBefore.body.totals.paymentCount + 3,
+    );
+    expect(
+      Number(paymentReport.body.totals.received) -
+        Number(paymentReportBefore.body.totals.received),
+    ).toBe(35);
+    expect(
+      Number(paymentReport.body.totals.paid) -
+        Number(paymentReportBefore.body.totals.paid),
+    ).toBe(8);
+    const receivedCategory = paymentReport.body.byCategory.find(
+      (item: { category: string }) => item.category === receivableCategory,
+    );
+    expect(receivedCategory).toMatchObject({
+      paymentCount: 2,
+      received: '35',
+      paid: '0',
+      net: '35',
+    });
+    const paymentMethod = paymentReport.body.byMethod.find(
+      (item: { method: string }) => item.method === 'BOLETO',
+    );
+    const previousPaymentMethod = paymentReportBefore.body.byMethod.find(
+      (item: { method: string }) => item.method === 'BOLETO',
+    );
+    expect(
+      Number(paymentMethod.paid) - Number(previousPaymentMethod.paid),
+    ).toBe(8);
+    expect(
+      paymentReport.body.byCategoryAndMethod.some(
+        (item: { category: string; method: string; paid: string }) =>
+          item.category === payableCategory &&
+          item.method === 'BOLETO' &&
+          item.paid === '8',
+      ),
+    ).toBe(true);
+    await request(app.getHttpServer())
+      .get(
+        `/api/v1/finance/reports/payment-breakdown?from=${tomorrow}&to=${today}`,
+      )
       .expect(400);
 
     const filtered = await request(app.getHttpServer())

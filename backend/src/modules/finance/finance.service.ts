@@ -7,6 +7,7 @@ import {
 import {
   FinancialDirection,
   FinancialEntryStatus,
+  FinancialPaymentMethod,
   Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service.js';
@@ -16,6 +17,7 @@ import {
   CreateFinancialPaymentDto,
   FinanceDashboardQueryDto,
   FinanceEntriesQueryDto,
+  FinancePaymentReportQueryDto,
 } from './finance.dto.js';
 
 @Injectable()
@@ -592,6 +594,107 @@ export class FinanceService {
           payable: openBalances.dueInPeriod.payable.toString(),
         },
       },
+    };
+  }
+
+  async paymentBreakdown(query: FinancePaymentReportQueryDto) {
+    this.assertValidPeriod(query);
+    const rows = await this.prisma.$queryRaw<
+      Array<{
+        category: string;
+        direction: FinancialDirection;
+        method: FinancialPaymentMethod;
+        paymentCount: bigint;
+        amount: Prisma.Decimal;
+      }>
+    >`
+      SELECT
+        e."category",
+        e."direction",
+        p."method",
+        COUNT(p."id") AS "paymentCount",
+        SUM(p."amount") AS amount
+      FROM "pagamentos_financeiros" p
+      INNER JOIN "lancamentos_financeiros" e
+        ON e."id" = p."lancamento_id"
+      WHERE p."ocorrido_em" >= ${this.dateOnly(query.from)}
+        AND p."ocorrido_em" < ${this.dateOnly(this.addDays(query.to, 1))}
+      GROUP BY e."category", e."direction", p."method"
+      ORDER BY e."category" ASC, p."method" ASC
+    `;
+    type PaymentTotals = {
+      paymentCount: number;
+      received: Prisma.Decimal;
+      paid: Prisma.Decimal;
+    };
+    const zeroTotals = (): PaymentTotals => ({
+      paymentCount: 0,
+      received: new Prisma.Decimal(0),
+      paid: new Prisma.Decimal(0),
+    });
+    const categoryTotals = new Map<string, PaymentTotals>();
+    const methodTotals = new Map<FinancialPaymentMethod, PaymentTotals>();
+    const categoryMethodTotals = new Map<
+      string,
+      PaymentTotals & {
+        category: string;
+        method: FinancialPaymentMethod;
+      }
+    >();
+    const totals = zeroTotals();
+    for (const row of rows) {
+      const count = Number(row.paymentCount);
+      const category = categoryTotals.get(row.category) ?? zeroTotals();
+      const method = methodTotals.get(row.method) ?? zeroTotals();
+      const categoryMethodKey = JSON.stringify([row.category, row.method]);
+      const categoryMethod = categoryMethodTotals.get(categoryMethodKey) ?? {
+        ...zeroTotals(),
+        category: row.category,
+        method: row.method,
+      };
+      for (const aggregate of [totals, category, method, categoryMethod]) {
+        aggregate.paymentCount += count;
+        if (row.direction === FinancialDirection.RECEBER) {
+          aggregate.received = aggregate.received.plus(row.amount);
+        } else {
+          aggregate.paid = aggregate.paid.plus(row.amount);
+        }
+      }
+      categoryTotals.set(row.category, category);
+      methodTotals.set(row.method, method);
+      categoryMethodTotals.set(categoryMethodKey, categoryMethod);
+    }
+    const serializeTotals = (aggregate: PaymentTotals) => ({
+      paymentCount: aggregate.paymentCount,
+      received: aggregate.received.toString(),
+      paid: aggregate.paid.toString(),
+      net: aggregate.received.minus(aggregate.paid).toString(),
+    });
+    return {
+      period: { from: query.from, to: query.to },
+      basis: 'pagamentos e recebimentos pela data de ocorrência',
+      totals: serializeTotals(totals),
+      byCategory: [...categoryTotals.entries()]
+        .sort(([first], [second]) => first.localeCompare(second))
+        .map(([category, aggregate]) => ({
+          category,
+          ...serializeTotals(aggregate),
+        })),
+      byMethod: Object.values(FinancialPaymentMethod).map((method) => ({
+        method,
+        ...serializeTotals(methodTotals.get(method) ?? zeroTotals()),
+      })),
+      byCategoryAndMethod: [...categoryMethodTotals.values()]
+        .sort(
+          (first, second) =>
+            first.category.localeCompare(second.category) ||
+            first.method.localeCompare(second.method),
+        )
+        .map((aggregate) => ({
+          category: aggregate.category,
+          method: aggregate.method,
+          ...serializeTotals(aggregate),
+        })),
     };
   }
 

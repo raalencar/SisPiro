@@ -58,6 +58,8 @@ export class CashFlowQueryDto {
 
 export class FinanceDashboardQueryDto extends CashFlowQueryDto {}
 
+export class FinancePaymentReportQueryDto extends CashFlowQueryDto {}
+
 export class CreateFinancialEntryDto {
   @ApiProperty({ enum: FinancialDirection })
   @IsEnum(FinancialDirection)

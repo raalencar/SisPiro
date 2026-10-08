@@ -22,6 +22,7 @@ import {
   CreateFinancialPaymentDto,
   FinanceDashboardQueryDto,
   FinanceEntriesQueryDto,
+  FinancePaymentReportQueryDto,
 } from './finance.dto.js';
 import { FinanceService } from './finance.service.js';
 
@@ -95,5 +96,13 @@ export class FinanceController {
   })
   dashboard(@Query() query: FinanceDashboardQueryDto) {
     return this.finance.dashboard(query);
+  }
+
+  @Get('reports/payment-breakdown')
+  @ApiOperation({
+    summary: 'Detalha pagamentos realizados no período por categoria e método.',
+  })
+  paymentBreakdown(@Query() query: FinancePaymentReportQueryDto) {
+    return this.finance.paymentBreakdown(query);
   }
 }
