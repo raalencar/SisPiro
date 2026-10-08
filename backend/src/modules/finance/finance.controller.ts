@@ -8,11 +8,14 @@ import {
   Query,
 } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiCreatedResponse,
   ApiOperation,
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
+import { UserRole } from '@prisma/client';
+import { Roles } from '../auth/auth.decorators.js';
 import {
   CashFlowQueryDto,
   CreateFinancialEntryDto,
@@ -22,13 +25,16 @@ import {
 import { FinanceService } from './finance.service.js';
 
 @ApiTags('Financeiro')
+@ApiBearerAuth()
+@Roles(UserRole.FINANCEIRO)
 @Controller('finance')
 export class FinanceController {
   constructor(private readonly finance: FinanceService) {}
 
   @Get('entries')
   @ApiOperation({
-    summary: 'Lista contas a pagar/receber com filtros por status e vencimento.',
+    summary:
+      'Lista contas a pagar/receber com filtros por status e vencimento.',
   })
   list(@Query() query: FinanceEntriesQueryDto) {
     return this.finance.list(query);
@@ -42,7 +48,9 @@ export class FinanceController {
   }
 
   @Get('entries/:id')
-  @ApiOperation({ summary: 'Consulta lançamento, pagamentos e saldo pendente.' })
+  @ApiOperation({
+    summary: 'Consulta lançamento, pagamentos e saldo pendente.',
+  })
   @ApiParam({ name: 'id', format: 'uuid' })
   get(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.finance.get(id);
@@ -50,7 +58,8 @@ export class FinanceController {
 
   @Post('entries/:id/payments')
   @ApiOperation({
-    summary: 'Registra pagamento ou recebimento parcial até quitar o lançamento.',
+    summary:
+      'Registra pagamento ou recebimento parcial até quitar o lançamento.',
   })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiCreatedResponse({ description: 'Pagamento registrado.' })

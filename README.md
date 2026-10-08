@@ -41,14 +41,15 @@ comandos e configuração de persistência.
 
 O backend já expõe APIs de negócio para estoque/WMS, clientes, blasters, ordens
 de serviço, compras/fornecedores, tabelas de preço, vendas/PDV, devoluções e
-contas a pagar/receber. Cada recebimento de compra cria atomicamente uma conta
-a pagar com valor proporcional, fornecedor, vencimento e referência fiscal. O
-frontend integra somente os endpoints de liveness e readiness:
+contas a pagar/receber, além de autenticação JWT e perfis de acesso por módulo.
+Cada recebimento de compra cria atomicamente uma conta a pagar com valor
+proporcional, fornecedor, vencimento e referência fiscal. O frontend integra
+somente os endpoints de liveness e readiness:
 `GET /api/v1/health/live` e
 `GET /api/v1/health/ready` (considerando o prefixo padrão); as telas de negócio
-ainda não consomem as APIs e mostram estados vazios. Não estão implementados
-autenticação/autorização, emissão fiscal, Guias de Tráfego e integração
-bancária; o [roadmap e as demais lacunas conhecidas](./backend/README.md#lacunas-conhecidas-e-próximos-módulos)
+ainda não consomem as APIs e mostram estados vazios. Permanecem pendentes
+emissão fiscal, Guias de Tráfego, integração bancária e itens de segurança
+adicionais; o [roadmap e as demais lacunas conhecidas](./backend/README.md#lacunas-conhecidas-e-próximos-módulos)
 estão documentados no README do backend.
 
 ## Verificação do frontend

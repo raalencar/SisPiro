@@ -8,11 +8,14 @@ import {
   Query,
 } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiCreatedResponse,
   ApiOperation,
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
+import { UserRole } from '@prisma/client';
+import { Roles } from '../auth/auth.decorators.js';
 import {
   CreatePriceListDto,
   CreateSaleDto,
@@ -23,6 +26,8 @@ import {
 import { CommercialService } from './commercial.service.js';
 
 @ApiTags('Vendas e preços')
+@ApiBearerAuth()
+@Roles(UserRole.COMERCIAL)
 @Controller()
 export class CommercialController {
   constructor(private readonly commercial: CommercialService) {}

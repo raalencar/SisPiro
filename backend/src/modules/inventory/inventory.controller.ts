@@ -8,11 +8,14 @@ import {
   Query,
 } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiCreatedResponse,
   ApiOperation,
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
+import { UserRole } from '@prisma/client';
+import { Roles } from '../auth/auth.decorators.js';
 import {
   CreateLotDto,
   CreateMagazineDto,
@@ -26,6 +29,8 @@ import {
 import { InventoryService } from './inventory.service.js';
 
 @ApiTags('Estoque e WMS')
+@ApiBearerAuth()
+@Roles(UserRole.ESTOQUE)
 @Controller('inventory')
 export class InventoryController {
   constructor(private readonly inventory: InventoryService) {}

@@ -7,8 +7,10 @@ import {
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../database/prisma.service.js';
+import { Public } from '../modules/auth/auth.decorators.js';
 
 @Controller('health')
+@Public()
 export class HealthController {
   constructor(
     private readonly health: HealthCheckService,

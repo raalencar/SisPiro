@@ -8,11 +8,14 @@ import {
   Query,
 } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiCreatedResponse,
   ApiOperation,
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
+import { UserRole } from '@prisma/client';
+import { Roles } from '../auth/auth.decorators.js';
 import {
   ApproveServiceOrderDto,
   CloseServiceOrderDto,
@@ -22,6 +25,8 @@ import {
 import { ServiceOrdersService } from './service-orders.service.js';
 
 @ApiTags('Ordens de serviço')
+@ApiBearerAuth()
+@Roles(UserRole.OPERACOES)
 @Controller('operations/orders')
 export class ServiceOrdersController {
   constructor(private readonly orders: ServiceOrdersService) {}
@@ -38,13 +43,17 @@ export class ServiceOrdersController {
   @ApiOperation({
     summary: 'Cria orçamento de OS com itens vinculados a lotes rastreáveis.',
   })
-  @ApiCreatedResponse({ description: 'Orçamento criado; nenhum estoque reservado ainda.' })
+  @ApiCreatedResponse({
+    description: 'Orçamento criado; nenhum estoque reservado ainda.',
+  })
   create(@Body() dto: CreateServiceOrderDto) {
     return this.orders.create(dto);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Consulta uma OS, itens, cliente e reserva de NEQ.' })
+  @ApiOperation({
+    summary: 'Consulta uma OS, itens, cliente e reserva de NEQ.',
+  })
   @ApiParam({ name: 'id', format: 'uuid' })
   get(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.orders.get(id);

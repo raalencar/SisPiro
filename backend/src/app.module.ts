@@ -8,6 +8,7 @@ import { QueueModule } from './infrastructure/queue.module.js';
 import { CommercialModule } from './modules/commercial/commercial.module.js';
 import { ComplianceModule } from './modules/compliance/compliance.module.js';
 import { FinanceModule } from './modules/finance/finance.module.js';
+import { AuthModule } from './modules/auth/auth.module.js';
 import { InventoryModule } from './modules/inventory/inventory.module.js';
 import { OperationsModule } from './modules/operations/operations.module.js';
 import { ProcurementModule } from './modules/procurement/procurement.module.js';
@@ -26,6 +27,17 @@ import { ProcurementModule } from './modules/procurement/procurement.module.js';
             .pattern(/^[a-zA-Z0-9/_-]+$/)
             .default('api/v1'),
           CORS_ORIGINS: Joi.string().default('http://localhost:3001'),
+          AUTH_JWT_SECRET: Joi.string().min(32).required(),
+          AUTH_ACCESS_TOKEN_TTL_SECONDS: Joi.number()
+            .integer()
+            .min(60)
+            .max(3600)
+            .default(900),
+          AUTH_REFRESH_TOKEN_TTL_DAYS: Joi.number()
+            .integer()
+            .min(1)
+            .max(90)
+            .default(30),
           DATABASE_URL: Joi.string()
             .uri({ scheme: ['postgresql'] })
             .required(),
@@ -58,6 +70,7 @@ import { ProcurementModule } from './modules/procurement/procurement.module.js';
     }),
     PrismaModule,
     QueueModule,
+    AuthModule,
     HealthModule,
     ComplianceModule,
     InventoryModule,

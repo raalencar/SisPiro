@@ -9,11 +9,14 @@ import {
   Query,
 } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiCreatedResponse,
   ApiOperation,
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
+import { UserRole } from '@prisma/client';
+import { Roles } from '../auth/auth.decorators.js';
 import {
   CreatePurchaseDto,
   CreateSupplierDto,
@@ -25,6 +28,8 @@ import {
 import { ProcurementService } from './procurement.service.js';
 
 @ApiTags('Compras e fornecedores')
+@ApiBearerAuth()
+@Roles(UserRole.COMPRAS)
 @Controller()
 export class ProcurementController {
   constructor(private readonly procurement: ProcurementService) {}
@@ -37,7 +42,8 @@ export class ProcurementController {
 
   @Post('suppliers')
   @ApiOperation({
-    summary: 'Cadastra fornecedor, CPF/CNPJ e dados de CR para fornecimento PCE.',
+    summary:
+      'Cadastra fornecedor, CPF/CNPJ e dados de CR para fornecimento PCE.',
   })
   @ApiCreatedResponse({ description: 'Fornecedor cadastrado.' })
   createSupplier(@Body() dto: CreateSupplierDto) {
@@ -79,7 +85,9 @@ export class ProcurementController {
   }
 
   @Get('purchases/:id')
-  @ApiOperation({ summary: 'Consulta compra, fornecedor, itens e recebimentos.' })
+  @ApiOperation({
+    summary: 'Consulta compra, fornecedor, itens e recebimentos.',
+  })
   @ApiParam({ name: 'id', format: 'uuid' })
   getPurchase(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.procurement.getPurchase(id);

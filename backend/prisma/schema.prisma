@@ -56,6 +56,58 @@ enum PurchaseStatus {
   CANCELADO
 }
 
+enum UserRole {
+  ADMIN
+  ESTOQUE
+  COMERCIAL
+  OPERACOES
+  COMPRAS
+  FINANCEIRO
+}
+
+model User {
+  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name         String        @db.VarChar(150)
+  email        String        @unique @db.VarChar(254)
+  passwordHash String        @map("senha_hash") @db.VarChar(255)
+  roles        UserRole[]    @default([])
+  active       Boolean       @default(true) @map("ativo")
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  sessions     AuthSession[]
+  auditLogs    AuditLog[]    @relation("AuditActor")
+
+  @@index([active, createdAt])
+  @@map("usuarios")
+}
+
+model AuthSession {
+  id                String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String             @map("usuario_id") @db.Uuid
+  refreshTokenHash  String             @map("refresh_token_hash") @db.VarChar(64)
+  expiresAt         DateTime           @map("expira_em") @db.Timestamptz(3)
+  lastUsedAt        DateTime?          @map("ultimo_uso_em") @db.Timestamptz(3)
+  revokedAt         DateTime?          @map("revogado_em") @db.Timestamptz(3)
+  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  usedRefreshTokens UsedRefreshToken[]
+
+  @@index([userId, expiresAt])
+  @@map("sessoes_autenticacao")
+}
+
+model UsedRefreshToken {
+  id        String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionId String      @map("sessao_id") @db.Uuid
+  tokenHash String      @map("token_hash") @db.VarChar(64)
+  usedAt    DateTime    @default(now()) @map("usado_em") @db.Timestamptz(3)
+  session   AuthSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, tokenHash])
+  @@index([sessionId, usedAt])
+  @@map("refresh_tokens_usados")
+}
+
 model Product {
   id            String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   sku           String             @unique @map("codigo_sku") @db.VarChar(50)
@@ -217,6 +269,7 @@ model AuditLog {
   before        Json?
   after         Json?
   occurredAt    DateTime @default(now()) @map("ocorrido_em") @db.Timestamptz(3)
+  actor         User?    @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([aggregateType, aggregateId, occurredAt])
   @@index([actorId, occurredAt])

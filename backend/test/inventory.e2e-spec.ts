@@ -1,7 +1,10 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { randomUUID } from 'node:crypto';
-import request from 'supertest';
+import {
+  authenticateE2eAdmin,
+  request,
+} from './helpers/authenticated-request.js';
 import { App } from 'supertest/types.js';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/database/prisma.service.js';
@@ -30,6 +33,7 @@ describe('Inventory API (e2e)', () => {
     );
     prisma = app.get(PrismaService);
     await app.init();
+    await authenticateE2eAdmin(app);
   });
 
   afterAll(async () => {

@@ -1,7 +1,10 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { randomUUID } from 'node:crypto';
-import request from 'supertest';
+import {
+  authenticateE2eAdmin,
+  request,
+} from './helpers/authenticated-request.js';
 import { App } from 'supertest/types.js';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/database/prisma.service.js';
@@ -34,6 +37,7 @@ describe('Commercial sales API (e2e)', () => {
     );
     prisma = app.get(PrismaService);
     await app.init();
+    await authenticateE2eAdmin(app);
   });
 
   afterAll(async () => {
@@ -115,9 +119,7 @@ describe('Commercial sales API (e2e)', () => {
     expect(stock.body.quantity).toBe('8');
 
     const history = await request(app.getHttpServer())
-      .get(
-        `/api/v1/inventory/movements?productLotId=${lot.body.id}&type=SAIDA`,
-      )
+      .get(`/api/v1/inventory/movements?productLotId=${lot.body.id}&type=SAIDA`)
       .expect(200);
     expect(history.body.data).toHaveLength(1);
     expect(history.body.data[0].reference).toMatch(/^VENDA-/);
@@ -159,18 +161,26 @@ describe('Commercial sales API (e2e)', () => {
 
   it('serializes concurrent checkouts for stock in the same lot', async () => {
     const product = await createProduct('RACE', false);
-    const lot = await createLot(product.body.id as string, `RACE-${suffix}`, 10);
+    const lot = await createLot(
+      product.body.id as string,
+      `RACE-${suffix}`,
+      10,
+    );
     const list = await createPriceList(product.body.id as string, 4);
 
     const checkouts = await Promise.all([
-      request(app.getHttpServer()).post('/api/v1/sales').send({
-        priceListId: list.id,
-        items: [{ productLotId: lot.body.id, quantity: 6 }],
-      }),
-      request(app.getHttpServer()).post('/api/v1/sales').send({
-        priceListId: list.id,
-        items: [{ productLotId: lot.body.id, quantity: 6 }],
-      }),
+      request(app.getHttpServer())
+        .post('/api/v1/sales')
+        .send({
+          priceListId: list.id,
+          items: [{ productLotId: lot.body.id, quantity: 6 }],
+        }),
+      request(app.getHttpServer())
+        .post('/api/v1/sales')
+        .send({
+          priceListId: list.id,
+          items: [{ productLotId: lot.body.id, quantity: 6 }],
+        }),
     ]);
     for (const response of checkouts) {
       if (response.status === 201) {
@@ -262,7 +272,11 @@ describe('Commercial sales API (e2e)', () => {
     return response;
   }
 
-  async function createLot(productId: string, lotNumber: string, quantity: number) {
+  async function createLot(
+    productId: string,
+    lotNumber: string,
+    quantity: number,
+  ) {
     const magazine = await request(app.getHttpServer())
       .post('/api/v1/inventory/magazines')
       .send({
@@ -306,10 +320,7 @@ function makeValidCnpj(): string {
   const digits = Array.from({ length: 12 }, () =>
     Math.floor(Math.random() * 10),
   );
-  const first = checkDigit(
-    digits,
-    [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2],
-  );
+  const first = checkDigit(digits, [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
   const second = checkDigit(
     [...digits, first],
     [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2],

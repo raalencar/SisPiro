@@ -9,11 +9,14 @@ import {
   Query,
 } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiCreatedResponse,
   ApiOperation,
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
+import { UserRole } from '@prisma/client';
+import { Roles } from '../auth/auth.decorators.js';
 import {
   CheckPceEligibilityDto,
   CreateCustomerDto,
@@ -23,6 +26,8 @@ import {
 import { CustomersService } from './customers.service.js';
 
 @ApiTags('Clientes e documentação')
+@ApiBearerAuth()
+@Roles(UserRole.COMERCIAL)
 @Controller('customers')
 export class CustomersController {
   constructor(private readonly customers: CustomersService) {}

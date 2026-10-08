@@ -1,7 +1,10 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { randomUUID } from 'node:crypto';
-import request from 'supertest';
+import {
+  authenticateE2eAdmin,
+  request,
+} from './helpers/authenticated-request.js';
 import { App } from 'supertest/types.js';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/database/prisma.service.js';
@@ -32,6 +35,7 @@ describe('Service order APIs (e2e)', () => {
     );
     prisma = app.get(PrismaService);
     await app.init();
+    await authenticateE2eAdmin(app);
   });
 
   afterAll(async () => {
@@ -165,7 +169,9 @@ describe('Service order APIs (e2e)', () => {
     expect(bypassReservation.body.message).toContain('reservado');
 
     const competingOrder = await createOrder(4);
-    const noAvailability = await approveOrder(competingOrder.body.id).expect(409);
+    const noAvailability = await approveOrder(competingOrder.body.id).expect(
+      409,
+    );
     expect(noAvailability.body.message).toContain('Estoque disponível');
 
     const started = await request(app.getHttpServer())
@@ -211,9 +217,11 @@ describe('Service order APIs (e2e)', () => {
     const list = await request(app.getHttpServer())
       .get('/api/v1/operations/orders?status=EXECUTADO')
       .expect(200);
-    expect(list.body.data.some((order: { id: string }) => order.id === firstOrder.body.id)).toBe(
-      true,
-    );
+    expect(
+      list.body.data.some(
+        (order: { id: string }) => order.id === firstOrder.body.id,
+      ),
+    ).toBe(true);
   });
 
   it('serializes concurrent approvals competing for the same lot', async () => {
@@ -328,10 +336,7 @@ function makeValidCnpj(): string {
   const digits = Array.from({ length: 12 }, () =>
     Math.floor(Math.random() * 10),
   );
-  const first = checkDigit(
-    digits,
-    [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2],
-  );
+  const first = checkDigit(digits, [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
   const second = checkDigit(
     [...digits, first],
     [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2],

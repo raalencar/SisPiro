@@ -30,6 +30,10 @@ e `56379`) e persiste os dados em volumes Docker. Ajuste `POSTGRES_PASSWORD` e
 ser versionado nem usado com credenciais locais em produção. Se as portas
 alternativas também estiverem ocupadas, altere `POSTGRES_HOST_PORT` e
 `REDIS_HOST_PORT`, mantendo `DATABASE_URL` e `REDIS_PORT` alinhados.
+Configure `AUTH_JWT_SECRET` com uma chave aleatória de pelo menos 32 caracteres
+(`openssl rand -base64 48` é uma opção). O valor no `.env.example` é apenas um
+placeholder e não deve ser usado fora do desenvolvimento local. Mantenha a API
+restrita à rede confiável até concluir o bootstrap do primeiro administrador.
 
 ## Comandos úteis
 
@@ -53,6 +57,45 @@ instaladas.
 de estoque e auditoria. Quantidades e NEQ usam `Decimal`; os fluxos iniciais de
 estoque usam transações PostgreSQL, bloqueios concorrentes e validação de
 capacidade do paiol antes de gravar.
+
+### Autenticação, usuários e perfis
+
+| Método | Rota | Acesso | Uso |
+| --- | --- | --- | --- |
+| `POST` | `/auth/bootstrap` | Público, uma única vez | Cria o primeiro administrador enquanto não houver usuários |
+| `POST` | `/auth/login` | Público | Autentica por e-mail e senha e inicia sessão |
+| `POST` | `/auth/refresh` | Público, exige refresh token | Rotaciona o refresh token e emite novo access token |
+| `POST` | `/auth/logout` | Público, exige refresh token | Revoga a sessão apresentada |
+| `GET` | `/auth/me` | Autenticado | Consulta o usuário da sessão |
+| `PATCH` | `/auth/me/password` | Autenticado | Altera a senha atual e revoga todas as sessões |
+| `GET` / `POST` | `/users` | `ADMIN` | Lista usuários ou cria usuário com perfis |
+| `GET` / `PATCH` | `/users/:id` | `ADMIN` | Consulta ou atualiza nome, perfis e estado ativo |
+
+Envie access tokens no cabeçalho `Authorization: Bearer <token>`. O access token
+JWT dura 15 minutos por padrão; o refresh token opaco expira em 30 dias, é
+rotacionado a cada uso e somente seu hash é persistido. Reutilizar um refresh
+token antigo revoga a sessão. As durações são configuráveis. O endpoint de
+bootstrap é protegido por lock transacional e deixa de criar usuários após o
+primeiro cadastro; não existe cadastro público. Senhas são armazenadas com
+scrypt e os erros de login não revelam se e-mail ou senha estavam incorretos.
+
+Perfis concedem acesso por módulo; `ADMIN` acessa todos os módulos e não pode
+ser o último administrador ativo removido ou rebaixado.
+
+| Perfil | Módulos |
+| --- | --- |
+| `ESTOQUE` | Estoque/WMS |
+| `COMERCIAL` | Clientes, preços e vendas |
+| `OPERACOES` | Blasters e ordens de serviço |
+| `COMPRAS` | Fornecedores e compras |
+| `FINANCEIRO` | Contas e fluxo de caixa |
+| `ADMIN` | Todos os módulos e gestão de usuários |
+
+Usuários podem receber mais de um perfil. Desativar usuário, alterar sua senha,
+encerrar sessão ou detectar reutilização de refresh invalida imediatamente seus
+access tokens. Os registros de auditoria das operações de autenticação e gestão
+de usuários identificam o ator; os registros históricos e os fluxos de negócio
+existentes ainda precisam propagar essa identidade.
 
 ### Endpoints de estoque/WMS disponíveis
 
@@ -202,11 +245,15 @@ conciliação, parcelamento ou estorno de pagamentos. Emissão fiscal, Guias de
 Tráfego, mapas regulatórios e relatórios avançados ainda não estão expostos pela
 API. As telas do frontend também ainda não consomem estes endpoints.
 
-Os endpoints atuais não têm autenticação/autorização e são destinados somente ao
-desenvolvimento local. Antes da produção, implemente controle de acesso e
-identidade do operador, trilha de auditoria append-only (incluindo permissões de
-banco), revisão dos fluxos regulatórios e testes de concorrência das regras de
-estoque.
+Todas as rotas de negócio exigem access token e perfil compatível; liveness,
+readiness e os endpoints de bootstrap/login/refresh/logout são públicos. A API
+ainda não possui limitação de tentativas de login, recuperação de senha,
+autenticação multifator ou transporte de refresh token por cookie HttpOnly. O
+cliente não deve persistir tokens em armazenamento acessível a JavaScript; para
+uso web em produção, implemente uma camada BFF/cookie seguro ou estratégia
+equivalente. Antes da produção, propague a identidade do operador para toda a
+auditoria de negócio, restrinja permissões de banco, revise os fluxos
+regulatórios e faça revisão de segurança e testes de concorrência.
 
 ### Lacunas conhecidas e próximos módulos
 
@@ -215,7 +262,7 @@ as rotas e regras detalhadas devem ser definidas antes de iniciar cada módulo.
 
 | Área | Situação atual | Trabalho pendente |
 | --- | --- | --- |
-| Acesso e operadores | API sem autenticação ou autorização; auditoria sem identidade do ator | Endpoints e fluxo de login, usuários, perfis/permissões e identificação do operador nas gravações |
+| Acesso e operadores | Login JWT, refresh rotativo, usuários e perfis por módulo implementados; auditoria de autenticação identifica ator | Recuperação de senha, MFA, limitação de tentativas, transporte seguro de refresh no cliente e propagação de ator nos demais logs de negócio |
 | Financeiro de vendas e OS | Contas avulsas são manuais; compras geram contas a pagar por recebimento | Definir e implementar geração de contas a receber conforme checkout/venda e regras de cobrança de OS |
 | Devolução e financeiro | Devolução reentra estoque; não gera estorno financeiro | Definir e registrar estorno/crédito vinculado à devolução e à venda original |
 | Orçamentos comerciais | OS cria orçamento operacional; não existe carrinho/orçamento persistente de venda | Persistência, consulta e conversão de orçamento/carrinho em venda |

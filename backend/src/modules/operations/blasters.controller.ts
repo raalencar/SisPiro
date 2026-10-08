@@ -9,11 +9,14 @@ import {
   Query,
 } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiCreatedResponse,
   ApiOperation,
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
+import { UserRole } from '@prisma/client';
+import { Roles } from '../auth/auth.decorators.js';
 import {
   BlastersQueryDto,
   CheckBlasterEligibilityDto,
@@ -23,6 +26,8 @@ import {
 import { BlastersService } from './blasters.service.js';
 
 @ApiTags('Blasters e equipes')
+@ApiBearerAuth()
+@Roles(UserRole.OPERACOES)
 @Controller('blasters')
 export class BlastersController {
   constructor(private readonly blasters: BlastersService) {}

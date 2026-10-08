@@ -1,7 +1,10 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { randomUUID } from 'node:crypto';
-import request from 'supertest';
+import {
+  authenticateE2eAdmin,
+  request,
+} from './helpers/authenticated-request.js';
 import { App } from 'supertest/types.js';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/database/prisma.service.js';
@@ -31,6 +34,7 @@ describe('Procurement API (e2e)', () => {
     );
     prisma = app.get(PrismaService);
     await app.init();
+    await authenticateE2eAdmin(app);
   });
 
   afterAll(async () => {
@@ -142,9 +146,7 @@ describe('Procurement API (e2e)', () => {
     expect(payableDetails.body.receiptBatch.invoiceReference).toBe(
       `NF-FINAL-${suffix}`,
     );
-    expect(payableDetails.body.receiptBatch.purchase.id).toBe(
-      purchase.body.id,
-    );
+    expect(payableDetails.body.receiptBatch.purchase.id).toBe(purchase.body.id);
     const lotId = received.body.receivedLots[0].lot.id as string;
     lotIds.push(lotId);
     expect(received.body.items[0].receipts).toHaveLength(2);
@@ -385,10 +387,7 @@ function makeValidCnpj(): string {
   const digits = Array.from({ length: 12 }, () =>
     Math.floor(Math.random() * 10),
   );
-  const first = checkDigit(
-    digits,
-    [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2],
-  );
+  const first = checkDigit(digits, [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
   const second = checkDigit(
     [...digits, first],
     [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2],
