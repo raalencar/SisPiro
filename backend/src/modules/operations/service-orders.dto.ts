@@ -139,3 +139,52 @@ export class CloseServiceOrderDto {
   @MaxLength(2000)
   reportNotes?: string;
 }
+
+export class CancelServiceOrderDto {
+  @ApiPropertyOptional({
+    maxLength: 500,
+    description: 'Motivo do cancelamento da ordem de serviço.',
+  })
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @MaxLength(500)
+  reason?: string;
+}
+
+export class UpdateServiceOrderDto {
+  @ApiPropertyOptional({ format: 'uuid' })
+  @IsOptional()
+  @IsUUID()
+  customerId?: string;
+
+  @ApiProperty({
+    description: 'Valor contratado da OS.',
+    minimum: 0.01,
+    maximum: 9999999999.99,
+  })
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.01)
+  @Max(9999999999.99)
+  contractedAmount!: number;
+
+  @ApiProperty({ example: '2027-12-31T20:00:00-03:00' })
+  @IsDateString()
+  eventAt!: string;
+
+  @ApiProperty({ maxLength: 500 })
+  @IsString()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @MinLength(1)
+  @MaxLength(500)
+  eventLocation!: string;
+
+  @ApiProperty({ type: [CreateServiceOrderItemDto], minItems: 1 })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => CreateServiceOrderItemDto)
+  items!: CreateServiceOrderItemDto[];
+}
+

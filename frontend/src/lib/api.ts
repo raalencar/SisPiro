@@ -312,11 +312,14 @@ export type Product = {
 export type Magazine = {
   id: string;
   name: string;
+  active: boolean;
   maxNeqCapacityKg: string;
   currentNeqKg: string;
   remainingNeqKg: string;
   fireLicenseExpiresAt: string;
 };
+
+export type ProductLotStatus = "DISPONIVEL" | "QUARENTENA" | "BLOQUEADO";
 
 export type ProductLot = {
   id: string;
@@ -327,6 +330,8 @@ export type ProductLot = {
   manufacturedAt: string;
   expiresAt: string;
   manufacturerOrImporter: string;
+  status: ProductLotStatus;
+  statusReason: string | null;
   neqKg: string;
   product: Product;
   magazine: Magazine;
@@ -354,6 +359,8 @@ export type OperationalLot = {
   magazineId: string;
   lotNumber: string;
   quantity: string;
+  status: ProductLotStatus;
+  statusReason: string | null;
   expiresAt: string;
   neqKg: string;
   product: Pick<
@@ -441,6 +448,8 @@ export type StockReport = {
     physicalQuantity: string;
     reservedQuantity: string;
     availableQuantity: string;
+    quarantinedQuantity: string;
+    blockedQuantity: string;
     expiredQuantity: string;
     expiringQuantity: string;
   };
@@ -454,6 +463,8 @@ export type StockReport = {
     physicalQuantity: string;
     reservedQuantity: string;
     availableQuantity: string;
+    quarantinedQuantity: string;
+    blockedQuantity: string;
     expiredQuantity: string;
     expiringQuantity: string;
   }>;
@@ -467,6 +478,8 @@ export type StockReport = {
     magazineId: string;
     magazineName: string;
     expiresAt: string;
+    status: string;
+    statusReason: string | null;
     physicalQuantity: string;
     reservedQuantity: string;
     availableQuantity: string;
@@ -481,9 +494,64 @@ export type StockReport = {
     magazineId: string;
     magazineName: string;
     expiresAt: string;
+    status: string;
+    statusReason: string | null;
     physicalQuantity: string;
     reservedQuantity: string;
     availableQuantity: string;
+  }>;
+};
+
+export type SfpcMonthlyReport = {
+  year: number;
+  month: number;
+  periodStart: string;
+  periodEnd: string;
+  generatedAt: string;
+  totals: {
+    productCount: number;
+    initialBalanceNeqKg: string;
+    inflowNeqKg: string;
+    outflowNeqKg: string;
+    finalBalanceNeqKg: string;
+  };
+  byRiskClass: Array<{
+    riskClass: string;
+    productCount: number;
+    initialQuantity: string;
+    inflowQuantity: string;
+    outflowQuantity: string;
+    finalQuantity: string;
+    initialNeqKg: string;
+    inflowNeqKg: string;
+    outflowNeqKg: string;
+    finalNeqKg: string;
+  }>;
+  items: Array<{
+    productId: string;
+    sku: string;
+    productName: string;
+    riskClass: string;
+    unit: string;
+    neqGrams: string;
+    initialQuantity: string;
+    inflowBreakdown: {
+      purchases: string;
+      returns: string;
+      adjustments: string;
+      total: string;
+    };
+    outflowBreakdown: {
+      sales: string;
+      serviceOrders: string;
+      adjustments: string;
+      total: string;
+    };
+    finalQuantity: string;
+    initialNeqKg: string;
+    inflowNeqKg: string;
+    outflowNeqKg: string;
+    finalNeqKg: string;
   }>;
 };
 
@@ -496,6 +564,15 @@ function paginatedPath(path: string, page: number, search?: string): string {
 export const inventoryApi = {
   getStockReport: () =>
     requestJson<StockReport>("/api/inventory/reports/stock-summary"),
+  getSfpcMonthlyMap: (year?: number, month?: number) => {
+    const params = new URLSearchParams();
+    if (year) params.set("year", String(year));
+    if (month) params.set("month", String(month));
+    const query = params.toString();
+    return requestJson<SfpcMonthlyReport>(
+      `/api/inventory/reports/sfpc-monthly-map${query ? `?${query}` : ""}`,
+    );
+  },
   getProducts: (page = 1, search?: string) =>
     requestJson<PageResult<Product>>(paginatedPath("products", page, search)),
   getMagazines: (page = 1, search?: string) =>
@@ -528,6 +605,11 @@ export const inventoryApi = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+  updateMagazineStatus: (id: string, body: { active: boolean }) =>
+    requestJson<Magazine>(`/api/inventory/magazines/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
   createLot: (body: {
     productId: string;
     magazineId: string;
@@ -538,6 +620,31 @@ export const inventoryApi = {
     manufacturerOrImporter: string;
   }) =>
     requestJson<ProductLot>("/api/inventory/lots", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  updateLotStatus: (
+    id: string,
+    body: { status: ProductLotStatus; reason?: string },
+  ) =>
+    requestJson<ProductLot>(`/api/inventory/lots/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  splitLot: (
+    id: string,
+    body: {
+      destinationMagazineId: string;
+      newLotNumber: string;
+      quantity: number;
+    },
+  ) =>
+    requestJson<{
+      parentLot: ProductLot;
+      childLot: ProductLot;
+      originMovement: StockMovement;
+      childMovement: StockMovement;
+    }>(`/api/inventory/lots/${id}/split`, {
       method: "POST",
       body: JSON.stringify(body),
     }),
@@ -608,6 +715,24 @@ export const operationsApi = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+  updateOrder: (
+    id: string,
+    body: {
+      customerId?: string;
+      contractedAmount: number;
+      eventAt: string;
+      eventLocation: string;
+      items: Array<{
+        productId: string;
+        productLotId: string;
+        plannedQuantity: number;
+      }>;
+    },
+  ) =>
+    requestJson<ServiceOrder>(operationsPath(`orders/${id}`), {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
   approveOrder: (
     id: string,
     body: { responsibleBlasterId: string; artNumber?: string },
@@ -621,10 +746,10 @@ export const operationsApi = {
       method: "POST",
       body: JSON.stringify({}),
     }),
-  cancelOrder: (id: string) =>
+  cancelOrder: (id: string, reason?: string) =>
     requestJson<ServiceOrder>(operationsPath(`orders/${id}/cancel`), {
       method: "POST",
-      body: JSON.stringify({}),
+      body: JSON.stringify(reason ? { reason } : {}),
     }),
   closeOrder: (
     id: string,

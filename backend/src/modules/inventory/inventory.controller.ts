@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Query,
 } from '@nestjs/common';
@@ -25,6 +26,10 @@ import {
   MovementsQueryDto,
   PaginationQueryDto,
   ProductsQueryDto,
+  SfpcMonthlyMapQueryDto,
+  SplitLotDto,
+  UpdateLotStatusDto,
+  UpdateMagazineStatusDto,
 } from './inventory.dto.js';
 import { InventoryService } from './inventory.service.js';
 
@@ -72,6 +77,15 @@ export class InventoryController {
     return this.inventory.stockReport();
   }
 
+  @Get('reports/sfpc-monthly-map')
+  @ApiOperation({
+    summary:
+      'Gera o Mapa Mensal de Movimentação e Estocagem de PCE para fiscalização do SFPC / Exército Brasileiro.',
+  })
+  getSfpcMonthlyMap(@Query() query: SfpcMonthlyMapQueryDto) {
+    return this.inventory.getSfpcMonthlyMap(query);
+  }
+
   @Get('magazines/:id')
   @ApiOperation({ summary: 'Consulta um paiol e sua ocupação NEQ atual.' })
   @ApiParam({ name: 'id', format: 'uuid' })
@@ -84,6 +98,19 @@ export class InventoryController {
   @ApiCreatedResponse({ description: 'Paiol cadastrado.' })
   createMagazine(@Body() dto: CreateMagazineDto) {
     return this.inventory.createMagazine(dto);
+  }
+
+  @Patch('magazines/:id/status')
+  @ApiOperation({
+    summary:
+      'Atualiza o status de atividade do paiol com validação de saldo zerado para inativação.',
+  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  updateMagazineStatus(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: UpdateMagazineStatusDto,
+  ) {
+    return this.inventory.updateMagazineStatus(id, dto);
   }
 
   @Get('lots')
@@ -109,6 +136,19 @@ export class InventoryController {
     return this.inventory.getLot(id);
   }
 
+  @Patch('lots/:id/status')
+  @ApiOperation({
+    summary:
+      'Atualiza o status do lote (DISPONIVEL, QUARENTENA, BLOQUEADO) com rastreabilidade de motivo e bloqueio contra reservas ativas.',
+  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  updateLotStatus(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: UpdateLotStatusDto,
+  ) {
+    return this.inventory.updateLotStatus(id, dto);
+  }
+
   @Post('lots')
   @ApiOperation({
     summary:
@@ -119,6 +159,22 @@ export class InventoryController {
   })
   createLot(@Body() dto: CreateLotDto) {
     return this.inventory.createLot(dto);
+  }
+
+  @Post('lots/:id/split')
+  @ApiOperation({
+    summary:
+      'Desmembra lote rastreável criando novo lote filho em paiol de destino com validação de NEQ e reservas.',
+  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiCreatedResponse({
+    description: 'Lote desmembrado com sucesso e movimentações geradas.',
+  })
+  splitLot(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: SplitLotDto,
+  ) {
+    return this.inventory.splitLot(id, dto);
   }
 
   @Get('movements')

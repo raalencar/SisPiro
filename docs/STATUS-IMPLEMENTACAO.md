@@ -15,8 +15,13 @@ implantada da API.
   identidade do operador autenticado em novos registros.
 - Seed DEMO local idempotente, com dados fictícios para os módulos e guardas
   contra execução fora de ambiente de desenvolvimento/loopback.
-- Estoque/WMS: produtos PCE, lotes rastreáveis, paióis, capacidade NEQ,
-  recebimentos e movimentos de estoque, reservas e resumo de posição/validade.
+- Estoque/WMS: produtos PCE, lotes rastreáveis com controle de quarentena/bloqueio físico
+  (`DISPONIVEL`, `QUARENTENA`, `BLOQUEADO`), desmembramento rastreável (`split`), paióis com
+  capacidade NEQ e ativação/inativação com trava de saldo zero, recebimentos e movimentos de
+  estoque auditados, reservas e resumo de posição/validade.
+- Relatório Regulatório Militar: Mapa Mensal de Movimentação e Estocagem de PCE para o Exército
+  Brasileiro (SFPC / R-105) consolidando saldos anteriores, entradas, saídas, saldos finais e massa NEQ
+  por classe de risco.
 - Cadastros e operações para clientes, blasters, fornecedores/compras,
   tabelas de preços e promoções, orçamentos/vendas/devoluções, ordens de serviço
   e contas a pagar/receber e relatórios financeiros.
@@ -28,10 +33,10 @@ implantada da API.
 - Navegação Next.js e verificação de liveness/readiness da API.
 - BFF same-origin para login, sessão, renovação e logout; os tokens ficam em
   cookies `HttpOnly`, `SameSite=Lax`, com `Secure` em produção.
-- Estoque/WMS conectado a produtos, lotes, paióis e histórico de movimentos,
+- Estoque/WMS conectado a produtos, lotes (com alteração de situação/quarentena e desmembramento),
+  paióis (com controle de ativação/inativação), movimentações e Mapa Mensal SFPC (R-105) interativo,
   com paginação e busca onde a API oferece esses filtros.
-- Resumo de estoque e alertas de vencimento, quando disponíveis na instância
-  implantada.
+- Resumo de estoque e alertas de vencimento, com métricas de quarentena/bloqueio físico.
 - Formulários de produto, paiol, recebimento de lote e movimentações de entrada,
   saída, ajuste e transferência.
 - Ordens de serviço: lista com busca/filtro/paginação, resumo por período,
@@ -95,13 +100,16 @@ as listas de produtos, lotes, paióis e movimentos.
 
 - O backend não oferece atualmente edição/exclusão para produtos, paióis, lotes
   e movimentos de estoque; o frontend não inventa essas operações.
-- Transferência de estoque movimenta o saldo integral do lote no modelo atual;
-  divisão requer lotes distintos rastreáveis.
+- Transferência de estoque tradicional movimenta o saldo integral do lote no mesmo registro.
+  A divisão entre paióis é realizada pelo endpoint `/inventory/lots/:id/split`, que gera um novo
+  lote filho rastreável no destino, deduz o saldo do lote de origem e valida reservas e capacidade NEQ.
+- A inativação de paiol (`PATCH /inventory/magazines/:id/status`) exige saldo físico estritamente
+  zerado para impedir orfandade ou ocultação de materiais controlados.
 - A API permanece responsável pela autorização final, capacidade NEQ, validade,
   reservas, consistência transacional e auditoria.
-- A tela de OS não oferece edição de orçamento nem cancelamento após início de
-  montagem; esses endpoints não existem no backend. A autorização final das
-  operações continua no backend.
+- A OS permite edição de itens e cabeçalho enquanto em status `ORCAMENTO` e cancelamento
+  seguro com liberação imediata e transacional de reservas em `EM_MONTAGEM`. A autorização
+  final das operações continua estritamente no backend.
 - Dados com prefixo/identificação DEMO são fictícios e não devem ser usados em
   operação real nem em produção.
 

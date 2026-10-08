@@ -40,8 +40,8 @@ desenvolvimento.
   validações de licença, validade, reservas e capacidade NEQ.
 - **Ordens de serviço:** lista e relatório por período, criação de orçamento,
   consulta detalhada, aprovação com blaster/ART, início da montagem,
-  cancelamento permitido pelo backend e encerramento com quantidades
-  efetivamente disparadas. Aprovação e fechamento delegam reservas, consumo e
+  cancelamento seguro (inclusive em montagem com liberação de reservas) e encerramento com quantidades
+  efetivamente disparadas. Aprovação, cancelamento e fechamento delegam reservas, consumo e
   lançamento a receber às transações do backend.
 - **Autorização:** a API é a autoridade para autenticação e perfis. A tela
   apresenta somente as transições compatíveis com a situação atual da OS e
@@ -55,16 +55,17 @@ movimentações preservam a trilha de auditoria.
 ## Rotas da interface
 
 - `/` — visão geral e estado dos módulos.
-- `/modules/inventory` — posição de estoque e abas de produtos, lotes, paióis e
-  movimentações.
+- `/modules/inventory` — posição de estoque e abas de produtos, lotes (com controle de quarentena/bloqueio e desmembramento rastreável), paióis (com ativação/inativação controlada), movimentações e Mapa Mensal SFPC (R-105).
 - `/modules/products` — catálogo de produtos (atalho para a área de estoque).
 - `/modules/operations` — ordens de serviço, relatório operacional e ações de
   orçamento, aprovação, montagem, cancelamento e encerramento.
 - Os demais módulos ainda apresentam estado informativo; suas APIs não estão
   integradas às telas.
 
-O fluxo de OS não oferece edição do orçamento nem cancelamento após início da
-montagem porque essas operações não existem na API. A seleção de referências
+O módulo de estoque agora suporta alteração de situação do lote (`DISPONIVEL`, `QUARENTENA`, `BLOQUEADO`),
+desmembramento entre paióis (`/inventory/lots/:id/split`), ativação e inativação de paióis com trava de saldo zero,
+e relatório consolidado de Mapa Mensal SFPC para o Exército Brasileiro.
+A API agora suporta edição de orçamento via `PUT` e cancelamento seguro até `EM_MONTAGEM`. A seleção de referências
 usa endpoints de leitura limitados ao necessário para operações; CPF/CNPJ e
 número do CR não são retornados nessas opções.
 

@@ -132,27 +132,43 @@ Todos usam o prefixo configurado (`/api/v1` por padrão):
 | `GET` | `/inventory/products/:id` | Consulta produto |
 | `GET` / `POST` | `/inventory/magazines` | Lista/cria paióis; lista inclui NEQ atual e capacidade restante |
 | `GET` | `/inventory/magazines/:id` | Consulta paiol e capacidade |
+| `PATCH` | `/inventory/magazines/:id/status` | Ativa ou inativa paiol (inativação exige saldo físico zerado) |
 | `GET` / `POST` | `/inventory/lots` | Lista lotes ou registra lote com recebimento inicial |
 | `GET` | `/inventory/operational-lots` | `OPERACOES`: opções de lote com dados mínimos para criar OS |
 | `GET` | `/inventory/lots/:id` | Consulta lote, produto, paiol e NEQ |
+| `PATCH` | `/inventory/lots/:id/status` | Altera status do lote (`DISPONIVEL`, `QUARENTENA`, `BLOQUEADO`) com justificativa e trava contra reservas |
+| `POST` | `/inventory/lots/:id/split` | Desmembra lote para outro paiol com novo número rastreável e validação de NEQ/reservas |
 | `GET` / `POST` | `/inventory/movements` | Consulta histórico ou registra movimentação |
 | `GET` | `/inventory/reports/stock-summary` | Resume saldo físico, reservas, disponibilidade e lotes vencidos/próximos do vencimento |
+| `GET` | `/inventory/reports/sfpc-monthly-map` | Mapa Mensal de Movimentação e Estocagem de PCE para o Exército (SFPC / R-105) |
 
 As rotas de estoque exigem `ESTOQUE`, exceto `/inventory/operational-lots`,
 liberada somente para `OPERACOES` e com seleção de campos reduzida (sem dados
 de fabricante/importador). As listas aceitam `page` e `limit` (máximo 100);
 produtos aceitam `search`, `type` e `isPce`, lotes aceitam `search`,
-`productId` e `magazineId`, e movimentações aceitam `search`, `productLotId` e
+`productId`, `magazineId` e `status`, e movimentações aceitam `search`, `productLotId` e
 `type`.
 
 O recebimento inicial e as entradas/ajustes positivos validam a capacidade em
-NEQ/kg dentro de transações que bloqueiam a linha do paiol. Transferências também
-validam a capacidade do destino e, devido ao modelo atual de lote vinculado a
-um único paiol, precisam mover o saldo integral do lote. Para dividir estoque,
-cadastre lotes separados com rastreabilidade própria. Saídas impedem saldo
-negativo; saídas e transferências bloqueiam lotes vencidos. Paiol inativo ou com
-licença dos Bombeiros vencida não recebe estoque. Cada gravação cria um registro
-de auditoria na mesma transação, identificando o usuário autenticado. Registros
+NEQ/kg dentro de transações que bloqueiam a linha do paiol. Transferências
+tradicionais movimentam o saldo integral do lote mantendo a rastreabilidade do registro.
+Para transferências parciais com divisão física entre paióis, utiliza-se o endpoint
+`/inventory/lots/:id/split`, que deduz atomicamente a quantidade desmembrada do lote de
+origem, valida ausência de reservas, valida a capacidade NEQ do paiol de destino e cria
+um novo lote filho rastreável com histórico vinculado e movimentações registradas.
+O controle de quarentena e bloqueio físico (`PATCH /inventory/lots/:id/status`) permite
+interditar lotes com defeito, laudos pendentes ou retenções fiscais, bloqueando
+automaticamente saídas, transferências, ajustes de quantidade, orçamentos, vendas e
+reservas de Ordens de Serviço, com justificativa obrigatória e rastreabilidade integral
+em log de auditoria.
+A inativação de paióis (`/inventory/magazines/:id/status`) exige validação estrita de saldo
+zerado para impedir orfandade de produtos controlados. Saídas impedem saldo
+negativo; saídas, transferências, ajustes e desmembramentos bloqueiam lotes vencidos ou em quarentena/bloqueio.
+O Mapa Mensal SFPC (`GET /inventory/reports/sfpc-monthly-map`) consolida o balanço regulatório
+mensal exigido pela fiscalização militar (Portarias COLOG / R-105): Saldo Anterior + Entradas
+(Compras, Devoluções, Ajustes) - Saídas (Vendas, Queimas em OS, Ajustes) = Saldo Atual e massa NEQ
+por classe de risco e produto. Paiol inativo ou com licença dos Bombeiros vencida não recebe estoque. Cada gravação cria um
+registro de auditoria na mesma transação, identificando o usuário autenticado. Registros
 históricos permanecem com o ator nulo.
 O resumo de estoque considera reservas ativas de OS e orçamentos comerciais.
 Exibe o saldo físico, reservado e disponível por produto e por lote; lotes
@@ -291,9 +307,10 @@ NF-e, NFS-e, MDF-e ou Guia de Tráfego.
 | `GET` / `POST` | `/operations/orders` | Lista OS com paginação, busca e filtro; cria orçamento |
 | `GET` | `/operations/orders/reports/summary?from=AAAA-MM-DD&to=AAAA-MM-DD` | Resume OS e valores contratados por status, pela data do evento |
 | `GET` | `/operations/orders/:id` | Consulta OS, itens, cliente e situação da reserva |
+| `PUT` | `/operations/orders/:id` | Edita orçamento de OS (cabeçalho e itens) antes da aprovação |
 | `POST` | `/operations/orders/:id/approve` | Valida cliente/CR, blaster, lotes e reserva o estoque |
 | `POST` | `/operations/orders/:id/start` | Inicia montagem mantendo a reserva |
-| `POST` | `/operations/orders/:id/cancel` | Cancela orçamento/aprovação e libera a reserva |
+| `POST` | `/operations/orders/:id/cancel` | Cancela orçamento, aprovação ou montagem e libera a reserva |
 | `POST` | `/operations/orders/:id/close` | Registra queima, baixa consumo real e gera conta a receber |
 
 As rotas de OS exigem `OPERACOES`. O perfil pode consultar apenas as opções
@@ -301,15 +318,17 @@ operacionais necessárias de clientes, blasters e lotes pelos endpoints acima;
 cadastros completos e mutações de clientes/estoque continuam restritos aos
 perfis originais. Respostas de OS não incluem CPF/CNPJ nem número do CR.
 
-A criação gera um orçamento sem reservar estoque. A aprovação verifica
-elegibilidade do cliente e do blaster, validade dos lotes e disponibilidade,
-considerando também os orçamentos comerciais vigentes e serializando aprovações
-concorrentes por lote. A reserva de OS é derivada dos itens planejados em
-`APROVADO` ou `EM_MONTAGEM`; saídas, transferências e ajustes negativos
-independentes não podem consumir quantidades reservadas por OS ou orçamento.
-Cancelar ou encerrar a OS libera a reserva. No encerramento, a baixa é baseada
-na quantidade efetivamente queimada, e as sobras voltam a ficar disponíveis.
-O relatório de queima e as movimentações ficam registrados na auditoria.
+A criação gera um orçamento sem reservar estoque. Enquanto a OS estiver em
+`ORCAMENTO`, seu cabeçalho e seus itens planejados podem ser editados via `PUT`.
+A aprovação verifica elegibilidade do cliente e do blaster, validade dos lotes e
+disponibilidade, considerando também os orçamentos comerciais vigentes e
+serializando aprovações concorrentes por lote. A reserva de OS é derivada dos
+itens planejados em `APROVADO` ou `EM_MONTAGEM`; saídas, transferências e ajustes
+negativos independentes não podem consumir quantidades reservadas por OS ou
+orçamento. Cancelar a OS (em `ORCAMENTO`, `APROVADO` ou `EM_MONTAGEM`) ou encerrá-la
+libera a reserva atomicamente. No encerramento, a baixa é baseada na quantidade
+efetivamente queimada, e as sobras voltam a ficar disponíveis. O relatório de
+queima e as movimentações ficam registrados na auditoria.
 Ao criar a OS, informe o valor contratado. Ao concluir a execução, informe
 também o vencimento; o sistema cria atomicamente uma única conta a receber pelo
 valor contratado, vinculada ao cliente e à OS. O valor não é recalculado com

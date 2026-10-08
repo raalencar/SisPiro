@@ -17,7 +17,7 @@ import {
   ValidateIf,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ProductType, StockMovementType } from '@prisma/client';
+import { ProductLotStatus, ProductType, StockMovementType } from '@prisma/client';
 
 export class PaginationQueryDto {
   @ApiPropertyOptional({ default: 1, minimum: 1 })
@@ -62,6 +62,11 @@ export class LotsQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsUUID()
   magazineId?: string;
+
+  @ApiPropertyOptional({ enum: ProductLotStatus })
+  @IsOptional()
+  @IsEnum(ProductLotStatus)
+  status?: ProductLotStatus;
 }
 
 export class MovementsQueryDto extends PaginationQueryDto {
@@ -240,3 +245,93 @@ export class CreateMovementDto {
   @MaxLength(100)
   reference?: string;
 }
+
+export class UpdateMagazineStatusDto {
+  @ApiProperty({ description: 'Define se o paiol está ativo ou inativo.' })
+  @IsBoolean()
+  active!: boolean;
+}
+
+export class SplitLotDto {
+  @ApiProperty({
+    format: 'uuid',
+    description: 'Paiol de destino para o novo lote desmembrado.',
+  })
+  @IsUUID()
+  destinationMagazineId!: string;
+
+  @ApiProperty({
+    maxLength: 50,
+    description: 'Identificador rastreável do novo lote filho desmembrado.',
+  })
+  @IsString()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @MinLength(1)
+  @MaxLength(50)
+  newLotNumber!: string;
+
+  @ApiProperty({
+    description:
+      'Quantidade métrica positiva a ser desmembrada para o novo lote (deve ser menor que o saldo total do lote de origem).',
+    minimum: 0.01,
+    maximum: 99999999.99,
+  })
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.01)
+  @Max(99999999.99)
+  quantity!: number;
+}
+
+export class UpdateLotStatusDto {
+  @ApiProperty({
+    enum: ProductLotStatus,
+    description:
+      'Novo status físico/regulatório do lote (DISPONIVEL, QUARENTENA, BLOQUEADO).',
+  })
+  @IsEnum(ProductLotStatus)
+  status!: ProductLotStatus;
+
+  @ApiPropertyOptional({
+    maxLength: 255,
+    description:
+      'Motivo formal da alteração de status. Obrigatório quando o lote for colocado em QUARENTENA ou BLOQUEADO.',
+  })
+  @ValidateIf(
+    (dto: UpdateLotStatusDto) =>
+      dto.status === ProductLotStatus.QUARENTENA ||
+      dto.status === ProductLotStatus.BLOQUEADO,
+  )
+  @IsString()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @MinLength(3)
+  @MaxLength(255)
+  reason?: string;
+}
+
+export class SfpcMonthlyMapQueryDto {
+  @ApiPropertyOptional({
+    description: 'Ano do mapa de movimentação de PCE (ex.: 2026). Padrão: ano corrente.',
+    example: 2026,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(2000)
+  @Max(2100)
+  year?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'Mês do mapa de movimentação de PCE (1 a 12). Padrão: mês corrente.',
+    example: 10,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(12)
+  month?: number;
+}
+
+

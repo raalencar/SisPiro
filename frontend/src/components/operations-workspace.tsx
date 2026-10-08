@@ -649,7 +649,8 @@ export function OperationsWorkspace() {
                 </button>
               )}
               {(selected.status === "ORCAMENTO" ||
-                selected.status === "APROVADO") && (
+                selected.status === "APROVADO" ||
+                selected.status === "EM_MONTAGEM") && (
                 <button
                   className="button button--danger"
                   type="button"

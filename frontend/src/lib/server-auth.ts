@@ -138,9 +138,11 @@ async function renewSession(refreshToken: string): Promise<TokenBundle | null> {
   return payload;
 }
 
+export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+
 async function sendAuthorizedRequest(
   path: string,
-  method: "GET" | "POST",
+  method: HttpMethod,
   accessToken: string,
   body?: string,
 ): Promise<Response> {
@@ -162,7 +164,7 @@ function errorResponse(message: string, status: number): NextResponse {
 export async function proxyAuthenticatedRequest(
   request: Request,
   backendPath: string,
-  method: "GET" | "POST",
+  method: HttpMethod,
   refreshOnUnauthorized = true,
 ): Promise<NextResponse> {
   const cookieStore = await cookies();

@@ -320,6 +320,242 @@ describe('Service order APIs (e2e)', () => {
       .expect(400);
   });
 
+  it('permits updating an order while in ORCAMENTO status and forbids editing once approved or later', async () => {
+    const product = await request(app.getHttpServer())
+      .post('/api/v1/inventory/products')
+      .send({
+        sku: `OS-EDIT-${suffix}`,
+        name: 'Produto para teste de edição de OS',
+        type: 'MERCADORIA',
+        isPce: false,
+        unit: 'UN',
+      })
+      .expect(201);
+    productIds.push(product.body.id as string);
+
+    const magazine = await request(app.getHttpServer())
+      .post('/api/v1/inventory/magazines')
+      .send({
+        name: `Paiol Edição OS ${suffix}`,
+        maxNeqCapacityKg: 5,
+        fireLicenseExpiresAt: '2099-12-31',
+      })
+      .expect(201);
+    magazineIds.push(magazine.body.id as string);
+
+    const lot = await request(app.getHttpServer())
+      .post('/api/v1/inventory/lots')
+      .send({
+        productId: product.body.id,
+        magazineId: magazine.body.id,
+        lotNumber: `OS-EDIT-LOTE-${suffix}`,
+        quantity: 10,
+        manufacturedAt: '2026-01-01',
+        expiresAt: '2099-12-31',
+        manufacturerOrImporter: 'Fabricante de teste',
+      })
+      .expect(201);
+    lotIds.push(lot.body.id as string);
+
+    const customer = await request(app.getHttpServer())
+      .post('/api/v1/customers')
+      .send({
+        legalName: `Cliente Edição OS ${suffix}`,
+        taxId: makeValidCnpj(),
+      })
+      .expect(201);
+    customerIds.push(customer.body.id as string);
+
+    const blaster = await request(app.getHttpServer())
+      .post('/api/v1/blasters')
+      .send({
+        name: `Blaster Edição OS ${suffix}`,
+        taxId: makeValidCpf(),
+        licenseNumber: `LIC-EDIT-${suffix}`,
+        licenseExpiresAt: '2099-12-31',
+      })
+      .expect(201);
+    blasterIds.push(blaster.body.id as string);
+
+    const orderRes = await request(app.getHttpServer())
+      .post('/api/v1/operations/orders')
+      .send({
+        customerId: customer.body.id,
+        contractedAmount: 1000,
+        eventAt: '2099-12-30T20:00:00-03:00',
+        eventLocation: 'Local inicial da OS',
+        items: [
+          {
+            productId: product.body.id,
+            productLotId: lot.body.id,
+            plannedQuantity: 2,
+          },
+        ],
+      })
+      .expect(201);
+    orderIds.push(orderRes.body.id as string);
+
+    const updateRes = await request(app.getHttpServer())
+      .put(`/api/v1/operations/orders/${orderRes.body.id}`)
+      .send({
+        customerId: customer.body.id,
+        contractedAmount: 2500,
+        eventAt: '2099-12-30T22:00:00-03:00',
+        eventLocation: 'Local atualizado da OS',
+        items: [
+          {
+            productId: product.body.id,
+            productLotId: lot.body.id,
+            plannedQuantity: 4,
+          },
+        ],
+      })
+      .expect(200);
+
+    expect(updateRes.body.status).toBe('ORCAMENTO');
+    expect(updateRes.body.contractedAmount).toBe('2500');
+    expect(updateRes.body.eventLocation).toBe('Local atualizado da OS');
+    expect(updateRes.body.items).toHaveLength(1);
+    expect(updateRes.body.items[0].plannedQuantity).toBe('4');
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/operations/orders/${orderRes.body.id}/approve`)
+      .send({ responsibleBlasterId: blaster.body.id })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .put(`/api/v1/operations/orders/${orderRes.body.id}`)
+      .send({
+        customerId: customer.body.id,
+        contractedAmount: 3000,
+        eventAt: '2099-12-30T22:00:00-03:00',
+        eventLocation: 'Local pós aprovação',
+        items: [
+          {
+            productId: product.body.id,
+            productLotId: lot.body.id,
+            plannedQuantity: 5,
+          },
+        ],
+      })
+      .expect(409);
+  });
+
+  it('allows cancelling an order in EM_MONTAGEM and safely releases all reservations', async () => {
+    const product = await request(app.getHttpServer())
+      .post('/api/v1/inventory/products')
+      .send({
+        sku: `OS-CANCEL-${suffix}`,
+        name: 'Produto para cancelamento em montagem',
+        type: 'MERCADORIA',
+        isPce: false,
+        unit: 'UN',
+      })
+      .expect(201);
+    productIds.push(product.body.id as string);
+
+    const magazine = await request(app.getHttpServer())
+      .post('/api/v1/inventory/magazines')
+      .send({
+        name: `Paiol Cancelamento ${suffix}`,
+        maxNeqCapacityKg: 5,
+        fireLicenseExpiresAt: '2099-12-31',
+      })
+      .expect(201);
+    magazineIds.push(magazine.body.id as string);
+
+    const lot = await request(app.getHttpServer())
+      .post('/api/v1/inventory/lots')
+      .send({
+        productId: product.body.id,
+        magazineId: magazine.body.id,
+        lotNumber: `OS-CANCEL-${suffix}`,
+        quantity: 10,
+        manufacturedAt: '2026-01-01',
+        expiresAt: '2099-12-31',
+        manufacturerOrImporter: 'Fabricante de teste',
+      })
+      .expect(201);
+    lotIds.push(lot.body.id as string);
+
+    const customer = await request(app.getHttpServer())
+      .post('/api/v1/customers')
+      .send({
+        legalName: `Cliente Cancelamento OS ${suffix}`,
+        taxId: makeValidCnpj(),
+      })
+      .expect(201);
+    customerIds.push(customer.body.id as string);
+
+    const blaster = await request(app.getHttpServer())
+      .post('/api/v1/blasters')
+      .send({
+        name: `Blaster Cancelamento OS ${suffix}`,
+        taxId: makeValidCpf(),
+        licenseNumber: `LIC-CANCEL-${suffix}`,
+        licenseExpiresAt: '2099-12-31',
+      })
+      .expect(201);
+    blasterIds.push(blaster.body.id as string);
+
+    const orderRes = await request(app.getHttpServer())
+      .post('/api/v1/operations/orders')
+      .send({
+        customerId: customer.body.id,
+        contractedAmount: 1800,
+        eventAt: '2099-12-30T20:00:00-03:00',
+        eventLocation: 'Local de queima em montagem',
+        items: [
+          {
+            productId: product.body.id,
+            productLotId: lot.body.id,
+            plannedQuantity: 6,
+          },
+        ],
+      })
+      .expect(201);
+    orderIds.push(orderRes.body.id as string);
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/operations/orders/${orderRes.body.id}/approve`)
+      .send({ responsibleBlasterId: blaster.body.id })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/operations/orders/${orderRes.body.id}/start`)
+      .expect(201);
+
+    const blockedMovement = await request(app.getHttpServer())
+      .post('/api/v1/inventory/movements')
+      .send({
+        type: 'SAIDA',
+        productLotId: lot.body.id,
+        quantity: 5,
+      })
+      .expect(409);
+    expect(blockedMovement.body.message).toContain('reservado');
+
+    const cancelRes = await request(app.getHttpServer())
+      .post(`/api/v1/operations/orders/${orderRes.body.id}/cancel`)
+      .send({ reason: 'Cancelamento por chuva severa durante a montagem' })
+      .expect(201);
+    expect(cancelRes.body.status).toBe('CANCELADO');
+
+    const unblockedMovement = await request(app.getHttpServer())
+      .post('/api/v1/inventory/movements')
+      .send({
+        type: 'SAIDA',
+        productLotId: lot.body.id,
+        quantity: 5,
+      })
+      .expect(201);
+    expect(unblockedMovement.body.type).toBe('SAIDA');
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/operations/orders/${orderRes.body.id}/cancel`)
+      .expect(409);
+  });
+
   it('serializes concurrent approvals competing for the same lot', async () => {
     const product = await request(app.getHttpServer())
       .post('/api/v1/inventory/products')

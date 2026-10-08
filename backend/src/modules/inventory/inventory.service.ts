@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import {
   Prisma,
+  ProductLotStatus,
   ProductType,
   SalesQuoteStatus,
   ServiceOrderStatus,
@@ -21,6 +22,10 @@ import {
   LotsQueryDto,
   MovementsQueryDto,
   ProductsQueryDto,
+  SfpcMonthlyMapQueryDto,
+  SplitLotDto,
+  UpdateLotStatusDto,
+  UpdateMagazineStatusDto,
 } from './inventory.dto.js';
 import { rethrowInventoryError } from './inventory.errors.js';
 
@@ -202,10 +207,80 @@ export class InventoryService {
     }
   }
 
+  async updateMagazineStatus(id: string, dto: UpdateMagazineStatusDto) {
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        await this.lockMagazines(tx, [id]);
+        const magazine = await tx.magazine.findUnique({
+          where: { id },
+        });
+        if (!magazine) {
+          throw new NotFoundException('Paiol não encontrado.');
+        }
+
+        if (dto.active === false && magazine.active === true) {
+          const [stockRow] = await tx.$queryRaw<
+            Array<{ totalQty: string | number | null }>
+          >`
+            SELECT COALESCE(SUM("quantidade"), 0) AS "totalQty"
+            FROM "produto_lotes"
+            WHERE "paiol_id" = ${id}::uuid
+          `;
+          const currentTotalQuantity = new Prisma.Decimal(
+            stockRow?.totalQty ?? 0,
+          );
+          if (currentTotalQuantity.gt(0)) {
+            throw new ConflictException(
+              'O paiol possui saldo de estoque ativo e não pode ser inativado. Transfira ou baixe todos os lotes antes de inativar.',
+            );
+          }
+        }
+
+        if (dto.active === true && magazine.active === false) {
+          if (
+            magazine.fireLicenseExpiresAt.toISOString().slice(0, 10) <
+            new Date().toISOString().slice(0, 10)
+          ) {
+            throw new ConflictException(
+              'Paiol com licença dos Bombeiros vencida não pode ser reativado.',
+            );
+          }
+        }
+
+        const updated = await tx.magazine.update({
+          where: { id },
+          data: { active: dto.active },
+        });
+
+        await createAuditLog(tx, {
+          data: {
+            action: 'inventory.magazine.status-updated',
+            aggregateType: 'Magazine',
+            aggregateId: id,
+            before: { active: magazine.active },
+            after: { active: updated.active },
+          },
+        });
+
+        const currentNeqKg = await this.currentNeqKg(tx, id);
+        return {
+          ...updated,
+          currentNeqKg: currentNeqKg.toString(),
+          remainingNeqKg: updated.maxNeqCapacityKg
+            .minus(currentNeqKg)
+            .toString(),
+        };
+      });
+    } catch (error) {
+      rethrowInventoryError(error);
+    }
+  }
+
   async listLots(query: LotsQueryDto) {
     const where: Prisma.ProductLotWhereInput = {
       ...(query.productId ? { productId: query.productId } : {}),
       ...(query.magazineId ? { magazineId: query.magazineId } : {}),
+      ...(query.status ? { status: query.status } : {}),
       ...(query.search
         ? {
             OR: [
@@ -253,6 +328,7 @@ export class InventoryService {
     const where: Prisma.ProductLotWhereInput = {
       ...(query.productId ? { productId: query.productId } : {}),
       ...(query.magazineId ? { magazineId: query.magazineId } : {}),
+      ...(query.status ? { status: query.status } : {}),
       ...(query.search
         ? {
             OR: [
@@ -275,6 +351,8 @@ export class InventoryService {
           magazineId: true,
           lotNumber: true,
           quantity: true,
+          status: true,
+          statusReason: true,
           expiresAt: true,
           product: {
             select: {
@@ -357,6 +435,8 @@ export class InventoryService {
           physicalQuantity: Prisma.Decimal;
           reservedQuantity: Prisma.Decimal;
           availableQuantity: Prisma.Decimal;
+          quarantinedQuantity: Prisma.Decimal;
+          blockedQuantity: Prisma.Decimal;
           expiredQuantity: Prisma.Decimal;
           expiringQuantity: Prisma.Decimal;
         }>
@@ -373,11 +453,17 @@ export class InventoryService {
             SUM(COALESCE(r.quantity, 0)) AS "reservedQuantity",
             SUM(
               CASE
-                WHEN l."data_validade" >= ${today}
+                WHEN l."status" = 'DISPONIVEL' AND l."data_validade" >= ${today}
                   THEN GREATEST(l."quantidade" - COALESCE(r.quantity, 0), 0)
                 ELSE 0
               END
             ) AS "availableQuantity",
+            SUM(
+              CASE WHEN l."status" = 'QUARENTENA' THEN l."quantidade" ELSE 0 END
+            ) AS "quarantinedQuantity",
+            SUM(
+              CASE WHEN l."status" = 'BLOQUEADO' THEN l."quantidade" ELSE 0 END
+            ) AS "blockedQuantity",
             SUM(
               CASE WHEN l."data_validade" < ${today}
                 THEN l."quantidade" ELSE 0 END
@@ -409,6 +495,8 @@ export class InventoryService {
           magazineId: string;
           magazineName: string;
           expiresAt: Date;
+          status: string;
+          statusReason: string | null;
           physicalQuantity: Prisma.Decimal;
           reservedQuantity: Prisma.Decimal;
           availableQuantity: Prisma.Decimal;
@@ -425,10 +513,12 @@ export class InventoryService {
             m."id" AS "magazineId",
             m."nome" AS "magazineName",
             l."data_validade" AS "expiresAt",
+            l."status"::text AS "status",
+            l."motivo_status" AS "statusReason",
             l."quantidade" AS "physicalQuantity",
             COALESCE(r.quantity, 0) AS "reservedQuantity",
             CASE
-              WHEN l."data_validade" < ${today} THEN 0
+              WHEN l."status" != 'DISPONIVEL' OR l."data_validade" < ${today} THEN 0
               ELSE GREATEST(l."quantidade" - COALESCE(r.quantity, 0), 0)
             END AS "availableQuantity"
           FROM "produto_lotes" l
@@ -449,6 +539,10 @@ export class InventoryService {
         availableQuantity: sum.availableQuantity.plus(
           product.availableQuantity,
         ),
+        quarantinedQuantity: sum.quarantinedQuantity.plus(
+          product.quarantinedQuantity,
+        ),
+        blockedQuantity: sum.blockedQuantity.plus(product.blockedQuantity),
         expiredQuantity: sum.expiredQuantity.plus(product.expiredQuantity),
         expiringQuantity: sum.expiringQuantity.plus(product.expiringQuantity),
       }),
@@ -457,6 +551,8 @@ export class InventoryService {
         physicalQuantity: zero(),
         reservedQuantity: zero(),
         availableQuantity: zero(),
+        quarantinedQuantity: zero(),
+        blockedQuantity: zero(),
         expiredQuantity: zero(),
         expiringQuantity: zero(),
       },
@@ -471,6 +567,8 @@ export class InventoryService {
       magazineId: lot.magazineId,
       magazineName: lot.magazineName,
       expiresAt: lot.expiresAt,
+      status: lot.status,
+      statusReason: lot.statusReason,
       physicalQuantity: lot.physicalQuantity.toString(),
       reservedQuantity: lot.reservedQuantity.toString(),
       availableQuantity: lot.availableQuantity.toString(),
@@ -484,6 +582,8 @@ export class InventoryService {
         physicalQuantity: totals.physicalQuantity.toString(),
         reservedQuantity: totals.reservedQuantity.toString(),
         availableQuantity: totals.availableQuantity.toString(),
+        quarantinedQuantity: totals.quarantinedQuantity.toString(),
+        blockedQuantity: totals.blockedQuantity.toString(),
         expiredQuantity: totals.expiredQuantity.toString(),
         expiringQuantity: totals.expiringQuantity.toString(),
       },
@@ -500,6 +600,8 @@ export class InventoryService {
         physicalQuantity: product.physicalQuantity.toString(),
         reservedQuantity: product.reservedQuantity.toString(),
         availableQuantity: product.availableQuantity.toString(),
+        quarantinedQuantity: product.quarantinedQuantity.toString(),
+        blockedQuantity: product.blockedQuantity.toString(),
         expiredQuantity: product.expiredQuantity.toString(),
         expiringQuantity: product.expiringQuantity.toString(),
       })),
@@ -601,6 +703,525 @@ export class InventoryService {
     } catch (error) {
       rethrowInventoryError(error);
     }
+  }
+
+  async splitLot(parentLotId: string, dto: SplitLotDto) {
+    if (dto.quantity <= 0) {
+      throw new BadRequestException(
+        'A quantidade a desmembrar deve ser positiva.',
+      );
+    }
+    const splitQuantity = new Prisma.Decimal(dto.quantity);
+
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        await this.lockLot(tx, parentLotId);
+        const parentLot = await tx.productLot.findUnique({
+          where: { id: parentLotId },
+          include: { product: true },
+        });
+        if (!parentLot) {
+          throw new NotFoundException('Lote de origem não encontrado.');
+        }
+
+        this.assertLotNotExpired(parentLot.expiresAt);
+
+        if (parentLot.status !== ProductLotStatus.DISPONIVEL) {
+          throw new ConflictException(
+            `Lotes com status ${parentLot.status} não podem ser desmembrados. Apenas lotes disponíveis podem ser divididos.`,
+          );
+        }
+
+        if (splitQuantity.gte(parentLot.quantity)) {
+          throw new ConflictException(
+            'A quantidade a desmembrar deve ser estritamente menor que o saldo total do lote. Para transferir todo o saldo, use a transferência regular.',
+          );
+        }
+
+        await this.assertUnreservedQuantity(tx, parentLot.id, splitQuantity);
+
+        const existingChildLot = await tx.productLot.findUnique({
+          where: {
+            productId_lotNumber: {
+              productId: parentLot.productId,
+              lotNumber: dto.newLotNumber.trim(),
+            },
+          },
+        });
+        if (existingChildLot) {
+          throw new ConflictException(
+            'Já existe um lote com este número para o produto informado.',
+          );
+        }
+
+        await this.lockMagazines(tx, [
+          parentLot.magazineId,
+          dto.destinationMagazineId,
+        ]);
+        const destinationMagazine = await tx.magazine.findUnique({
+          where: { id: dto.destinationMagazineId },
+        });
+        this.assertCanReceive(destinationMagazine);
+
+        const additionalNeqKg = splitQuantity
+          .mul(parentLot.product.neqGrams)
+          .div(1000);
+        await this.assertCapacity(
+          tx,
+          dto.destinationMagazineId,
+          additionalNeqKg,
+        );
+
+        const remainingParentQuantity = parentLot.quantity.minus(splitQuantity);
+
+        await tx.productLot.update({
+          where: { id: parentLot.id },
+          data: { quantity: remainingParentQuantity },
+        });
+
+        const originMovement = await tx.stockMovement.create({
+          data: {
+            type: StockMovementType.TRANSFERENCIA,
+            productLotId: parentLot.id,
+            quantity: splitQuantity,
+            sourceMagazineId: parentLot.magazineId,
+            destinationMagazineId: dto.destinationMagazineId,
+            reference: `DESMEMBRAMENTO_PARA_${dto.newLotNumber.trim()}`,
+          },
+        });
+
+        const childLot = await tx.productLot.create({
+          data: {
+            productId: parentLot.productId,
+            magazineId: dto.destinationMagazineId,
+            lotNumber: dto.newLotNumber.trim(),
+            quantity: splitQuantity,
+            manufacturedAt: parentLot.manufacturedAt,
+            expiresAt: parentLot.expiresAt,
+            manufacturerOrImporter: parentLot.manufacturerOrImporter,
+          },
+          include: { product: true, magazine: true },
+        });
+
+        const childMovement = await tx.stockMovement.create({
+          data: {
+            type: StockMovementType.ENTRADA,
+            productLotId: childLot.id,
+            quantity: splitQuantity,
+            destinationMagazineId: dto.destinationMagazineId,
+            reference: `DESMEMBRADO_DE_${parentLot.lotNumber}`,
+          },
+        });
+
+        await createAuditLog(tx, {
+          data: {
+            action: 'inventory.lot.split',
+            aggregateType: 'ProductLot',
+            aggregateId: parentLot.id,
+            before: {
+              quantity: parentLot.quantity.toString(),
+              magazineId: parentLot.magazineId,
+            },
+            after: {
+              remainingQuantity: remainingParentQuantity.toString(),
+              childLotId: childLot.id,
+              childLotNumber: childLot.lotNumber,
+              splitQuantity: splitQuantity.toString(),
+              originMovementId: originMovement.id,
+              childMovementId: childMovement.id,
+              destinationMagazineId: dto.destinationMagazineId,
+              neqKg: additionalNeqKg.toString(),
+            },
+          },
+        });
+
+        return {
+          parentLot: {
+            ...parentLot,
+            quantity: remainingParentQuantity,
+            neqKg: remainingParentQuantity
+              .mul(parentLot.product.neqGrams)
+              .div(1000)
+              .toString(),
+          },
+          childLot: {
+            ...childLot,
+            neqKg: additionalNeqKg.toString(),
+          },
+          originMovement,
+          childMovement,
+        };
+      });
+    } catch (error) {
+      rethrowInventoryError(error);
+    }
+  }
+
+  async updateLotStatus(id: string, dto: UpdateLotStatusDto) {
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        await this.lockLot(tx, id);
+        const lot = await tx.productLot.findUnique({
+          where: { id },
+          include: { product: true, magazine: true },
+        });
+        if (!lot) {
+          throw new NotFoundException('Lote não encontrado.');
+        }
+
+        if (
+          dto.status !== ProductLotStatus.DISPONIVEL &&
+          lot.status === ProductLotStatus.DISPONIVEL
+        ) {
+          const activeReservations = await tx.serviceOrderItem.aggregate({
+            where: {
+              productLotId: lot.id,
+              serviceOrder: {
+                status: {
+                  in: [
+                    ServiceOrderStatus.APROVADO,
+                    ServiceOrderStatus.EM_MONTAGEM,
+                  ],
+                },
+              },
+            },
+            _sum: { plannedQuantity: true },
+          });
+          const reservedQty =
+            activeReservations._sum.plannedQuantity ?? new Prisma.Decimal(0);
+
+          const activeQuotes = await tx.salesQuoteItem.aggregate({
+            where: {
+              productLotId: lot.id,
+              quote: {
+                status: SalesQuoteStatus.EMITIDO,
+                expiresAt: { gt: new Date() },
+              },
+            },
+            _sum: { quantity: true },
+          });
+          const quoteQty = activeQuotes._sum.quantity ?? new Prisma.Decimal(0);
+
+          const totalReserved = reservedQty.plus(quoteQty);
+          if (totalReserved.gt(0)) {
+            throw new ConflictException({
+              message:
+                'O lote possui reservas ativas vinculadas a Ordens de Serviço ou Orçamentos Comerciais. Cancele ou reatribua as reservas antes de colocar o lote em quarentena ou bloqueio.',
+              lotId: lot.id,
+              lotNumber: lot.lotNumber,
+              reservedQuantity: totalReserved.toString(),
+            });
+          }
+        }
+
+        const updated = await tx.productLot.update({
+          where: { id },
+          data: {
+            status: dto.status,
+            statusReason: dto.reason?.trim() ?? null,
+          },
+          include: { product: true, magazine: true },
+        });
+
+        await createAuditLog(tx, {
+          data: {
+            action: 'inventory.lot.status-updated',
+            aggregateType: 'ProductLot',
+            aggregateId: lot.id,
+            before: {
+              status: lot.status,
+              statusReason: lot.statusReason,
+            },
+            after: {
+              status: updated.status,
+              statusReason: updated.statusReason,
+              lotNumber: updated.lotNumber,
+            },
+          },
+        });
+
+        return {
+          ...updated,
+          neqKg: updated.quantity
+            .mul(updated.product.neqGrams)
+            .div(1000)
+            .toString(),
+        };
+      });
+    } catch (error) {
+      rethrowInventoryError(error);
+    }
+  }
+
+  async getSfpcMonthlyMap(query: SfpcMonthlyMapQueryDto) {
+    const now = new Date();
+    const year = query.year ?? now.getUTCFullYear();
+    const month = query.month ?? now.getUTCMonth() + 1;
+    const periodStart = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
+    const periodEnd = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
+
+    const pceProducts = await this.prisma.product.findMany({
+      where: { isPce: true },
+      orderBy: [{ riskClass: 'asc' }, { name: 'asc' }],
+      include: {
+        lots: {
+          select: {
+            id: true,
+            quantity: true,
+            status: true,
+          },
+        },
+      },
+    });
+
+    const productIds = pceProducts.map((p) => p.id);
+    const movements = await this.prisma.stockMovement.findMany({
+      where: {
+        productLot: {
+          productId: { in: productIds },
+        },
+        occurredAt: {
+          gte: periodStart,
+        },
+      },
+      include: {
+        productLot: {
+          select: {
+            productId: true,
+          },
+        },
+      },
+      orderBy: { occurredAt: 'asc' },
+    });
+
+    const zero = () => new Prisma.Decimal(0);
+
+    const items = pceProducts.map((product) => {
+      const currentPhysical = product.lots.reduce(
+        (sum, lot) => sum.plus(lot.quantity),
+        zero(),
+      );
+
+      const productMovements = movements.filter(
+        (m) => m.productLot.productId === product.id,
+      );
+
+      let purchasesInflow = zero();
+      let returnsInflow = zero();
+      let adjustmentsInflow = zero();
+
+      let salesOutflow = zero();
+      let serviceOrdersOutflow = zero();
+      let adjustmentsOutflow = zero();
+
+      let netDeltaSincePeriodStartToNow = zero();
+
+      for (const m of productMovements) {
+        const qty = m.quantity;
+        const isWithinPeriod = m.occurredAt <= periodEnd;
+
+        if (m.type === StockMovementType.ENTRADA) {
+          const isSplitChild = m.reference?.startsWith('DESMEMBRADO_DE_');
+          if (!isSplitChild) {
+            netDeltaSincePeriodStartToNow = netDeltaSincePeriodStartToNow.plus(qty);
+            if (isWithinPeriod) {
+              if (
+                m.reference?.includes('RECEBIMENTO') ||
+                m.reference?.includes('COMPRA')
+              ) {
+                purchasesInflow = purchasesInflow.plus(qty);
+              } else if (m.reference?.includes('DEVOLUCAO')) {
+                returnsInflow = returnsInflow.plus(qty);
+              } else {
+                adjustmentsInflow = adjustmentsInflow.plus(qty);
+              }
+            }
+          }
+        } else if (m.type === StockMovementType.SAIDA) {
+          netDeltaSincePeriodStartToNow = netDeltaSincePeriodStartToNow.minus(qty);
+          if (isWithinPeriod) {
+            if (m.reference?.includes('VENDA')) {
+              salesOutflow = salesOutflow.plus(qty);
+            } else if (
+              m.reference?.startsWith('OS-') ||
+              m.reference?.includes('ORDEM_SERVICO')
+            ) {
+              serviceOrdersOutflow = serviceOrdersOutflow.plus(qty);
+            } else {
+              adjustmentsOutflow = adjustmentsOutflow.plus(qty);
+            }
+          }
+        } else if (m.type === StockMovementType.AJUSTE) {
+          netDeltaSincePeriodStartToNow = netDeltaSincePeriodStartToNow.plus(qty);
+          if (isWithinPeriod) {
+            if (qty.isPositive()) {
+              adjustmentsInflow = adjustmentsInflow.plus(qty);
+            } else {
+              adjustmentsOutflow = adjustmentsOutflow.plus(qty.abs());
+            }
+          }
+        }
+      }
+
+      const totalInflow = purchasesInflow
+        .plus(returnsInflow)
+        .plus(adjustmentsInflow);
+      const totalOutflow = salesOutflow
+        .plus(serviceOrdersOutflow)
+        .plus(adjustmentsOutflow);
+
+      const initialQuantity = currentPhysical.minus(
+        netDeltaSincePeriodStartToNow,
+      );
+      const finalQuantity = initialQuantity
+        .plus(totalInflow)
+        .minus(totalOutflow);
+
+      const neqGrams = product.neqGrams;
+      const initialNeqKg = initialQuantity.mul(neqGrams).div(1000);
+      const inflowNeqKg = totalInflow.mul(neqGrams).div(1000);
+      const outflowNeqKg = totalOutflow.mul(neqGrams).div(1000);
+      const finalNeqKg = finalQuantity.mul(neqGrams).div(1000);
+
+      return {
+        productId: product.id,
+        sku: product.sku,
+        productName: product.name,
+        riskClass: product.riskClass ?? 'NÃO CLASSIFICADO',
+        unit: product.unit,
+        neqGrams: neqGrams.toString(),
+        initialQuantity: initialQuantity.toString(),
+        inflowBreakdown: {
+          purchases: purchasesInflow.toString(),
+          returns: returnsInflow.toString(),
+          adjustments: adjustmentsInflow.toString(),
+          total: totalInflow.toString(),
+        },
+        outflowBreakdown: {
+          sales: salesOutflow.toString(),
+          serviceOrders: serviceOrdersOutflow.toString(),
+          adjustments: adjustmentsOutflow.toString(),
+          total: totalOutflow.toString(),
+        },
+        finalQuantity: finalQuantity.toString(),
+        initialNeqKg: initialNeqKg.toString(),
+        inflowNeqKg: inflowNeqKg.toString(),
+        outflowNeqKg: outflowNeqKg.toString(),
+        finalNeqKg: finalNeqKg.toString(),
+      };
+    });
+
+    const byRiskClassMap = new Map<
+      string,
+      {
+        riskClass: string;
+        productCount: number;
+        initialQuantity: Prisma.Decimal;
+        inflowQuantity: Prisma.Decimal;
+        outflowQuantity: Prisma.Decimal;
+        finalQuantity: Prisma.Decimal;
+        initialNeqKg: Prisma.Decimal;
+        inflowNeqKg: Prisma.Decimal;
+        outflowNeqKg: Prisma.Decimal;
+        finalNeqKg: Prisma.Decimal;
+      }
+    >();
+
+    for (const item of items) {
+      const current = byRiskClassMap.get(item.riskClass) ?? {
+        riskClass: item.riskClass,
+        productCount: 0,
+        initialQuantity: zero(),
+        inflowQuantity: zero(),
+        outflowQuantity: zero(),
+        finalQuantity: zero(),
+        initialNeqKg: zero(),
+        inflowNeqKg: zero(),
+        outflowNeqKg: zero(),
+        finalNeqKg: zero(),
+      };
+
+      current.productCount += 1;
+      current.initialQuantity = current.initialQuantity.plus(
+        new Prisma.Decimal(item.initialQuantity),
+      );
+      current.inflowQuantity = current.inflowQuantity.plus(
+        new Prisma.Decimal(item.inflowBreakdown.total),
+      );
+      current.outflowQuantity = current.outflowQuantity.plus(
+        new Prisma.Decimal(item.outflowBreakdown.total),
+      );
+      current.finalQuantity = current.finalQuantity.plus(
+        new Prisma.Decimal(item.finalQuantity),
+      );
+      current.initialNeqKg = current.initialNeqKg.plus(
+        new Prisma.Decimal(item.initialNeqKg),
+      );
+      current.inflowNeqKg = current.inflowNeqKg.plus(
+        new Prisma.Decimal(item.inflowNeqKg),
+      );
+      current.outflowNeqKg = current.outflowNeqKg.plus(
+        new Prisma.Decimal(item.outflowNeqKg),
+      );
+      current.finalNeqKg = current.finalNeqKg.plus(
+        new Prisma.Decimal(item.finalNeqKg),
+      );
+
+      byRiskClassMap.set(item.riskClass, current);
+    }
+
+    const byRiskClass = Array.from(byRiskClassMap.values()).map((rc) => ({
+      riskClass: rc.riskClass,
+      productCount: rc.productCount,
+      initialQuantity: rc.initialQuantity.toString(),
+      inflowQuantity: rc.inflowQuantity.toString(),
+      outflowQuantity: rc.outflowQuantity.toString(),
+      finalQuantity: rc.finalQuantity.toString(),
+      initialNeqKg: rc.initialNeqKg.toString(),
+      inflowNeqKg: rc.inflowNeqKg.toString(),
+      outflowNeqKg: rc.outflowNeqKg.toString(),
+      finalNeqKg: rc.finalNeqKg.toString(),
+    }));
+
+    const totals = items.reduce(
+      (acc, item) => ({
+        productCount: acc.productCount + 1,
+        initialBalanceNeqKg: acc.initialBalanceNeqKg.plus(
+          new Prisma.Decimal(item.initialNeqKg),
+        ),
+        inflowNeqKg: acc.inflowNeqKg.plus(new Prisma.Decimal(item.inflowNeqKg)),
+        outflowNeqKg: acc.outflowNeqKg.plus(
+          new Prisma.Decimal(item.outflowNeqKg),
+        ),
+        finalBalanceNeqKg: acc.finalBalanceNeqKg.plus(
+          new Prisma.Decimal(item.finalNeqKg),
+        ),
+      }),
+      {
+        productCount: 0,
+        initialBalanceNeqKg: zero(),
+        inflowNeqKg: zero(),
+        outflowNeqKg: zero(),
+        finalBalanceNeqKg: zero(),
+      },
+    );
+
+    return {
+      year,
+      month,
+      periodStart: periodStart.toISOString(),
+      periodEnd: periodEnd.toISOString(),
+      generatedAt: now.toISOString(),
+      totals: {
+        productCount: totals.productCount,
+        initialBalanceNeqKg: totals.initialBalanceNeqKg.toString(),
+        inflowNeqKg: totals.inflowNeqKg.toString(),
+        outflowNeqKg: totals.outflowNeqKg.toString(),
+        finalBalanceNeqKg: totals.finalBalanceNeqKg.toString(),
+      },
+      byRiskClass,
+      items,
+    };
   }
 
   async listMovements(query: MovementsQueryDto) {
@@ -714,16 +1335,31 @@ export class InventoryService {
 
         switch (dto.type) {
           case StockMovementType.ENTRADA:
+            if (lot.status === ProductLotStatus.BLOQUEADO) {
+              throw new ConflictException(
+                'Lote bloqueado não pode receber novas entradas de estoque.',
+              );
+            }
             targetMagazineId = lot.magazineId;
             capacityIncrease = quantity.mul(lot.product.neqGrams).div(1000);
             nextQuantity = currentQuantity.plus(quantity);
             break;
           case StockMovementType.SAIDA:
+            if (lot.status !== ProductLotStatus.DISPONIVEL) {
+              throw new ConflictException(
+                `Lote com status ${lot.status} não pode ser movimentado para saída. Libere o lote antes de prosseguir.`,
+              );
+            }
             this.assertLotNotExpired(lot.expiresAt);
             sourceMagazineId = lot.magazineId;
             nextQuantity = currentQuantity.minus(quantity);
             break;
           case StockMovementType.TRANSFERENCIA: {
+            if (lot.status !== ProductLotStatus.DISPONIVEL) {
+              throw new ConflictException(
+                `Lote com status ${lot.status} não pode ser transferido. Libere o lote antes de prosseguir.`,
+              );
+            }
             if (!quantity.eq(currentQuantity)) {
               throw new BadRequestException(
                 'A transferência deve mover o saldo total do lote. Para dividir o lote, é necessário cadastrar lotes separados.',
@@ -740,6 +1376,11 @@ export class InventoryService {
             break;
           }
           case StockMovementType.AJUSTE:
+            if (lot.status !== ProductLotStatus.DISPONIVEL) {
+              throw new ConflictException(
+                `Lote com status ${lot.status} não pode receber ajuste de estoque. Libere o lote antes de prosseguir.`,
+              );
+            }
             if (quantity.isNegative()) {
               sourceMagazineId = lot.magazineId;
               nextQuantity = currentQuantity.plus(quantity);

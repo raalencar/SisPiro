@@ -7,6 +7,7 @@ import {
 import {
   FinancialDirection,
   Prisma,
+  ProductLotStatus,
   ProductType,
   SalesQuoteStatus,
   ServiceOrderStatus,
@@ -21,8 +22,10 @@ import {
 } from './service-orders.dto.js';
 import {
   ApproveServiceOrderDto,
+  CancelServiceOrderDto,
   CloseServiceOrderDto,
   CreateServiceOrderDto,
+  UpdateServiceOrderDto,
 } from './service-orders.dto.js';
 import { BlastersService } from './blasters.service.js';
 
@@ -191,6 +194,11 @@ export class ServiceOrdersService {
       const lotById = new Map(lots.map((lot) => [lot.id, lot]));
       for (const item of dto.items) {
         const lot = lotById.get(item.productLotId)!;
+        if (lot.status !== ProductLotStatus.DISPONIVEL) {
+          throw new ConflictException(
+            `Lote ${lot.lotNumber} está em situação ${lot.status.toLowerCase()} e não pode ser orçado para Ordem de Serviço.`,
+          );
+        }
         if (lot.productId !== item.productId) {
           throw new BadRequestException(
             'O produto informado não corresponde ao produto do lote.',
@@ -237,6 +245,125 @@ export class ServiceOrdersService {
         status: order.status,
       });
       return this.serializeOrder(order);
+    });
+  }
+
+  async update(id: string, dto: UpdateServiceOrderDto) {
+    if (new Date(dto.eventAt).getTime() < Date.now()) {
+      throw new BadRequestException('A data do evento deve estar no futuro.');
+    }
+    const lotIds = dto.items.map((item) => item.productLotId);
+    if (new Set(lotIds).size !== lotIds.length) {
+      throw new BadRequestException(
+        'Informe cada lote uma única vez na OS; consolide as quantidades por lote.',
+      );
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockOrder(tx, id);
+      const order = await tx.serviceOrder.findUnique({
+        where: { id },
+        include: { items: true },
+      });
+      if (!order) {
+        throw new NotFoundException('Ordem de serviço não encontrada.');
+      }
+      if (order.status !== ServiceOrderStatus.ORCAMENTO) {
+        throw new ConflictException(
+          'Somente ordens de serviço em orçamento podem ser editadas.',
+        );
+      }
+
+      const targetCustomerId = dto.customerId ?? order.customerId;
+      const customer = await tx.customer.findUnique({
+        where: { id: targetCustomerId },
+      });
+      if (!customer) {
+        throw new NotFoundException('Cliente não encontrado.');
+      }
+      if (!customer.active) {
+        throw new ConflictException('Cliente inativo não pode receber OS.');
+      }
+
+      const lots = await tx.productLot.findMany({
+        where: { id: { in: lotIds } },
+        include: { product: true },
+      });
+      if (lots.length !== lotIds.length) {
+        throw new NotFoundException('Um ou mais lotes informados não existem.');
+      }
+      const lotById = new Map(lots.map((lot) => [lot.id, lot]));
+      for (const item of dto.items) {
+        const lot = lotById.get(item.productLotId)!;
+        if (lot.status !== ProductLotStatus.DISPONIVEL) {
+          throw new ConflictException(
+            `Lote ${lot.lotNumber} está em situação ${lot.status.toLowerCase()} e não pode ser utilizado em Ordem de Serviço.`,
+          );
+        }
+        if (lot.productId !== item.productId) {
+          throw new BadRequestException(
+            'O produto informado não corresponde ao produto do lote.',
+          );
+        }
+        if (lot.product.type === ProductType.SERVICO) {
+          throw new BadRequestException(
+            'Itens de OS precisam referenciar produtos com lote de estoque.',
+          );
+        }
+      }
+
+      await tx.serviceOrderItem.deleteMany({
+        where: { serviceOrderId: id },
+      });
+
+      const updated = await tx.serviceOrder.update({
+        where: { id },
+        data: {
+          customerId: targetCustomerId,
+          contractedAmount: new Prisma.Decimal(dto.contractedAmount),
+          eventAt: new Date(dto.eventAt),
+          eventLocation: dto.eventLocation.trim(),
+          items: {
+            create: dto.items.map((item) => ({
+              productId: item.productId,
+              productLotId: item.productLotId,
+              plannedQuantity: new Prisma.Decimal(item.plannedQuantity),
+            })),
+          },
+        },
+        include: {
+          customer: true,
+          responsibleBlaster: true,
+          items: {
+            include: {
+              product: true,
+              productLot: { include: { magazine: true } },
+            },
+          },
+        },
+      });
+
+      await this.audit(
+        tx,
+        'service-order.updated',
+        id,
+        {
+          customerId: order.customerId,
+          contractedAmount: order.contractedAmount?.toString() ?? null,
+          eventAt: order.eventAt.toISOString(),
+          eventLocation: order.eventLocation,
+          itemCount: order.items.length,
+        },
+        {
+          customerId: updated.customerId,
+          contractedAmount: updated.contractedAmount?.toString() ?? null,
+          eventAt: updated.eventAt.toISOString(),
+          eventLocation: updated.eventLocation,
+          itemCount: updated.items.length,
+        },
+      );
+
+      return this.serializeOrder(updated);
     });
   }
 
@@ -309,6 +436,11 @@ export class ServiceOrdersService {
         }
         if (lot.productId !== item.productId) {
           throw new ConflictException('O produto do lote foi alterado.');
+        }
+        if (lot.status !== ProductLotStatus.DISPONIVEL) {
+          throw new ConflictException(
+            `Lote ${lot.lotNumber} está em situação ${lot.status.toLowerCase()} e não pode ser reservado para Ordem de Serviço.`,
+          );
         }
         this.assertNotExpired(lot.expiresAt);
         this.assertMagazineCanStore(lot.magazine);
@@ -412,31 +544,46 @@ export class ServiceOrdersService {
     );
   }
 
-  async cancel(id: string) {
+  async cancel(id: string, dto?: CancelServiceOrderDto) {
     return this.prisma.$transaction(async (tx) => {
       await this.lockOrder(tx, id);
-      const order = await tx.serviceOrder.findUnique({ where: { id } });
+      const order = await tx.serviceOrder.findUnique({
+        where: { id },
+        include: { items: true },
+      });
       if (!order) {
         throw new NotFoundException('Ordem de serviço não encontrada.');
       }
       if (
         order.status !== ServiceOrderStatus.ORCAMENTO &&
-        order.status !== ServiceOrderStatus.APROVADO
+        order.status !== ServiceOrderStatus.APROVADO &&
+        order.status !== ServiceOrderStatus.EM_MONTAGEM
       ) {
         throw new ConflictException(
-          'Somente OS em orçamento ou aprovada podem ser canceladas.',
+          'Somente OS em orçamento, aprovada ou em montagem podem ser canceladas.',
         );
+      }
+      const hadReservation = RESERVED_STATUSES.includes(order.status);
+      if (hadReservation && order.items.length > 0) {
+        const lotIds = order.items.map((item) => item.productLotId);
+        await this.lockLots(tx, lotIds);
       }
       const updated = await tx.serviceOrder.update({
         where: { id },
-        data: { status: ServiceOrderStatus.CANCELADO },
+        data: {
+          status: ServiceOrderStatus.CANCELADO,
+        },
       });
       await this.audit(
         tx,
         'service-order.cancelled',
         id,
         { status: order.status },
-        { status: updated.status, reservationsReleased: true },
+        {
+          status: updated.status,
+          reservationsReleased: hadReservation,
+          reason: dto?.reason?.trim() ?? null,
+        },
       );
       return updated;
     });

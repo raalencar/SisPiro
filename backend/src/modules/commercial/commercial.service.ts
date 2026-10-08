@@ -8,6 +8,7 @@ import {
   FinancialDirection,
   FinancialEntryStatus,
   Prisma,
+  ProductLotStatus,
   SalesQuoteStatus,
   ServiceOrderStatus,
   StockMovementType,
@@ -718,6 +719,11 @@ export class CommercialService {
               `Produto ${lot.product.name} não possui preço nesta tabela.`,
             );
           }
+          if (lot.status !== ProductLotStatus.DISPONIVEL) {
+            throw new ConflictException(
+              `Lote ${lot.lotNumber} está em situação ${lot.status.toLowerCase()} e não pode ser orçado.`,
+            );
+          }
           this.assertNotExpired(lot.expiresAt);
           if (lot.product.isPce) {
             if (!lot.product.riskClass) {
@@ -1018,6 +1024,11 @@ export class CommercialService {
         const lot = lotById.get(saleItem.productLotId);
         if (!lot) {
           throw new NotFoundException('Lote original não encontrado.');
+        }
+        if (lot.status === ProductLotStatus.BLOQUEADO) {
+          throw new ConflictException(
+            `Lote ${lot.lotNumber} está bloqueado e não pode receber devolução de produtos.`,
+          );
         }
         this.assertNotExpired(lot.expiresAt);
         const existingReturns = await tx.saleReturnItem.aggregate({
@@ -1338,6 +1349,11 @@ export class CommercialService {
       if (!unitPrice) {
         throw new ConflictException(
           `Produto ${lot.product.name} não possui preço nesta tabela.`,
+        );
+      }
+      if (lot.status !== ProductLotStatus.DISPONIVEL) {
+        throw new ConflictException(
+          `Lote ${lot.lotNumber} está em situação ${lot.status.toLowerCase()} e não pode ser vendido.`,
         );
       }
       this.assertNotExpired(lot.expiresAt);

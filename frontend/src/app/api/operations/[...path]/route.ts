@@ -17,12 +17,16 @@ const REFERENCE_ENDPOINTS: Record<string, string> = {
   lots: "inventory/operational-lots",
 };
 
-function backendPath(path: string[], method: "GET" | "POST"): string | null {
+function backendPath(
+  path: string[],
+  method: "GET" | "POST" | "PUT",
+): string | null {
   if (path[0] === "references" && path.length === 2 && method === "GET") {
     return REFERENCE_ENDPOINTS[path[1]] ?? null;
   }
   if (path[0] !== "orders") return null;
-  if (path.length === 1) return "operations/orders";
+  if (path.length === 1 && (method === "GET" || method === "POST"))
+    return "operations/orders";
   if (
     path.length === 3 &&
     path[1] === "reports" &&
@@ -31,7 +35,11 @@ function backendPath(path: string[], method: "GET" | "POST"): string | null {
   ) {
     return "operations/orders/reports/summary";
   }
-  if (path.length === 2 && UUID_PATTERN.test(path[1]) && method === "GET") {
+  if (
+    path.length === 2 &&
+    UUID_PATTERN.test(path[1]) &&
+    (method === "GET" || method === "PUT")
+  ) {
     return `operations/orders/${path[1]}`;
   }
   if (
@@ -85,4 +93,19 @@ export async function POST(request: Request, context: RouteContext) {
     );
   }
   return proxyAuthenticatedRequest(request, target, "POST", false);
+}
+
+export async function PUT(request: Request, context: RouteContext) {
+  const { path } = await context.params;
+  const target = backendPath(path, "PUT");
+  if (!target || !(path.length === 2 && UUID_PATTERN.test(path[1]))) {
+    return invalidPath();
+  }
+  if (!isSameOriginRequest(request)) {
+    return NextResponse.json(
+      { message: "Origem da requisição não permitida." },
+      { status: 403 },
+    );
+  }
+  return proxyAuthenticatedRequest(request, target, "PUT", false);
 }

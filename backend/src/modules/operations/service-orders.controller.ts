@@ -5,6 +5,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Put,
   Query,
 } from '@nestjs/common';
 import {
@@ -18,10 +19,12 @@ import { UserRole } from '@prisma/client';
 import { Roles } from '../auth/auth.decorators.js';
 import {
   ApproveServiceOrderDto,
+  CancelServiceOrderDto,
   CloseServiceOrderDto,
   CreateServiceOrderDto,
   ServiceOrdersReportQueryDto,
   ServiceOrdersQueryDto,
+  UpdateServiceOrderDto,
 } from './service-orders.dto.js';
 import { ServiceOrdersService } from './service-orders.service.js';
 
@@ -68,6 +71,18 @@ export class ServiceOrdersController {
     return this.orders.get(id);
   }
 
+  @Put(':id')
+  @ApiOperation({
+    summary: 'Edita orçamento de OS (cabeçalho e itens) antes da aprovação.',
+  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  update(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: UpdateServiceOrderDto,
+  ) {
+    return this.orders.update(id, dto);
+  }
+
   @Post(':id/approve')
   @ApiOperation({
     summary:
@@ -92,11 +107,15 @@ export class ServiceOrdersController {
 
   @Post(':id/cancel')
   @ApiOperation({
-    summary: 'Cancela orçamento ou aprovação e libera reserva de estoque.',
+    summary:
+      'Cancela OS em orçamento, aprovação ou montagem e libera reserva de estoque.',
   })
   @ApiParam({ name: 'id', format: 'uuid' })
-  cancel(@Param('id', new ParseUUIDPipe()) id: string) {
-    return this.orders.cancel(id);
+  cancel(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto?: CancelServiceOrderDto,
+  ) {
+    return this.orders.cancel(id, dto);
   }
 
   @Post(':id/close')
