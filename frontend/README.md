@@ -65,9 +65,10 @@ movimentações preservam a trilha de auditoria.
 O módulo de estoque agora suporta alteração de situação do lote (`DISPONIVEL`, `QUARENTENA`, `BLOQUEADO`),
 desmembramento entre paióis (`/inventory/lots/:id/split`), ativação e inativação de paióis com trava de saldo zero,
 e relatório consolidado de Mapa Mensal SFPC para o Exército Brasileiro.
-A API agora suporta edição de orçamento via `PUT` e cancelamento seguro até `EM_MONTAGEM`. A seleção de referências
-usa endpoints de leitura limitados ao necessário para operações; CPF/CNPJ e
-número do CR não são retornados nessas opções.
+A API agora suporta edição de orçamento via `PUT /operations/orders/:id`, mas a interface
+ainda não oferece tela para essa edição; apenas o cancelamento seguro até `EM_MONTAGEM`
+foi integrado. A seleção de referências usa endpoints de leitura limitados ao necessário
+para operações; CPF/CNPJ e número do CR não são retornados nessas opções.
 
 ## Verificação
 

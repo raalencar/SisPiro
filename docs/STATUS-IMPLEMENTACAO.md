@@ -95,6 +95,9 @@ as listas de produtos, lotes, paióis e movimentos.
 - Validar responsividade e acessibilidade das telas integradas com usuários.
 - Implementar telas de faturamento e regulatório somente após endpoints e regras
   oficiais estarem disponíveis e aprovados.
+- A API já aceita edição de orçamento de OS via `PUT /operations/orders/:id`,
+  mas a interface ainda não oferece essa tela; só a extensão do cancelamento
+  seguro para `EM_MONTAGEM` foi integrada.
 
 ## Limites funcionais explícitos
 
@@ -117,10 +120,11 @@ as listas de produtos, lotes, paióis e movimentos.
 
 - Frontend: `npm run lint`, `npm run typecheck`, `npm test` (13 testes) e
   `npm run build` passaram.
-- Backend: `npm run lint`, `npm test` (28 testes), `npm run build` e
-  `npm run test:e2e` (28 testes) passaram; os testes e2e incluem permissões
-  específicas do perfil `OPERACOES` e retorno de referências sem dados fiscais
-  identificadores.
+- Backend: `npm run lint`, `npm test` (34 testes), `npm run build` e
+  `npm run test:e2e` (34 testes) passaram; os testes e2e incluem permissões
+  específicas do perfil `OPERACOES`, retorno de referências sem dados fiscais
+  identificadores e os bloqueios de quarentena/bloqueio físico de lote
+  (saída, split e ajuste de estoque).
 - API local: readiness respondeu com PostgreSQL e Redis disponíveis.
 - O navegador confirmou a rota de operações e o redirecionamento para login
   quando não há sessão. O smoke test visual autenticado do fluxo completo de OS

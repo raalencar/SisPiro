@@ -401,7 +401,7 @@ iniciar cada novo escopo.
 | Fiscal e regulatório | Sem emissão fiscal ou integração oficial | Integrações e fluxos de NF-e, NFS-e, MDF-e e Guias de Tráfego, sujeitos à validação regulatória |
 | Bancos | Sem integração bancária ou conciliação | Importação/integração de extratos, conciliação e tratamento de divergências |
 | Relatórios | Resumos de vendas por produto/cliente, OS por status, painéis financeiros por vencimento/categoria/método e posição de estoque com alertas de validade disponíveis | Outros relatórios operacionais, regulatórios e projeções financeiras |
-| Frontend de negócio | Login/BFF e módulo de estoque integrados à API | Integrar clientes, blasters, compras, comercial, operações/OS e financeiro; aplicar controles de apresentação por perfil |
+| Frontend de negócio | Login/BFF, módulo de estoque (com quarentena/split/paióis/SFPC) e ordens de serviço integrados à API | Integrar clientes, blasters, compras, comercial e financeiro; tela de edição de orçamento de OS (`PUT` já disponível na API); aplicar controles de apresentação por perfil |
 
 Esta lista registra lacunas conhecidas, não constitui contrato final de API nem
 garante que todos os itens pertençam ao escopo aprovado do produto. Antes de
