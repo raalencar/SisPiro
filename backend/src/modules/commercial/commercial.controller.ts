@@ -20,6 +20,7 @@ import {
   CreatePriceListDto,
   CreateSaleDto,
   CreateSaleReturnDto,
+  ConvertSalesQuoteDto,
   CreateSalesQuoteDto,
   PriceListsQueryDto,
   SalesQuotesQueryDto,
@@ -89,12 +90,15 @@ export class CommercialController {
   @Post('sales/quotes/:id/convert')
   @ApiOperation({
     summary:
-      'Converte orçamento vigente em venda, preservando preços e baixando estoque atomicamente.',
+      'Converte orçamento em venda com condição de pagamento, preservando preços e baixando estoque atomicamente.',
   })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiCreatedResponse({ description: 'Orçamento convertido em venda.' })
-  convertSalesQuote(@Param('id', new ParseUUIDPipe()) id: string) {
-    return this.commercial.convertSalesQuote(id);
+  convertSalesQuote(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: ConvertSalesQuoteDto,
+  ) {
+    return this.commercial.convertSalesQuote(id, dto);
   }
 
   @Get('sales')
@@ -134,7 +138,7 @@ export class CommercialController {
   @Post('sales')
   @ApiOperation({
     summary:
-      'Finaliza venda/PDV, valida cliente PCE, preço e saldo não reservado e baixa estoque atomicamente.',
+      'Finaliza venda, registra recebimento imediato ou conta a receber e baixa estoque atomicamente.',
   })
   @ApiCreatedResponse({ description: 'Venda finalizada e estoque baixado.' })
   createSale(@Body() dto: CreateSaleDto) {

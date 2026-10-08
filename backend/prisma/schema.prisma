@@ -316,18 +316,19 @@ model PriceListItem {
 }
 
 model Sale {
-  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  code        Int          @unique @default(autoincrement()) @map("codigo_venda")
-  customerId  String?      @map("cliente_id") @db.Uuid
-  priceListId String       @map("tabela_preco_id") @db.Uuid
-  quoteId     String?      @unique @map("orcamento_id") @db.Uuid
-  total       Decimal      @db.Decimal(12, 2)
-  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
-  customer    Customer?    @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  priceList   PriceList    @relation(fields: [priceListId], references: [id], onDelete: Restrict)
-  quote       SalesQuote?  @relation(fields: [quoteId], references: [id], onDelete: Restrict)
-  items       SaleItem[]
-  returns     SaleReturn[]
+  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code           Int             @unique @default(autoincrement()) @map("codigo_venda")
+  customerId     String?         @map("cliente_id") @db.Uuid
+  priceListId    String          @map("tabela_preco_id") @db.Uuid
+  quoteId        String?         @unique @map("orcamento_id") @db.Uuid
+  total          Decimal         @db.Decimal(12, 2)
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  customer       Customer?       @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  priceList      PriceList       @relation(fields: [priceListId], references: [id], onDelete: Restrict)
+  quote          SalesQuote?     @relation(fields: [quoteId], references: [id], onDelete: Restrict)
+  financialEntry FinancialEntry?
+  items          SaleItem[]
+  returns        SaleReturn[]
 
   @@index([createdAt])
   @@map("vendas")
@@ -490,6 +491,7 @@ model FinancialEntry {
   supplierId     String?               @map("fornecedor_id") @db.Uuid
   receiptBatchId String?               @unique @map("recebimento_compra_id") @db.Uuid
   serviceOrderId String?               @unique @map("ordem_servico_id") @db.Uuid
+  saleId         String?               @unique @map("venda_id") @db.Uuid
   amount         Decimal               @db.Decimal(12, 2)
   dueDate        DateTime              @map("data_vencimento") @db.Date
   status         FinancialEntryStatus  @default(ABERTO)
@@ -499,6 +501,7 @@ model FinancialEntry {
   supplier       Supplier?             @relation(fields: [supplierId], references: [id], onDelete: Restrict)
   receiptBatch   PurchaseReceiptBatch? @relation(fields: [receiptBatchId], references: [id], onDelete: Restrict)
   serviceOrder   ServiceOrder?         @relation(fields: [serviceOrderId], references: [id], onDelete: Restrict)
+  sale           Sale?                 @relation(fields: [saleId], references: [id], onDelete: Restrict)
   payments       FinancialPayment[]
 
   @@index([direction, status, dueDate])

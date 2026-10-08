@@ -179,11 +179,11 @@ documental. Criações e atualizações registram audit log na mesma transação
 | `GET` | `/pricing/lists/:id` | Consulta tabela e itens |
 | `GET` | `/sales` | Lista vendas finalizadas com paginação |
 | `GET` | `/sales/:id` | Consulta venda, cliente, preços e itens |
-| `POST` | `/sales` | Finaliza checkout/PDV e baixa estoque atomicamente |
+| `POST` | `/sales` | Finaliza venda, registra recebimento ou conta a receber e baixa estoque |
 | `GET` / `POST` | `/sales/quotes` | Lista orçamentos comerciais ou emite orçamento com reserva de sete dias |
 | `GET` | `/sales/quotes/:id` | Consulta orçamento, itens e estado da reserva |
 | `POST` | `/sales/quotes/:id/cancel` | Cancela orçamento e libera a reserva |
-| `POST` | `/sales/quotes/:id/convert` | Converte orçamento vigente em venda |
+| `POST` | `/sales/quotes/:id/convert` | Converte orçamento vigente em venda com condição de pagamento |
 | `GET` | `/sales/:id/returns` | Consulta devoluções registradas para uma venda |
 | `POST` | `/sales/:id/returns` | Registra devolução parcial/total e reentrada rastreável |
 
@@ -203,6 +203,15 @@ Orçamentos expirados deixam de reservar saldo; cancelamento libera a reserva.
 A conversão em venda preserva os preços cotados e baixa o estoque atomicamente.
 Ordens de serviço e saídas, transferências ou ajustes negativos de estoque
 respeitam essas reservas e não podem consumir o saldo comprometido.
+
+O checkout e a conversão de orçamento recebem `condition`: `IMEDIATO` exige
+`paymentMethod` (métodos financeiros existentes) e registra atomicamente uma
+conta a receber quitada com o pagamento correspondente; `PRAZO` exige
+`dueDate` e cliente cadastrado, criando uma conta aberta vinculada à venda. A
+venda de balcão sem cliente cadastrado somente pode ser quitada imediatamente.
+Parcelas e métodos divididos não são criados no checkout; recebimentos parciais
+posteriores podem ser registrados pelos endpoints financeiros. Devoluções
+reentram estoque, mas ainda não geram estorno ou crédito financeiro automático.
 
 Devoluções identificam os itens da venda original e aceitam quantidades parciais,
 limitadas ao saldo ainda não devolvido. O sistema reentra os produtos no lote
@@ -258,9 +267,9 @@ entre `ABERTO`, `PARCIAL` e `PAGO`; lançamentos sem pagamentos podem ser
 caixa representa pagamentos realizados, não projeções futuras.
 
 Lançamentos avulsos continuam manuais; cada recebimento de compra gera
-automaticamente uma conta a pagar vinculada à etapa recebida, e a conclusão de
-uma OS gera uma conta a receber com o valor contratado. Vendas ainda não geram
-lançamentos automaticamente. Não há integração bancária,
+automaticamente uma conta a pagar vinculada à etapa recebida, a conclusão de
+uma OS gera uma conta a receber com o valor contratado e as vendas geram
+recebimentos ou contas a receber de acordo com a condição informada. Não há integração bancária,
 conciliação, parcelamento ou estorno de pagamentos. Emissão fiscal, Guias de
 Tráfego, mapas regulatórios e relatórios avançados ainda não estão expostos pela
 API. As telas do frontend também ainda não consomem estes endpoints.
@@ -283,7 +292,7 @@ as rotas e regras detalhadas devem ser definidas antes de iniciar cada módulo.
 | Área | Situação atual | Trabalho pendente |
 | --- | --- | --- |
 | Acesso e operadores | Login JWT, refresh rotativo, usuários e perfis por módulo implementados; auditoria de autenticação identifica ator | Recuperação de senha, MFA, limitação de tentativas, transporte seguro de refresh no cliente e propagação de ator nos demais logs de negócio |
-| Financeiro de vendas | Contas avulsas são manuais; compras e execução de OS geram lançamentos vinculados | Definir e implementar geração de contas a receber conforme checkout/venda |
+| Financeiro de vendas | Checkout e conversão de orçamento registram recebimento imediato ou conta a receber; OS e recebimentos de compras também geram lançamentos vinculados | Implementar estornos/créditos automáticos para devoluções |
 | Devolução e financeiro | Devolução reentra estoque; não gera estorno financeiro | Definir e registrar estorno/crédito vinculado à devolução e à venda original |
 | Orçamentos comerciais | Emissão, consulta, cancelamento e conversão em venda implementados; reserva de lote por sete dias integrada a vendas, OS e movimentações | Revisar regras comerciais e evoluir conforme necessidade (por exemplo, edição e envio do orçamento) |
 | Preços promocionais | Tabelas de preço básicas implementadas | Regras de promoção, vigência e precedência de preços |

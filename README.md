@@ -48,7 +48,8 @@ Cada recebimento de compra cria atomicamente uma conta a pagar com valor
 proporcional, fornecedor, vencimento e referência fiscal. Ao concluir uma OS,
 o backend gera uma conta a receber pelo valor contratado, com vencimento
 informado no fechamento. O frontend integra somente os endpoints de liveness e
-readiness:
+readiness. Vendas podem ser quitadas no checkout ou gerar conta a receber a
+prazo, vinculada ao cliente cadastrado:
 `GET /api/v1/health/live` e
 `GET /api/v1/health/ready` (considerando o prefixo padrão); as telas de negócio
 ainda não consomem as APIs e mostram estados vazios. Permanecem pendentes

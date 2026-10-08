@@ -15,10 +15,11 @@ import {
   MaxLength,
   Min,
   MinLength,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { SalesQuoteStatus } from '@prisma/client';
+import { FinancialPaymentMethod, SalesQuoteStatus } from '@prisma/client';
 import { PaginationQueryDto } from '../inventory/inventory.dto.js';
 
 export class SalesQueryDto extends PaginationQueryDto {}
@@ -98,8 +99,11 @@ export class CreateSaleItemDto {
   quantity!: number;
 }
 
-export class CreateSaleDto {
-  @ApiPropertyOptional({ format: 'uuid', description: 'Omitir para venda de balcão sem cadastro.' })
+export class CreateSalePayloadDto {
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Omitir para venda de balcão sem cadastro.',
+  })
   @IsOptional()
   @IsUUID()
   customerId?: string;
@@ -117,7 +121,67 @@ export class CreateSaleDto {
   items!: CreateSaleItemDto[];
 }
 
-export class CreateSalesQuoteDto extends CreateSaleDto {}
+export enum SaleSettlementCondition {
+  IMEDIATO = 'IMEDIATO',
+  PRAZO = 'PRAZO',
+}
+
+export class SaleSettlementDto {
+  @ApiProperty({ enum: SaleSettlementCondition })
+  @IsEnum(SaleSettlementCondition)
+  condition!: SaleSettlementCondition;
+
+  @ApiPropertyOptional({
+    enum: FinancialPaymentMethod,
+    description: 'Obrigatório quando condition=IMEDIATO.',
+  })
+  @ValidateIf(
+    (settlement: SaleSettlementDto) =>
+      settlement.condition === SaleSettlementCondition.IMEDIATO,
+  )
+  @IsEnum(FinancialPaymentMethod)
+  paymentMethod?: FinancialPaymentMethod;
+
+  @ApiPropertyOptional({
+    format: 'date',
+    example: '2026-10-31',
+    description: 'Obrigatório quando condition=PRAZO.',
+  })
+  @ValidateIf(
+    (settlement: SaleSettlementDto) =>
+      settlement.condition === SaleSettlementCondition.PRAZO,
+  )
+  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  dueDate?: string;
+}
+
+export class CreateSaleDto extends CreateSalePayloadDto {
+  @ApiProperty({ enum: SaleSettlementCondition })
+  @IsEnum(SaleSettlementCondition)
+  condition!: SaleSettlementCondition;
+
+  @ApiPropertyOptional({ enum: FinancialPaymentMethod })
+  @ValidateIf(
+    (settlement: SaleSettlementDto) =>
+      settlement.condition === SaleSettlementCondition.IMEDIATO,
+  )
+  @IsEnum(FinancialPaymentMethod)
+  paymentMethod?: FinancialPaymentMethod;
+
+  @ApiPropertyOptional({ format: 'date' })
+  @ValidateIf(
+    (settlement: SaleSettlementDto) =>
+      settlement.condition === SaleSettlementCondition.PRAZO,
+  )
+  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  dueDate?: string;
+}
+
+export class CreateSalesQuoteDto extends CreateSalePayloadDto {}
+
+export class ConvertSalesQuoteDto extends SaleSettlementDto {}
 
 export class CreateSaleReturnItemDto {
   @ApiProperty({ format: 'uuid' })

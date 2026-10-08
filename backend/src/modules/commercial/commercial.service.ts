@@ -5,6 +5,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  FinancialDirection,
+  FinancialEntryStatus,
   Prisma,
   SalesQuoteStatus,
   ServiceOrderStatus,
@@ -17,7 +19,9 @@ import {
   CreateSalesQuoteDto,
   CreateSaleDto,
   CreateSaleReturnDto,
+  ConvertSalesQuoteDto,
   PriceListsQueryDto,
+  SaleSettlementCondition,
   SalesQuotesQueryDto,
   SalesQueryDto,
 } from './commercial.dto.js';
@@ -52,7 +56,10 @@ export class CommercialService {
     const list = await this.prisma.priceList.findUnique({
       where: { id },
       include: {
-        items: { include: { product: true }, orderBy: { product: { name: 'asc' } } },
+        items: {
+          include: { product: true },
+          orderBy: { product: { name: 'asc' } },
+        },
       },
     });
     if (!list) {
@@ -126,6 +133,9 @@ export class CommercialService {
         include: {
           customer: true,
           priceList: true,
+          financialEntry: {
+            include: { payments: { orderBy: { occurredAt: 'asc' } } },
+          },
           items: { include: { product: true, productLot: true } },
         },
         orderBy: { createdAt: 'desc' },
@@ -143,6 +153,9 @@ export class CommercialService {
       include: {
         customer: true,
         priceList: true,
+        financialEntry: {
+          include: { payments: { orderBy: { occurredAt: 'asc' } } },
+        },
         items: { include: { product: true, productLot: true } },
       },
     });
@@ -255,7 +268,9 @@ export class CommercialService {
         this.assertPriceListActive(priceList);
         this.assertCustomerActive(customer, dto.customerId);
         if (lots.length !== lotIds.length) {
-          throw new NotFoundException('Um ou mais lotes não foram encontrados.');
+          throw new NotFoundException(
+            'Um ou mais lotes não foram encontrados.',
+          );
         }
         const lotById = new Map(lots.map((lot) => [lot.id, lot]));
         const priceByProduct = new Map(
@@ -315,8 +330,7 @@ export class CommercialService {
             _sum: { quantity: true },
           });
           const serviceReserved =
-            serviceReservations._sum.plannedQuantity ??
-            new Prisma.Decimal(0);
+            serviceReservations._sum.plannedQuantity ?? new Prisma.Decimal(0);
           const quoteReserved =
             quoteReservations._sum.quantity ?? new Prisma.Decimal(0);
           const reserved = serviceReserved.plus(quoteReserved);
@@ -426,7 +440,7 @@ export class CommercialService {
     });
   }
 
-  async convertSalesQuote(id: string) {
+  async convertSalesQuote(id: string, settlement: ConvertSalesQuoteDto) {
     return this.prisma.$transaction(
       async (tx) => {
         const rows = await tx.$queryRaw<Array<{ id: string }>>`
@@ -456,6 +470,9 @@ export class CommercialService {
               productLotId: item.productLotId,
               quantity: item.quantity.toNumber(),
             })),
+            condition: settlement.condition,
+            paymentMethod: settlement.paymentMethod,
+            dueDate: settlement.dueDate,
           },
           quote,
         );
@@ -527,7 +544,9 @@ export class CommercialService {
           'Um ou mais itens não pertencem a esta venda.',
         );
       }
-      const lotIds = [...new Set(saleItems.map((item) => item.productLotId))].sort();
+      const lotIds = [
+        ...new Set(saleItems.map((item) => item.productLotId)),
+      ].sort();
       await this.lockLots(tx, lotIds);
       const lots = await tx.productLot.findMany({
         where: { id: { in: lotIds } },
@@ -578,7 +597,9 @@ export class CommercialService {
         });
       }
 
-      const magazineIds = [...new Set(lots.map((lot) => lot.magazineId))].sort();
+      const magazineIds = [
+        ...new Set(lots.map((lot) => lot.magazineId)),
+      ].sort();
       for (const magazineId of magazineIds) {
         await this.lockMagazine(tx, magazineId);
       }
@@ -693,189 +714,281 @@ export class CommercialService {
       }>;
     },
   ) {
-        const lotIds = dto.items.map((item) => item.productLotId).sort();
-        await this.lockLots(tx, lotIds);
-        const [priceList, lots, customer] = await Promise.all([
-          tx.priceList.findUnique({
-            where: { id: dto.priceListId },
-            include: { items: true },
-          }),
-          tx.productLot.findMany({
-            where: { id: { in: lotIds } },
-            include: { product: true },
-          }),
-          dto.customerId
-            ? tx.customer.findUnique({ where: { id: dto.customerId } })
-            : Promise.resolve(null),
-        ]);
-        if (!priceList) {
-          throw new NotFoundException('Tabela de preço não encontrada.');
-        }
-        if (!quote) {
-          this.assertPriceListActive(priceList);
-        }
-        this.assertCustomerActive(customer, dto.customerId);
-        if (lots.length !== lotIds.length) {
-          throw new NotFoundException('Um ou mais lotes não foram encontrados.');
-        }
-        const lotById = new Map(lots.map((lot) => [lot.id, lot]));
-        const priceByProduct = new Map(
-          priceList.items.map((item) => [item.productId, item.unitPrice]),
-        );
-        const quotedItemByLot = new Map(
-          quote?.items.map((item) => [item.productLotId, item]),
-        );
-        const saleLines: Array<{
-          productId: string;
-          productLotId: string;
-          quantity: Prisma.Decimal;
-          unitPrice: Prisma.Decimal;
-          subtotal: Prisma.Decimal;
-        }> = [];
-        const pceClasses = new Set<string>();
+    const lotIds = dto.items.map((item) => item.productLotId).sort();
+    await this.lockLots(tx, lotIds);
+    const [priceList, lots, customer] = await Promise.all([
+      tx.priceList.findUnique({
+        where: { id: dto.priceListId },
+        include: { items: true },
+      }),
+      tx.productLot.findMany({
+        where: { id: { in: lotIds } },
+        include: { product: true },
+      }),
+      dto.customerId
+        ? tx.customer.findUnique({ where: { id: dto.customerId } })
+        : Promise.resolve(null),
+    ]);
+    if (!priceList) {
+      throw new NotFoundException('Tabela de preço não encontrada.');
+    }
+    if (!quote) {
+      this.assertPriceListActive(priceList);
+    }
+    this.assertCustomerActive(customer, dto.customerId);
+    if (lots.length !== lotIds.length) {
+      throw new NotFoundException('Um ou mais lotes não foram encontrados.');
+    }
+    const lotById = new Map(lots.map((lot) => [lot.id, lot]));
+    const priceByProduct = new Map(
+      priceList.items.map((item) => [item.productId, item.unitPrice]),
+    );
+    const quotedItemByLot = new Map(
+      quote?.items.map((item) => [item.productLotId, item]),
+    );
+    const saleLines: Array<{
+      productId: string;
+      productLotId: string;
+      quantity: Prisma.Decimal;
+      unitPrice: Prisma.Decimal;
+      subtotal: Prisma.Decimal;
+    }> = [];
+    const pceClasses = new Set<string>();
 
-        for (const item of dto.items) {
-          const lot = lotById.get(item.productLotId)!;
-          const quotedItem = quotedItemByLot.get(lot.id);
-          const unitPrice =
-            quotedItem?.productId === lot.productId
-              ? quotedItem.unitPrice
-              : quote
-                ? undefined
-                : priceByProduct.get(lot.productId);
-          if (!unitPrice) {
-            throw new ConflictException(
-              `Produto ${lot.product.name} não possui preço nesta tabela.`,
-            );
-          }
-          this.assertNotExpired(lot.expiresAt);
-          if (lot.product.isPce) {
-            if (!lot.product.riskClass) {
-              throw new ConflictException(
-                `Produto PCE ${lot.product.name} sem classe de risco não pode ser vendido.`,
-              );
-            }
-            pceClasses.add(lot.product.riskClass);
-          }
-          const quantity = new Prisma.Decimal(item.quantity);
-          const reserved = await tx.serviceOrderItem.aggregate({
-            where: {
-              productLotId: lot.id,
-              serviceOrder: {
-                status: {
-                  in: [
-                    ServiceOrderStatus.APROVADO,
-                    ServiceOrderStatus.EM_MONTAGEM,
-                  ],
-                },
-              },
-            },
-            _sum: { plannedQuantity: true },
-          });
-          const reservedQuantity =
-            reserved._sum.plannedQuantity ?? new Prisma.Decimal(0);
-          const activeQuoteReservations = await tx.salesQuoteItem.aggregate({
-            where: {
-              productLotId: lot.id,
-              quote: {
-                status: SalesQuoteStatus.EMITIDO,
-                expiresAt: { gt: new Date() },
-                ...(quote ? { id: { not: quote.id } } : {}),
-              },
-            },
-            _sum: { quantity: true },
-          });
-          const salesQuotesReserved =
-            activeQuoteReservations._sum.quantity ??
-            new Prisma.Decimal(0);
-          const totalReserved = reservedQuantity.plus(salesQuotesReserved);
-          const available = lot.quantity.minus(totalReserved);
-          if (available.lt(quantity)) {
-            throw new ConflictException({
-              message: `Estoque disponível insuficiente para venda do lote ${lot.lotNumber}.`,
-              lotId: lot.id,
-              physicalQuantity: lot.quantity.toString(),
-              alreadyReserved: totalReserved.toString(),
-              requested: quantity.toString(),
-              available: available.toString(),
-            });
-          }
-          saleLines.push({
-            productId: lot.productId,
-            productLotId: lot.id,
-            quantity,
-            unitPrice,
-            subtotal: quotedItem?.subtotal ??
-              unitPrice.mul(quantity).toDecimalPlaces(2),
-          });
-        }
-        this.assertCustomerCanPurchasePce(customer, pceClasses);
-
-        const total = saleLines.reduce(
-          (sum, item) => sum.plus(item.subtotal),
-          new Prisma.Decimal(0),
+    for (const item of dto.items) {
+      const lot = lotById.get(item.productLotId)!;
+      const quotedItem = quotedItemByLot.get(lot.id);
+      const unitPrice =
+        quotedItem?.productId === lot.productId
+          ? quotedItem.unitPrice
+          : quote
+            ? undefined
+            : priceByProduct.get(lot.productId);
+      if (!unitPrice) {
+        throw new ConflictException(
+          `Produto ${lot.product.name} não possui preço nesta tabela.`,
         );
-        const sale = await tx.sale.create({
-          data: {
-            customerId: dto.customerId ?? null,
-            priceListId: priceList.id,
-            ...(quote ? { quoteId: quote.id } : {}),
-            total,
-            items: { create: saleLines },
+      }
+      this.assertNotExpired(lot.expiresAt);
+      if (lot.product.isPce) {
+        if (!lot.product.riskClass) {
+          throw new ConflictException(
+            `Produto PCE ${lot.product.name} sem classe de risco não pode ser vendido.`,
+          );
+        }
+        pceClasses.add(lot.product.riskClass);
+      }
+      const quantity = new Prisma.Decimal(item.quantity);
+      const reserved = await tx.serviceOrderItem.aggregate({
+        where: {
+          productLotId: lot.id,
+          serviceOrder: {
+            status: {
+              in: [ServiceOrderStatus.APROVADO, ServiceOrderStatus.EM_MONTAGEM],
+            },
           },
-          include: {
-            customer: true,
-            priceList: true,
-            items: { include: { product: true, productLot: true } },
+        },
+        _sum: { plannedQuantity: true },
+      });
+      const reservedQuantity =
+        reserved._sum.plannedQuantity ?? new Prisma.Decimal(0);
+      const activeQuoteReservations = await tx.salesQuoteItem.aggregate({
+        where: {
+          productLotId: lot.id,
+          quote: {
+            status: SalesQuoteStatus.EMITIDO,
+            expiresAt: { gt: new Date() },
+            ...(quote ? { id: { not: quote.id } } : {}),
           },
+        },
+        _sum: { quantity: true },
+      });
+      const salesQuotesReserved =
+        activeQuoteReservations._sum.quantity ?? new Prisma.Decimal(0);
+      const totalReserved = reservedQuantity.plus(salesQuotesReserved);
+      const available = lot.quantity.minus(totalReserved);
+      if (available.lt(quantity)) {
+        throw new ConflictException({
+          message: `Estoque disponível insuficiente para venda do lote ${lot.lotNumber}.`,
+          lotId: lot.id,
+          physicalQuantity: lot.quantity.toString(),
+          alreadyReserved: totalReserved.toString(),
+          requested: quantity.toString(),
+          available: available.toString(),
         });
+      }
+      saleLines.push({
+        productId: lot.productId,
+        productLotId: lot.id,
+        quantity,
+        unitPrice,
+        subtotal:
+          quotedItem?.subtotal ?? unitPrice.mul(quantity).toDecimalPlaces(2),
+      });
+    }
+    this.assertCustomerCanPurchasePce(customer, pceClasses);
 
-        for (const line of saleLines) {
-          const lot = lotById.get(line.productLotId)!;
-          const nextQuantity = lot.quantity.minus(line.quantity);
-          const movement = await tx.stockMovement.create({
-            data: {
-              type: StockMovementType.SAIDA,
-              productLotId: lot.id,
-              quantity: line.quantity,
-              sourceMagazineId: lot.magazineId,
-              reference: `VENDA-${sale.code}`,
-            },
-          });
-          await tx.productLot.update({
-            where: { id: lot.id },
-            data: { quantity: nextQuantity },
-          });
-          await tx.auditLog.create({
-            data: {
-              action: 'inventory.movement.saida',
-              aggregateType: 'ProductLot',
-              aggregateId: lot.id,
-              before: { quantity: lot.quantity.toString() },
-              after: {
-                quantity: nextQuantity.toString(),
-                movementId: movement.id,
-                reference: `VENDA-${sale.code}`,
-              },
-            },
-          });
-        }
-        await tx.auditLog.create({
-          data: {
-            action: 'sale.completed',
-            aggregateType: 'Sale',
-            aggregateId: sale.id,
-            after: {
-              code: sale.code,
-              customerId: sale.customerId,
-              priceListId: sale.priceListId,
-              total: sale.total.toString(),
-              itemCount: sale.items.length,
-              ...(quote ? { quoteId: quote.id } : {}),
-            },
+    const total = saleLines.reduce(
+      (sum, item) => sum.plus(item.subtotal),
+      new Prisma.Decimal(0),
+    );
+    this.assertSaleSettlement(dto, customer?.id ?? null);
+    const sale = await tx.sale.create({
+      data: {
+        customerId: dto.customerId ?? null,
+        priceListId: priceList.id,
+        ...(quote ? { quoteId: quote.id } : {}),
+        total,
+        items: { create: saleLines },
+      },
+    });
+    const dueDate =
+      dto.condition === SaleSettlementCondition.IMEDIATO
+        ? this.dateOnly(new Date().toISOString().slice(0, 10))
+        : this.dateOnly(dto.dueDate!);
+    const financialEntry = await tx.financialEntry.create({
+      data: {
+        direction: FinancialDirection.RECEBER,
+        description: `Venda ${sale.code}`,
+        category: 'VENDA',
+        counterparty: customer?.legalName ?? 'Venda de balcão',
+        customerId: customer?.id ?? null,
+        saleId: sale.id,
+        amount: total,
+        dueDate,
+        status:
+          dto.condition === SaleSettlementCondition.IMEDIATO
+            ? FinancialEntryStatus.PAGO
+            : FinancialEntryStatus.ABERTO,
+        reference: `VENDA-${sale.code}`,
+      },
+    });
+    await tx.auditLog.create({
+      data: {
+        action: 'finance.entry.created',
+        aggregateType: 'FinancialEntry',
+        aggregateId: financialEntry.id,
+        after: {
+          code: financialEntry.code,
+          direction: financialEntry.direction,
+          amount: financialEntry.amount.toString(),
+          dueDate: dueDate.toISOString().slice(0, 10),
+          category: financialEntry.category,
+          customerId: financialEntry.customerId,
+          saleId: sale.id,
+        },
+      },
+    });
+    if (dto.condition === SaleSettlementCondition.IMEDIATO) {
+      const payment = await tx.financialPayment.create({
+        data: {
+          entryId: financialEntry.id,
+          amount: total,
+          method: dto.paymentMethod!,
+          occurredAt: new Date(),
+          reference: `VENDA-${sale.code}`,
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          action: 'finance.payment.registered',
+          aggregateType: 'FinancialEntry',
+          aggregateId: financialEntry.id,
+          after: {
+            paymentId: payment.id,
+            amount: payment.amount.toString(),
+            method: payment.method,
+            occurredAt: payment.occurredAt.toISOString(),
+            status: financialEntry.status,
+            paid: total.toString(),
+            outstanding: '0',
           },
-        });
-        return sale;
+        },
+      });
+    }
+
+    for (const line of saleLines) {
+      const lot = lotById.get(line.productLotId)!;
+      const nextQuantity = lot.quantity.minus(line.quantity);
+      const movement = await tx.stockMovement.create({
+        data: {
+          type: StockMovementType.SAIDA,
+          productLotId: lot.id,
+          quantity: line.quantity,
+          sourceMagazineId: lot.magazineId,
+          reference: `VENDA-${sale.code}`,
+        },
+      });
+      await tx.productLot.update({
+        where: { id: lot.id },
+        data: { quantity: nextQuantity },
+      });
+      await tx.auditLog.create({
+        data: {
+          action: 'inventory.movement.saida',
+          aggregateType: 'ProductLot',
+          aggregateId: lot.id,
+          before: { quantity: lot.quantity.toString() },
+          after: {
+            quantity: nextQuantity.toString(),
+            movementId: movement.id,
+            reference: `VENDA-${sale.code}`,
+          },
+        },
+      });
+    }
+    await tx.auditLog.create({
+      data: {
+        action: 'sale.completed',
+        aggregateType: 'Sale',
+        aggregateId: sale.id,
+        after: {
+          code: sale.code,
+          customerId: sale.customerId,
+          priceListId: sale.priceListId,
+          total: sale.total.toString(),
+          itemCount: saleLines.length,
+          ...(quote ? { quoteId: quote.id } : {}),
+          financialEntryId: financialEntry.id,
+        },
+      },
+    });
+    return tx.sale.findUniqueOrThrow({
+      where: { id: sale.id },
+      include: {
+        customer: true,
+        priceList: true,
+        quote: true,
+        items: { include: { product: true, productLot: true } },
+        financialEntry: {
+          include: { payments: { orderBy: { occurredAt: 'asc' } } },
+        },
+      },
+    });
+  }
+
+  private assertSaleSettlement(
+    dto: CreateSaleDto,
+    customerId: string | null,
+  ): void {
+    if (
+      dto.condition === SaleSettlementCondition.IMEDIATO &&
+      (dto.dueDate !== undefined || dto.paymentMethod === undefined)
+    ) {
+      throw new BadRequestException(
+        'Venda imediata exige método de pagamento e não aceita vencimento.',
+      );
+    }
+    if (
+      dto.condition === SaleSettlementCondition.PRAZO &&
+      (dto.paymentMethod !== undefined ||
+        dto.dueDate === undefined ||
+        customerId === null)
+    ) {
+      throw new BadRequestException(
+        'Venda a prazo exige cliente cadastrado e vencimento, e não aceita método de pagamento imediato.',
+      );
+    }
   }
 
   private assertPriceListActive(priceList: {
@@ -930,7 +1043,12 @@ export class CommercialService {
     const unauthorized = [...pceClasses].filter(
       (riskClass) => !customer.authorizedPceClasses.includes(riskClass),
     );
-    if (!customer.hasCr || !crExpires || crExpires < today || unauthorized.length) {
+    if (
+      !customer.hasCr ||
+      !crExpires ||
+      crExpires < today ||
+      unauthorized.length
+    ) {
       throw new ConflictException({
         message: 'Cliente não está autorizado para os PCE desta venda.',
         reasons: [
@@ -958,10 +1076,12 @@ export class CommercialService {
       : quote.status;
   }
 
-  private withEffectiveQuoteStatus<T extends {
-    status: SalesQuoteStatus;
-    expiresAt: Date;
-  }>(quote: T, now = new Date()) {
+  private withEffectiveQuoteStatus<
+    T extends {
+      status: SalesQuoteStatus;
+      expiresAt: Date;
+    },
+  >(quote: T, now = new Date()) {
     return {
       ...quote,
       status:
@@ -972,7 +1092,10 @@ export class CommercialService {
   }
 
   private assertNotExpired(expiresAt: Date) {
-    if (expiresAt.toISOString().slice(0, 10) < new Date().toISOString().slice(0, 10)) {
+    if (
+      expiresAt.toISOString().slice(0, 10) <
+      new Date().toISOString().slice(0, 10)
+    ) {
       throw new ConflictException('Lote vencido não pode ser vendido.');
     }
   }

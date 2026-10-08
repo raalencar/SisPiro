@@ -77,6 +77,9 @@ export class FinanceService {
               eventLocation: true,
             },
           },
+          sale: {
+            select: { id: true, code: true, quoteId: true, createdAt: true },
+          },
           payments: true,
         },
         orderBy: [{ dueDate: 'asc' }, { code: 'asc' }],
@@ -146,6 +149,9 @@ export class FinanceService {
               eventLocation: true,
             },
           },
+          sale: {
+            select: { id: true, code: true, quoteId: true, createdAt: true },
+          },
           payments: true,
         },
       });
@@ -183,6 +189,9 @@ export class FinanceService {
         serviceOrder: {
           select: { id: true, code: true, eventAt: true, eventLocation: true },
         },
+        sale: {
+          select: { id: true, code: true, quoteId: true, createdAt: true },
+        },
         payments: { orderBy: { occurredAt: 'asc' } },
       },
     });
@@ -213,6 +222,17 @@ export class FinanceService {
                 select: { id: true, code: true, reference: true },
               },
             },
+          },
+          serviceOrder: {
+            select: {
+              id: true,
+              code: true,
+              eventAt: true,
+              eventLocation: true,
+            },
+          },
+          sale: {
+            select: { id: true, code: true, quoteId: true, createdAt: true },
           },
           payments: true,
         },
@@ -306,6 +326,9 @@ export class FinanceService {
               eventLocation: true,
             },
           },
+          sale: {
+            select: { id: true, code: true, quoteId: true, createdAt: true },
+          },
           payments: { orderBy: { occurredAt: 'asc' } },
         },
       });
@@ -358,6 +381,9 @@ export class FinanceService {
               eventAt: true,
               eventLocation: true,
             },
+          },
+          sale: {
+            select: { id: true, code: true, quoteId: true, createdAt: true },
           },
           payments: true,
         },

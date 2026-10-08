@@ -22,6 +22,7 @@ describe('Commercial sales API (e2e)', () => {
   const saleIds: string[] = [];
   const salesQuoteIds: string[] = [];
   const orderIds: string[] = [];
+  const financialEntryIds: string[] = [];
 
   beforeAll(async () => {
     const moduleFixture = await Test.createTestingModule({
@@ -42,6 +43,20 @@ describe('Commercial sales API (e2e)', () => {
   });
 
   afterAll(async () => {
+    const saleEntries = await prisma.financialEntry.findMany({
+      where: { saleId: { in: saleIds } },
+      select: { id: true },
+    });
+    financialEntryIds.push(...saleEntries.map((entry) => entry.id));
+    await prisma.financialPayment.deleteMany({
+      where: { entryId: { in: financialEntryIds } },
+    });
+    await prisma.auditLog.deleteMany({
+      where: { aggregateId: { in: financialEntryIds } },
+    });
+    await prisma.financialEntry.deleteMany({
+      where: { id: { in: financialEntryIds } },
+    });
     await prisma.saleReturn.deleteMany({ where: { saleId: { in: saleIds } } });
     await prisma.sale.deleteMany({ where: { id: { in: saleIds } } });
     await prisma.salesQuote.deleteMany({
@@ -59,6 +74,7 @@ describe('Commercial sales API (e2e)', () => {
           { aggregateId: { in: saleIds } },
           { aggregateId: { in: salesQuoteIds } },
           { aggregateId: { in: orderIds } },
+          { aggregateId: { in: financialEntryIds } },
           { aggregateId: { in: priceListIds } },
           { aggregateId: { in: customerIds } },
           { aggregateId: { in: blasterIds } },
@@ -87,6 +103,8 @@ describe('Commercial sales API (e2e)', () => {
       .post('/api/v1/sales')
       .send({
         priceListId: list.id,
+        condition: 'IMEDIATO',
+        paymentMethod: 'DINHEIRO',
         items: [{ productLotId: lot.body.id, quantity: 2 }],
       })
       .expect(409);
@@ -110,6 +128,8 @@ describe('Commercial sales API (e2e)', () => {
       .send({
         customerId: customer.body.id,
         priceListId: list.id,
+        condition: 'IMEDIATO',
+        paymentMethod: 'DINHEIRO',
         items: [{ productLotId: lot.body.id, quantity: 2 }],
       })
       .expect(201);
@@ -117,6 +137,14 @@ describe('Commercial sales API (e2e)', () => {
     expect(response.body.total).toBe('25');
     expect(response.body.items[0].unitPrice).toBe('12.5');
     expect(response.body.items[0].subtotal).toBe('25');
+    expect(response.body.financialEntry).toMatchObject({
+      direction: 'RECEBER',
+      amount: '25',
+      status: 'PAGO',
+      saleId: response.body.id,
+    });
+    expect(response.body.financialEntry.payments).toHaveLength(1);
+    expect(response.body.financialEntry.payments[0].method).toBe('DINHEIRO');
 
     const stock = await request(app.getHttpServer())
       .get(`/api/v1/inventory/lots/${lot.body.id}`)
@@ -178,12 +206,16 @@ describe('Commercial sales API (e2e)', () => {
         .post('/api/v1/sales')
         .send({
           priceListId: list.id,
+          condition: 'IMEDIATO',
+          paymentMethod: 'PIX',
           items: [{ productLotId: lot.body.id, quantity: 6 }],
         }),
       request(app.getHttpServer())
         .post('/api/v1/sales')
         .send({
           priceListId: list.id,
+          condition: 'IMEDIATO',
+          paymentMethod: 'PIX',
           items: [{ productLotId: lot.body.id, quantity: 6 }],
         }),
     ]);
@@ -197,6 +229,68 @@ describe('Commercial sales API (e2e)', () => {
         .map((response) => response.status)
         .sort((first, second) => first - second),
     ).toEqual([201, 409]);
+  });
+
+  it('creates an open receivable for credit sales and requires a customer', async () => {
+    const product = await createProduct('CREDIT', false);
+    const lot = await createLot(
+      product.body.id as string,
+      `CREDIT-${suffix}`,
+      10,
+    );
+    const list = await createPriceList(product.body.id as string, 15);
+    const walkInCredit = await request(app.getHttpServer())
+      .post('/api/v1/sales')
+      .send({
+        priceListId: list.id,
+        condition: 'PRAZO',
+        dueDate: '2099-12-31',
+        items: [{ productLotId: lot.body.id, quantity: 2 }],
+      })
+      .expect(400);
+    expect(walkInCredit.body.message).toContain('cliente cadastrado');
+
+    const customer = await request(app.getHttpServer())
+      .post('/api/v1/customers')
+      .send({
+        legalName: `Cliente venda a prazo ${suffix}`,
+        taxId: makeValidCnpj(),
+      })
+      .expect(201);
+    customerIds.push(customer.body.id as string);
+
+    const sale = await request(app.getHttpServer())
+      .post('/api/v1/sales')
+      .send({
+        customerId: customer.body.id,
+        priceListId: list.id,
+        condition: 'PRAZO',
+        dueDate: '2099-12-31',
+        items: [{ productLotId: lot.body.id, quantity: 2 }],
+      })
+      .expect(201);
+    saleIds.push(sale.body.id as string);
+    expect(sale.body.financialEntry).toMatchObject({
+      direction: 'RECEBER',
+      amount: '30',
+      status: 'ABERTO',
+      customerId: customer.body.id,
+      saleId: sale.body.id,
+      dueDate: '2099-12-31T00:00:00.000Z',
+      payments: [],
+    });
+    const financeEntry = await request(app.getHttpServer())
+      .get(`/api/v1/finance/entries/${sale.body.financialEntry.id}`)
+      .expect(200);
+    expect(financeEntry.body).toMatchObject({
+      paid: '0',
+      outstanding: '30',
+      status: 'ABERTO',
+    });
+    expect(financeEntry.body.sale).toMatchObject({
+      id: sale.body.id,
+      code: sale.body.code,
+    });
   });
 
   it('does not sell quantities already reserved by an approved service order', async () => {
@@ -252,6 +346,8 @@ describe('Commercial sales API (e2e)', () => {
       .post('/api/v1/sales')
       .send({
         priceListId: list.id,
+        condition: 'IMEDIATO',
+        paymentMethod: 'DINHEIRO',
         items: [{ productLotId: lot.body.id, quantity: 4 }],
       })
       .expect(409);
@@ -286,6 +382,8 @@ describe('Commercial sales API (e2e)', () => {
       .post('/api/v1/sales')
       .send({
         priceListId: list.id,
+        condition: 'IMEDIATO',
+        paymentMethod: 'PIX',
         items: [{ productLotId: lot.body.id, quantity: 7 }],
       })
       .expect(409);
@@ -300,15 +398,18 @@ describe('Commercial sales API (e2e)', () => {
 
     const converted = await request(app.getHttpServer())
       .post(`/api/v1/sales/quotes/${quote.body.id}/convert`)
+      .send({ condition: 'IMEDIATO', paymentMethod: 'PIX' })
       .expect(201);
     saleIds.push(converted.body.sale.id as string);
     expect(converted.body.quote.status).toBe('CONVERTIDO');
     expect(converted.body.sale.quoteId).toBe(quote.body.id);
     expect(converted.body.sale.total).toBe('29');
     expect(converted.body.sale.items[0].unitPrice).toBe('7.25');
+    expect(converted.body.sale.financialEntry.status).toBe('PAGO');
 
     await request(app.getHttpServer())
       .post(`/api/v1/sales/quotes/${quote.body.id}/convert`)
+      .send({ condition: 'IMEDIATO', paymentMethod: 'PIX' })
       .expect(409);
     const stock = await request(app.getHttpServer())
       .get(`/api/v1/inventory/lots/${lot.body.id}`)
@@ -337,6 +438,8 @@ describe('Commercial sales API (e2e)', () => {
       .post('/api/v1/sales')
       .send({
         priceListId: list.id,
+        condition: 'IMEDIATO',
+        paymentMethod: 'DINHEIRO',
         items: [{ productLotId: cancelledLot.body.id, quantity: 10 }],
       })
       .expect(201);
@@ -371,6 +474,8 @@ describe('Commercial sales API (e2e)', () => {
       .post('/api/v1/sales')
       .send({
         priceListId: list.id,
+        condition: 'IMEDIATO',
+        paymentMethod: 'DINHEIRO',
         items: [{ productLotId: expiredLot.body.id, quantity: 5 }],
       })
       .expect(201);
@@ -519,6 +624,7 @@ describe('Commercial sales API (e2e)', () => {
       .expect(200);
     await request(app.getHttpServer())
       .post(`/api/v1/sales/quotes/${quote.body.id}/convert`)
+      .send({ condition: 'IMEDIATO', paymentMethod: 'PIX' })
       .expect(409);
     expect(
       await prisma.sale.count({ where: { quoteId: quote.body.id as string } }),
