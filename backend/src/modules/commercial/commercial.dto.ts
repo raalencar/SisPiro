@@ -1,0 +1,139 @@
+import { Transform, Type } from 'class-transformer';
+import {
+  ArrayMinSize,
+  ArrayUnique,
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Matches,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { PaginationQueryDto } from '../inventory/inventory.dto.js';
+
+export class SalesQueryDto extends PaginationQueryDto {}
+
+export class PriceListsQueryDto extends PaginationQueryDto {
+  @ApiPropertyOptional({ type: Boolean })
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
+  active?: boolean;
+}
+
+export class CreatePriceListItemDto {
+  @ApiProperty({ format: 'uuid' })
+  @IsUUID()
+  productId!: string;
+
+  @ApiProperty({ minimum: 0.01, maximum: 9999999999.99 })
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.01)
+  @Max(9999999999.99)
+  unitPrice!: number;
+}
+
+export class CreatePriceListDto {
+  @ApiProperty({ maxLength: 100 })
+  @IsString()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @MinLength(1)
+  @MaxLength(100)
+  name!: string;
+
+  @ApiPropertyOptional({ default: true })
+  @IsOptional()
+  @IsBoolean()
+  active = true;
+
+  @ApiPropertyOptional({ example: '2026-10-07', format: 'date' })
+  @IsOptional()
+  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  effectiveFrom?: string;
+
+  @ApiPropertyOptional({ example: '2027-10-07', format: 'date' })
+  @IsOptional()
+  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  effectiveUntil?: string;
+
+  @ApiProperty({ type: [CreatePriceListItemDto], minItems: 1 })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayUnique((item: CreatePriceListItemDto) => item.productId)
+  @ValidateNested({ each: true })
+  @Type(() => CreatePriceListItemDto)
+  items!: CreatePriceListItemDto[];
+}
+
+export class CreateSaleItemDto {
+  @ApiProperty({ format: 'uuid' })
+  @IsUUID()
+  productLotId!: string;
+
+  @ApiProperty({ minimum: 0.01, maximum: 99999999.99 })
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.01)
+  @Max(99999999.99)
+  quantity!: number;
+}
+
+export class CreateSaleDto {
+  @ApiPropertyOptional({ format: 'uuid', description: 'Omitir para venda de balcão sem cadastro.' })
+  @IsOptional()
+  @IsUUID()
+  customerId?: string;
+
+  @ApiProperty({ format: 'uuid' })
+  @IsUUID()
+  priceListId!: string;
+
+  @ApiProperty({ type: [CreateSaleItemDto], minItems: 1 })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayUnique((item: CreateSaleItemDto) => item.productLotId)
+  @ValidateNested({ each: true })
+  @Type(() => CreateSaleItemDto)
+  items!: CreateSaleItemDto[];
+}
+
+export class CreateSaleReturnItemDto {
+  @ApiProperty({ format: 'uuid' })
+  @IsUUID()
+  saleItemId!: string;
+
+  @ApiProperty({ minimum: 0.01, maximum: 99999999.99 })
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.01)
+  @Max(99999999.99)
+  quantity!: number;
+}
+
+export class CreateSaleReturnDto {
+  @ApiProperty({ maxLength: 500 })
+  @IsString()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @MinLength(1)
+  @MaxLength(500)
+  reason!: string;
+
+  @ApiProperty({ type: [CreateSaleReturnItemDto], minItems: 1 })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayUnique((item: CreateSaleReturnItemDto) => item.saleItemId)
+  @ValidateNested({ each: true })
+  @Type(() => CreateSaleReturnItemDto)
+  items!: CreateSaleReturnItemDto[];
+}
