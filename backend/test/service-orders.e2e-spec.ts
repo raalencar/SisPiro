@@ -259,6 +259,59 @@ describe('Service order APIs (e2e)', () => {
         (order: { id: string }) => order.id === firstOrder.body.id,
       ),
     ).toBe(true);
+
+    const report = await request(app.getHttpServer())
+      .get(
+        '/api/v1/operations/orders/reports/summary?from=2099-12-30&to=2099-12-30',
+      )
+      .expect(200);
+    expect(report.body.period).toEqual({
+      from: '2099-12-30',
+      to: '2099-12-30',
+      basis: 'data do evento',
+    });
+    expect(report.body.totals).toEqual({
+      orderCount: 2,
+      ordersWithoutContractedAmount: 0,
+      contractedAmount: '3000',
+    });
+    expect(report.body.byStatus).toEqual([
+      {
+        status: 'ORCAMENTO',
+        orderCount: 0,
+        ordersWithoutContractedAmount: 0,
+        contractedAmount: '0',
+      },
+      {
+        status: 'APROVADO',
+        orderCount: 0,
+        ordersWithoutContractedAmount: 0,
+        contractedAmount: '0',
+      },
+      {
+        status: 'EM_MONTAGEM',
+        orderCount: 0,
+        ordersWithoutContractedAmount: 0,
+        contractedAmount: '0',
+      },
+      {
+        status: 'EXECUTADO',
+        orderCount: 1,
+        ordersWithoutContractedAmount: 0,
+        contractedAmount: '1500',
+      },
+      {
+        status: 'CANCELADO',
+        orderCount: 1,
+        ordersWithoutContractedAmount: 0,
+        contractedAmount: '1500',
+      },
+    ]);
+    await request(app.getHttpServer())
+      .get(
+        '/api/v1/operations/orders/reports/summary?from=2099-12-31&to=2099-12-30',
+      )
+      .expect(400);
   });
 
   it('serializes concurrent approvals competing for the same lot', async () => {

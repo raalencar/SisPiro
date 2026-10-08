@@ -14,7 +14,10 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service.js';
 import { CustomersService } from '../commercial/customers.service.js';
-import { ServiceOrdersQueryDto } from './service-orders.dto.js';
+import {
+  ServiceOrdersQueryDto,
+  ServiceOrdersReportQueryDto,
+} from './service-orders.dto.js';
 import {
   ApproveServiceOrderDto,
   CloseServiceOrderDto,
@@ -84,6 +87,55 @@ export class ServiceOrdersService {
         total,
         totalPages: Math.ceil(total / query.limit),
       },
+    };
+  }
+
+  async report(query: ServiceOrdersReportQueryDto) {
+    if (query.from > query.to) {
+      throw new BadRequestException(
+        'A data inicial não pode ser posterior à data final.',
+      );
+    }
+    const from = new Date(`${query.from}T00:00:00.000Z`);
+    const until = new Date(`${query.to}T00:00:00.000Z`);
+    until.setUTCDate(until.getUTCDate() + 1);
+    const groups = await this.prisma.serviceOrder.groupBy({
+      by: ['status'],
+      where: { eventAt: { gte: from, lt: until } },
+      _count: { _all: true, contractedAmount: true },
+      _sum: { contractedAmount: true },
+    });
+    const groupByStatus = new Map(groups.map((group) => [group.status, group]));
+    const byStatus = Object.values(ServiceOrderStatus).map((status) => {
+      const group = groupByStatus.get(status);
+      return {
+        status,
+        orderCount: group?._count._all ?? 0,
+        ordersWithoutContractedAmount: group
+          ? group._count._all - group._count.contractedAmount
+          : 0,
+        contractedAmount: (
+          group?._sum.contractedAmount ?? new Prisma.Decimal(0)
+        ).toString(),
+      };
+    });
+    const totalContractedAmount = groups.reduce(
+      (sum, group) =>
+        sum.plus(group._sum.contractedAmount ?? new Prisma.Decimal(0)),
+      new Prisma.Decimal(0),
+    );
+    return {
+      period: { from: query.from, to: query.to, basis: 'data do evento' },
+      totals: {
+        orderCount: groups.reduce((sum, group) => sum + group._count._all, 0),
+        ordersWithoutContractedAmount: groups.reduce(
+          (sum, group) =>
+            sum + group._count._all - group._count.contractedAmount,
+          0,
+        ),
+        contractedAmount: totalContractedAmount.toString(),
+      },
+      byStatus,
     };
   }
 

@@ -238,6 +238,7 @@ model ServiceOrder {
   financialEntry       FinancialEntry?
 
   @@index([status, eventAt])
+  @@index([eventAt])
   @@map("ordens_servico")
 }
 

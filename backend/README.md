@@ -253,6 +253,7 @@ NF-e, NFS-e, MDF-e ou Guia de Tráfego.
 | Método | Rota | Uso |
 | --- | --- | --- |
 | `GET` / `POST` | `/operations/orders` | Lista OS com paginação, busca e filtro; cria orçamento |
+| `GET` | `/operations/orders/reports/summary?from=AAAA-MM-DD&to=AAAA-MM-DD` | Resume OS e valores contratados por status, pela data do evento |
 | `GET` | `/operations/orders/:id` | Consulta OS, itens, cliente e situação da reserva |
 | `POST` | `/operations/orders/:id/approve` | Valida cliente/CR, blaster, lotes e reserva o estoque |
 | `POST` | `/operations/orders/:id/start` | Inicia montagem mantendo a reserva |
@@ -273,6 +274,10 @@ também o vencimento; o sistema cria atomicamente uma única conta a receber pel
 valor contratado, vinculada ao cliente e à OS. O valor não é recalculado com
 base na quantidade disparada. Ordens antigas sem valor contratado precisam ser
 canceladas e recriadas antes de concluir.
+O resumo operacional agrupa todas as OS, inclusive canceladas, por status e
+soma valores contratados conforme a data do evento dentro de `from/to`. Ordens
+legadas sem valor contratado permanecem na contagem e são sinalizadas em
+`ordersWithoutContractedAmount`; seus valores não entram nas somas.
 
 ### Contas a pagar/receber e fluxo de caixa
 
@@ -303,7 +308,7 @@ automaticamente uma conta a pagar vinculada à etapa recebida, a conclusão de
 uma OS gera uma conta a receber com o valor contratado e as vendas geram
 recebimentos ou contas a receber de acordo com a condição informada. Não há integração bancária,
 conciliação, parcelamento ou estorno de pagamentos. Emissão fiscal, Guias de
-Tráfego, mapas regulatórios e outros relatórios gerenciais ainda não estão
+Tráfego, mapas regulatórios e relatórios gerenciais adicionais ainda não estão
 expostos pela API. As telas do frontend também ainda não consomem estes
 endpoints.
 
@@ -331,7 +336,7 @@ as rotas e regras detalhadas devem ser definidas antes de iniciar cada módulo.
 | Preços promocionais | Campanhas de preço fixo, vigência inclusiva, aplicação automática sem aumento sobre o preço de tabela e bloqueio de sobreposição por produto implementados | Evoluir conforme necessidade (por exemplo, descontos percentuais, segmentação e campanhas promocionais) |
 | Fiscal e regulatório | Sem emissão fiscal ou integração oficial | Integrações e fluxos de NF-e, NFS-e, MDF-e e Guias de Tráfego, sujeitos à validação regulatória |
 | Bancos | Sem integração bancária ou conciliação | Importação/integração de extratos, conciliação e tratamento de divergências |
-| Relatórios | Painel financeiro com fluxo realizado e saldos atuais por vencimento; listagens operacionais disponíveis | Relatórios operacionais, regulatórios e projeções financeiras |
+| Relatórios | Resumos de vendas por produto/cliente, OS por status e painel financeiro disponíveis | Outros relatórios operacionais, regulatórios e projeções financeiras |
 | Frontend de negócio | Telas de negócio ainda não consomem as APIs | Integrar os módulos existentes à interface |
 
 Esta lista registra lacunas conhecidas, não constitui contrato final de API nem

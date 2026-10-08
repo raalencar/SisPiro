@@ -20,6 +20,7 @@ import {
   ApproveServiceOrderDto,
   CloseServiceOrderDto,
   CreateServiceOrderDto,
+  ServiceOrdersReportQueryDto,
   ServiceOrdersQueryDto,
 } from './service-orders.dto.js';
 import { ServiceOrdersService } from './service-orders.service.js';
@@ -37,6 +38,14 @@ export class ServiceOrdersController {
   })
   list(@Query() query: ServiceOrdersQueryDto) {
     return this.orders.list(query);
+  }
+
+  @Get('reports/summary')
+  @ApiOperation({
+    summary: 'Resume OS e valores contratados por status no período do evento.',
+  })
+  report(@Query() query: ServiceOrdersReportQueryDto) {
+    return this.orders.report(query);
   }
 
   @Post()
