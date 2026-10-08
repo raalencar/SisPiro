@@ -20,6 +20,7 @@ import {
   CashFlowQueryDto,
   CreateFinancialEntryDto,
   CreateFinancialPaymentDto,
+  FinanceDashboardQueryDto,
   FinanceEntriesQueryDto,
 } from './finance.dto.js';
 import { FinanceService } from './finance.service.js';
@@ -85,5 +86,14 @@ export class FinanceController {
   })
   cashFlow(@Query() query: CashFlowQueryDto) {
     return this.finance.cashFlow(query);
+  }
+
+  @Get('dashboard')
+  @ApiOperation({
+    summary:
+      'Resume fluxo realizado e saldos atuais a pagar/receber por vencimento.',
+  })
+  dashboard(@Query() query: FinanceDashboardQueryDto) {
+    return this.finance.dashboard(query);
   }
 }

@@ -276,6 +276,7 @@ canceladas e recriadas antes de concluir.
 | `POST` | `/finance/entries/:id/payments` | Registra pagamento/recebimento parcial ou quitação |
 | `POST` | `/finance/entries/:id/cancel` | Cancela lançamento aberto sem pagamentos |
 | `GET` | `/finance/cash-flow?from=AAAA-MM-DD&to=AAAA-MM-DD` | Resume entradas e saídas efetivamente pagas por dia |
+| `GET` | `/finance/dashboard?from=AAAA-MM-DD&to=AAAA-MM-DD` | Resume fluxo realizado e saldos atuais a pagar/receber por vencimento |
 
 Lançamentos armazenam direção, categoria, contraparte, valor e vencimento; o
 cliente é opcional para contas a receber. Pagamentos são imutáveis neste fluxo,
@@ -283,14 +284,21 @@ serializados por lançamento para impedir quitação acima do saldo, considerand
 créditos aplicados por devoluções. O status pode ser `ABERTO`, `PARCIAL`, `PAGO`,
 `COMPENSADO` ou `CANCELADO`. `overdue` sinaliza saldo pendente cujo vencimento
 passou. O fluxo de caixa representa pagamentos realizados, não projeções futuras.
+O painel financeiro usa o período para agrupar pagamentos pela data de
+realização e saldos pendentes atuais pelo vencimento: contas em aberto com
+vencimento anterior a `from` aparecem separadas das que vencem entre `from` e
+`to`. Pagamentos parciais e créditos aplicados reduzem o saldo; lançamentos
+cancelados não são incluídos. Os saldos representam a situação atual e não uma
+reconstrução histórica no fim do período.
 
 Lançamentos avulsos continuam manuais; cada recebimento de compra gera
 automaticamente uma conta a pagar vinculada à etapa recebida, a conclusão de
 uma OS gera uma conta a receber com o valor contratado e as vendas geram
 recebimentos ou contas a receber de acordo com a condição informada. Não há integração bancária,
 conciliação, parcelamento ou estorno de pagamentos. Emissão fiscal, Guias de
-Tráfego, mapas regulatórios e relatórios avançados ainda não estão expostos pela
-API. As telas do frontend também ainda não consomem estes endpoints.
+Tráfego, mapas regulatórios e outros relatórios gerenciais ainda não estão
+expostos pela API. As telas do frontend também ainda não consomem estes
+endpoints.
 
 Todas as rotas de negócio exigem access token e perfil compatível; liveness,
 readiness e os endpoints de bootstrap/login/refresh/logout são públicos. A API
@@ -316,7 +324,7 @@ as rotas e regras detalhadas devem ser definidas antes de iniciar cada módulo.
 | Preços promocionais | Campanhas de preço fixo, vigência inclusiva, aplicação automática sem aumento sobre o preço de tabela e bloqueio de sobreposição por produto implementados | Evoluir conforme necessidade (por exemplo, descontos percentuais, segmentação e campanhas promocionais) |
 | Fiscal e regulatório | Sem emissão fiscal ou integração oficial | Integrações e fluxos de NF-e, NFS-e, MDF-e e Guias de Tráfego, sujeitos à validação regulatória |
 | Bancos | Sem integração bancária ou conciliação | Importação/integração de extratos, conciliação e tratamento de divergências |
-| Relatórios | Listagens operacionais e fluxo de caixa realizado disponíveis | Relatórios gerenciais, regulatórios e projeções financeiras |
+| Relatórios | Painel financeiro com fluxo realizado e saldos atuais por vencimento; listagens operacionais disponíveis | Relatórios operacionais, regulatórios e projeções financeiras |
 | Frontend de negócio | Telas de negócio ainda não consomem as APIs | Integrar os módulos existentes à interface |
 
 Esta lista registra lacunas conhecidas, não constitui contrato final de API nem

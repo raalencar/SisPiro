@@ -132,6 +132,87 @@ describe('Finance API (e2e)', () => {
     expect(flow.body.totals.net).toBe('100');
     expect(flow.body.days).toHaveLength(1);
 
+    const createEntry = async (
+      direction: 'PAGAR' | 'RECEBER',
+      amount: number,
+      dueDate: string,
+    ) => {
+      const response = await request(app.getHttpServer())
+        .post('/api/v1/finance/entries')
+        .send({
+          direction,
+          description: `Resumo financeiro ${randomUUID()}`,
+          category: 'Teste de relatório',
+          counterparty: 'Contraparte de teste',
+          amount,
+          dueDate,
+        })
+        .expect(201);
+      return { id: response.body.id as string };
+    };
+    const dashboardBefore = await request(app.getHttpServer())
+      .get(`/api/v1/finance/dashboard?from=${today}&to=${tomorrow}`)
+      .expect(200);
+    const [dueBeforePeriod, dueReceivable, duePayable, dueAfterPeriod, voided] =
+      await Promise.all([
+        createEntry('PAGAR', 45, dateOffset(-1)),
+        createEntry('RECEBER', 100, tomorrow),
+        createEntry('PAGAR', 90, tomorrow),
+        createEntry('RECEBER', 400, dateOffset(10)),
+        createEntry('PAGAR', 500, tomorrow),
+      ]);
+    entryIds.push(
+      dueBeforePeriod.id,
+      dueReceivable.id,
+      duePayable.id,
+      dueAfterPeriod.id,
+      voided.id,
+    );
+    await request(app.getHttpServer())
+      .post(`/api/v1/finance/entries/${voided.id}/cancel`)
+      .expect(201);
+    await Promise.all([
+      request(app.getHttpServer())
+        .post(`/api/v1/finance/entries/${dueReceivable.id}/payments`)
+        .send({ amount: 30, method: 'PIX' })
+        .expect(201),
+      request(app.getHttpServer())
+        .post(`/api/v1/finance/entries/${duePayable.id}/payments`)
+        .send({ amount: 10, method: 'DINHEIRO' })
+        .expect(201),
+    ]);
+    const dashboard = await request(app.getHttpServer())
+      .get(`/api/v1/finance/dashboard?from=${today}&to=${tomorrow}`)
+      .expect(200);
+    expect(dashboard.body.period).toEqual({ from: today, to: tomorrow });
+    expect(dashboard.body.openBalances.asOf).toEqual(expect.any(String));
+    expect(dashboard.body.openBalances.dueBeforePeriod.payable).toBe(
+      String(
+        Number(dashboardBefore.body.openBalances.dueBeforePeriod.payable) + 45,
+      ),
+    );
+    expect(dashboard.body.openBalances.dueInPeriod.receivable).toBe(
+      String(
+        Number(dashboardBefore.body.openBalances.dueInPeriod.receivable) + 70,
+      ),
+    );
+    expect(dashboard.body.openBalances.dueInPeriod.payable).toBe(
+      String(
+        Number(dashboardBefore.body.openBalances.dueInPeriod.payable) + 80,
+      ),
+    );
+    expect(
+      Number(dashboard.body.realized.totals.received) -
+        Number(dashboardBefore.body.realized.totals.received),
+    ).toBe(30);
+    expect(
+      Number(dashboard.body.realized.totals.paid) -
+        Number(dashboardBefore.body.realized.totals.paid),
+    ).toBe(10);
+    await request(app.getHttpServer())
+      .get(`/api/v1/finance/dashboard?from=${tomorrow}&to=${today}`)
+      .expect(400);
+
     const filtered = await request(app.getHttpServer())
       .get('/api/v1/finance/entries?direction=RECEBER&status=PAGO')
       .expect(200);

@@ -14,6 +14,7 @@ import {
   CashFlowQueryDto,
   CreateFinancialEntryDto,
   CreateFinancialPaymentDto,
+  FinanceDashboardQueryDto,
   FinanceEntriesQueryDto,
 } from './finance.dto.js';
 
@@ -464,11 +465,7 @@ export class FinanceService {
   }
 
   async cashFlow(query: CashFlowQueryDto) {
-    if (query.from > query.to) {
-      throw new BadRequestException(
-        'A data inicial não pode ser posterior à data final.',
-      );
-    }
+    this.assertValidPeriod(query);
     const payments = await this.prisma.financialPayment.findMany({
       where: {
         occurredAt: {
@@ -521,6 +518,83 @@ export class FinanceService {
     };
   }
 
+  async dashboard(query: FinanceDashboardQueryDto) {
+    this.assertValidPeriod(query);
+    const asOf = new Date();
+    const [realized, balanceRows] = await Promise.all([
+      this.cashFlow(query),
+      this.prisma.$queryRaw<
+        Array<{
+          direction: FinancialDirection;
+          bucket: 'dueBeforePeriod' | 'dueInPeriod';
+          amount: Prisma.Decimal;
+        }>
+      >`
+        WITH eligible_entries AS (
+          SELECT
+            "id",
+            "direction",
+            "data_vencimento",
+            "amount",
+            "credito_aplicado"
+          FROM "lancamentos_financeiros"
+          WHERE "status" <> 'CANCELADO'
+            AND "data_vencimento" <= ${this.dateOnly(query.to)}
+        ),
+        payment_totals AS (
+          SELECT p."lancamento_id", SUM(p."amount") AS paid
+          FROM "pagamentos_financeiros" p
+          INNER JOIN eligible_entries e ON e."id" = p."lancamento_id"
+          GROUP BY p."lancamento_id"
+        ),
+        open_balances AS (
+          SELECT
+            e."direction",
+            CASE
+              WHEN e."data_vencimento" < ${this.dateOnly(query.from)}
+                THEN 'dueBeforePeriod'
+              ELSE 'dueInPeriod'
+            END AS bucket,
+            e."amount" - e."credito_aplicado" - COALESCE(p.paid, 0) AS amount
+          FROM eligible_entries e
+          LEFT JOIN payment_totals p ON p."lancamento_id" = e."id"
+        )
+        SELECT direction, bucket, SUM(amount) AS amount
+        FROM open_balances
+        WHERE amount > 0
+        GROUP BY direction, bucket
+      `,
+    ]);
+    const zero = () => ({
+      receivable: new Prisma.Decimal(0),
+      payable: new Prisma.Decimal(0),
+    });
+    const openBalances = {
+      dueBeforePeriod: zero(),
+      dueInPeriod: zero(),
+    };
+    for (const row of balanceRows) {
+      const directionKey =
+        row.direction === FinancialDirection.RECEBER ? 'receivable' : 'payable';
+      openBalances[row.bucket][directionKey] = row.amount;
+    }
+    return {
+      period: { from: query.from, to: query.to },
+      realized,
+      openBalances: {
+        asOf: asOf.toISOString(),
+        dueBeforePeriod: {
+          receivable: openBalances.dueBeforePeriod.receivable.toString(),
+          payable: openBalances.dueBeforePeriod.payable.toString(),
+        },
+        dueInPeriod: {
+          receivable: openBalances.dueInPeriod.receivable.toString(),
+          payable: openBalances.dueInPeriod.payable.toString(),
+        },
+      },
+    };
+  }
+
   private serialize<
     T extends {
       amount: Prisma.Decimal;
@@ -553,6 +627,14 @@ export class FinanceService {
 
   private dateOnly(value: string): Date {
     return new Date(`${value}T00:00:00.000Z`);
+  }
+
+  private assertValidPeriod(query: CashFlowQueryDto) {
+    if (query.from > query.to) {
+      throw new BadRequestException(
+        'A data inicial não pode ser posterior à data final.',
+      );
+    }
   }
 
   private addDays(value: string, days: number): string {
