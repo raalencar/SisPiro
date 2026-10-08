@@ -25,6 +25,18 @@ import { PaginationQueryDto } from '../inventory/inventory.dto.js';
 
 export class SalesQueryDto extends PaginationQueryDto {}
 
+export class SalesReportQueryDto {
+  @ApiProperty({ format: 'date', example: '2026-10-01' })
+  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  from!: string;
+
+  @ApiProperty({ format: 'date', example: '2026-10-31' })
+  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  to!: string;
+}
+
 export class SalesQuotesQueryDto extends PaginationQueryDto {
   @ApiPropertyOptional({ enum: SalesQuoteStatus })
   @IsOptional()

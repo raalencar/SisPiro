@@ -182,6 +182,7 @@ documental. Criações e atualizações registram audit log na mesma transação
 | `PATCH` | `/pricing/promotions/:id` | Ativa ou desativa promoção |
 | `GET` | `/sales` | Lista vendas finalizadas com paginação |
 | `GET` | `/sales/:id` | Consulta venda, cliente, preços e itens |
+| `GET` | `/sales/reports/summary?from=AAAA-MM-DD&to=AAAA-MM-DD` | Resume vendas brutas, devoluções e vendas líquidas por produto e cliente |
 | `POST` | `/sales` | Finaliza venda, registra recebimento ou conta a receber e baixa estoque |
 | `GET` / `POST` | `/sales/quotes` | Lista orçamentos comerciais ou emite orçamento com reserva de sete dias |
 | `GET` | `/sales/quotes/:id` | Consulta orçamento, itens e estado da reserva |
@@ -198,6 +199,12 @@ todas as classes incluídas. A finalização bloqueia lotes vencidos, saldo já
 reservado por OS ou por orçamento comercial vigente e estoque insuficiente,
 criando movimentações de saída e auditoria na mesma transação. O checkout
 concorrente do mesmo lote é serializado.
+
+O relatório de vendas filtra vendas pela data de finalização e devoluções pela
+data em que foram registradas. Apresenta valores brutos, devoluções e líquido
+no período, com detalhamento por produto e cliente; vendas sem cliente ficam
+no grupo “Venda de balcão sem cliente”. Uma devolução no período reduz o líquido
+do período mesmo quando a venda original ocorreu antes dele.
 
 Orçamentos comerciais preservam os preços cotados e reservam os lotes por sete
 dias. A emissão valida cliente, tabela de preço, elegibilidade PCE, validade do

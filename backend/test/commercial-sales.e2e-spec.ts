@@ -21,6 +21,7 @@ describe('Commercial sales API (e2e)', () => {
   const priceListIds: string[] = [];
   const promotionIds: string[] = [];
   const saleIds: string[] = [];
+  const saleReturnIds: string[] = [];
   const salesQuoteIds: string[] = [];
   const orderIds: string[] = [];
   const financialEntryIds: string[] = [];
@@ -84,6 +85,7 @@ describe('Commercial sales API (e2e)', () => {
           { aggregateId: { in: salesQuoteIds } },
           { aggregateId: { in: orderIds } },
           { aggregateId: { in: financialEntryIds } },
+          { aggregateId: { in: saleReturnIds } },
           { aggregateId: { in: priceListIds } },
           { aggregateId: { in: promotionIds } },
           { aggregateId: { in: customerIds } },
@@ -209,6 +211,130 @@ describe('Commercial sales API (e2e)', () => {
       .get(`/api/v1/sales/${response.body.id}/returns`)
       .expect(200);
     expect(returns.body).toHaveLength(1);
+  });
+
+  it('reports gross sales and returns by product and customer', async () => {
+    const productA = await createProduct('REPORT-A', false);
+    const productB = await createProduct('REPORT-B', false);
+    const lotA = await createLot(
+      productA.body.id as string,
+      `REPORT-A-${suffix}`,
+      10,
+    );
+    const lotB = await createLot(
+      productB.body.id as string,
+      `REPORT-B-${suffix}`,
+      10,
+    );
+    const list = await request(app.getHttpServer())
+      .post('/api/v1/pricing/lists')
+      .send({
+        name: `Tabela relatório ${suffix}`,
+        items: [
+          { productId: productA.body.id, unitPrice: 10 },
+          { productId: productB.body.id, unitPrice: 20 },
+        ],
+      })
+      .expect(201);
+    priceListIds.push(list.body.id as string);
+    const customer = await request(app.getHttpServer())
+      .post('/api/v1/customers')
+      .send({
+        legalName: `Cliente relatório ${suffix}`,
+        taxId: makeValidCnpj(),
+      })
+      .expect(201);
+    customerIds.push(customer.body.id as string);
+
+    const today = new Date().toISOString().slice(0, 10);
+    const tomorrowDate = new Date(`${today}T00:00:00.000Z`);
+    tomorrowDate.setUTCDate(tomorrowDate.getUTCDate() + 1);
+    const tomorrow = tomorrowDate.toISOString().slice(0, 10);
+    const baseline = await request(app.getHttpServer())
+      .get(`/api/v1/sales/reports/summary?from=${today}&to=${tomorrow}`)
+      .expect(200);
+    const customerSale = await request(app.getHttpServer())
+      .post('/api/v1/sales')
+      .send({
+        customerId: customer.body.id,
+        priceListId: list.body.id,
+        condition: 'IMEDIATO',
+        paymentMethod: 'DINHEIRO',
+        items: [
+          { productLotId: lotA.body.id, quantity: 2 },
+          { productLotId: lotB.body.id, quantity: 1 },
+        ],
+      })
+      .expect(201);
+    saleIds.push(customerSale.body.id as string);
+    const walkInSale = await request(app.getHttpServer())
+      .post('/api/v1/sales')
+      .send({
+        priceListId: list.body.id,
+        condition: 'IMEDIATO',
+        paymentMethod: 'PIX',
+        items: [{ productLotId: lotA.body.id, quantity: 1 }],
+      })
+      .expect(201);
+    saleIds.push(walkInSale.body.id as string);
+    await prisma.sale.update({
+      where: { id: customerSale.body.id },
+      data: { createdAt: new Date('2020-01-01T00:00:00.000Z') },
+    });
+    const returned = await request(app.getHttpServer())
+      .post(`/api/v1/sales/${customerSale.body.id}/returns`)
+      .send({
+        reason: 'Devolução usada no relatório de vendas.',
+        dueDate: '2099-12-31',
+        items: [{ saleItemId: customerSale.body.items[0].id, quantity: 1 }],
+      })
+      .expect(201);
+    saleReturnIds.push(returned.body.id as string);
+
+    const report = await request(app.getHttpServer())
+      .get(`/api/v1/sales/reports/summary?from=${today}&to=${tomorrow}`)
+      .expect(200);
+    expect(report.body.basis).toEqual({
+      sales: 'data de finalização da venda',
+      returns: 'data de registro da devolução',
+    });
+    expect(report.body.totals).toEqual({
+      salesCount: baseline.body.totals.salesCount + 1,
+      returnsCount: baseline.body.totals.returnsCount + 1,
+      grossSales: String(Number(baseline.body.totals.grossSales) + 10),
+      returned: String(Number(baseline.body.totals.returned) + 10),
+      netSales: String(Number(baseline.body.totals.netSales)),
+    });
+    const productReport = report.body.byProduct.find(
+      (item: { productId: string }) => item.productId === productA.body.id,
+    );
+    expect(productReport).toMatchObject({
+      soldQuantity: '1',
+      returnedQuantity: '1',
+      netQuantity: '0',
+      grossSales: '10',
+      returned: '10',
+      netSales: '0',
+    });
+    const customerReport = report.body.byCustomer.find(
+      (item: { customerId: string }) => item.customerId === customer.body.id,
+    );
+    expect(customerReport).toMatchObject({
+      salesCount: 0,
+      returnsCount: 1,
+      grossSales: '0',
+      returned: '10',
+      netSales: '-10',
+    });
+    expect(
+      report.body.byCustomer.some(
+        (item: { customerId: string | null; grossSales: string }) =>
+          item.customerId === null && item.grossSales === '10',
+      ),
+    ).toBe(true);
+    await request(app.getHttpServer())
+      .get(`/api/v1/sales/reports/summary?from=${tomorrow}&to=${today}`)
+      .expect(400);
   });
 
   it('applies fixed product promotions and preserves quoted promotional prices', async () => {

@@ -27,6 +27,7 @@ import {
   ConvertSalesQuoteDto,
   CreateSalesQuoteDto,
   PriceListsQueryDto,
+  SalesReportQueryDto,
   SalesQuotesQueryDto,
   SalesQueryDto,
 } from './commercial.dto.js';
@@ -144,6 +145,15 @@ export class CommercialController {
   @ApiOperation({ summary: 'Lista vendas finalizadas.' })
   listSales(@Query() query: SalesQueryDto) {
     return this.commercial.listSales(query);
+  }
+
+  @Get('sales/reports/summary')
+  @ApiOperation({
+    summary:
+      'Resume vendas brutas, devoluções e vendas líquidas por produto e cliente.',
+  })
+  salesReport(@Query() query: SalesReportQueryDto) {
+    return this.commercial.salesReport(query);
   }
 
   @Get('sales/:id')

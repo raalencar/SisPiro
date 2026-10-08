@@ -429,6 +429,7 @@ model SaleReturn {
   refundEntry   FinancialEntry?
 
   @@index([saleId, createdAt])
+  @@index([createdAt])
   @@map("devolucoes_venda")
 }
 
