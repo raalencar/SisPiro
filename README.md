@@ -45,8 +45,10 @@ vendas/PDV, devoluções e contas a pagar/receber, além de autenticação JWT e
 perfis de acesso por módulo. Orçamentos comerciais reservam estoque por sete
 dias e podem ser convertidos em venda preservando os preços cotados.
 Cada recebimento de compra cria atomicamente uma conta a pagar com valor
-proporcional, fornecedor, vencimento e referência fiscal. O frontend integra
-somente os endpoints de liveness e readiness:
+proporcional, fornecedor, vencimento e referência fiscal. Ao concluir uma OS,
+o backend gera uma conta a receber pelo valor contratado, com vencimento
+informado no fechamento. O frontend integra somente os endpoints de liveness e
+readiness:
 `GET /api/v1/health/live` e
 `GET /api/v1/health/ready` (considerando o prefixo padrão); as telas de negócio
 ainda não consomem as APIs e mostram estados vazios. Permanecem pendentes

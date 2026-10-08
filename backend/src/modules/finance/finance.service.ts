@@ -22,11 +22,7 @@ export class FinanceService {
   constructor(private readonly prisma: PrismaService) {}
 
   async list(query: FinanceEntriesQueryDto) {
-    if (
-      query.dueFrom &&
-      query.dueUntil &&
-      query.dueFrom > query.dueUntil
-    ) {
+    if (query.dueFrom && query.dueUntil && query.dueFrom > query.dueUntil) {
       throw new BadRequestException(
         'O início do período não pode ser posterior ao término.',
       );
@@ -37,12 +33,8 @@ export class FinanceService {
       ...(query.dueFrom || query.dueUntil
         ? {
             dueDate: {
-              ...(query.dueFrom
-                ? { gte: this.dateOnly(query.dueFrom) }
-                : {}),
-              ...(query.dueUntil
-                ? { lte: this.dateOnly(query.dueUntil) }
-                : {}),
+              ...(query.dueFrom ? { gte: this.dateOnly(query.dueFrom) } : {}),
+              ...(query.dueUntil ? { lte: this.dateOnly(query.dueUntil) } : {}),
             },
           }
         : {}),
@@ -75,6 +67,14 @@ export class FinanceService {
               purchase: {
                 select: { id: true, code: true, reference: true },
               },
+            },
+          },
+          serviceOrder: {
+            select: {
+              id: true,
+              code: true,
+              eventAt: true,
+              eventLocation: true,
             },
           },
           payments: true,
@@ -138,6 +138,14 @@ export class FinanceService {
               },
             },
           },
+          serviceOrder: {
+            select: {
+              id: true,
+              code: true,
+              eventAt: true,
+              eventLocation: true,
+            },
+          },
           payments: true,
         },
       });
@@ -171,6 +179,9 @@ export class FinanceService {
           include: {
             purchase: { select: { id: true, code: true, reference: true } },
           },
+        },
+        serviceOrder: {
+          select: { id: true, code: true, eventAt: true, eventLocation: true },
         },
         payments: { orderBy: { occurredAt: 'asc' } },
       },
@@ -287,6 +298,14 @@ export class FinanceService {
               },
             },
           },
+          serviceOrder: {
+            select: {
+              id: true,
+              code: true,
+              eventAt: true,
+              eventLocation: true,
+            },
+          },
           payments: { orderBy: { occurredAt: 'asc' } },
         },
       });
@@ -311,7 +330,10 @@ export class FinanceService {
       if (!entry) {
         throw new NotFoundException('Lançamento financeiro não encontrado.');
       }
-      if (entry.status !== FinancialEntryStatus.ABERTO || entry.payments.length) {
+      if (
+        entry.status !== FinancialEntryStatus.ABERTO ||
+        entry.payments.length
+      ) {
         throw new ConflictException(
           'Somente lançamento aberto sem pagamentos pode ser cancelado.',
         );
@@ -327,6 +349,14 @@ export class FinanceService {
               purchase: {
                 select: { id: true, code: true, reference: true },
               },
+            },
+          },
+          serviceOrder: {
+            select: {
+              id: true,
+              code: true,
+              eventAt: true,
+              eventLocation: true,
             },
           },
           payments: true,
@@ -355,9 +385,7 @@ export class FinanceService {
       where: {
         occurredAt: {
           gte: new Date(`${query.from}T00:00:00.000Z`),
-          lt: new Date(
-            `${this.addDays(query.to, 1)}T00:00:00.000Z`,
-          ),
+          lt: new Date(`${this.addDays(query.to, 1)}T00:00:00.000Z`),
         },
       },
       include: { entry: { select: { direction: true, category: true } } },

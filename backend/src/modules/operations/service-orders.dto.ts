@@ -11,6 +11,7 @@ import {
   IsEnum,
   Max,
   MaxLength,
+  Matches,
   Min,
   MinLength,
   ValidateNested,
@@ -49,6 +50,17 @@ export class CreateServiceOrderDto {
   @ApiProperty({ format: 'uuid' })
   @IsUUID()
   customerId!: string;
+
+  @ApiProperty({
+    description: 'Valor contratado da OS, imutável após sua criação.',
+    minimum: 0.01,
+    maximum: 9999999999.99,
+  })
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.01)
+  @Max(9999999999.99)
+  contractedAmount!: number;
 
   @ApiProperty({ example: '2027-12-31T20:00:00-03:00' })
   @IsDateString()
@@ -96,6 +108,11 @@ export class FiredServiceOrderItemDto {
 }
 
 export class CloseServiceOrderDto {
+  @ApiProperty({ format: 'date', example: '2026-10-31' })
+  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  dueDate!: string;
+
   @ApiProperty({ type: [FiredServiceOrderItemDto], minItems: 1 })
   @IsArray()
   @ArrayMinSize(1)

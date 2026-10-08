@@ -223,7 +223,7 @@ NF-e, NFS-e, MDF-e ou Guia de Tráfego.
 | `POST` | `/operations/orders/:id/approve` | Valida cliente/CR, blaster, lotes e reserva o estoque |
 | `POST` | `/operations/orders/:id/start` | Inicia montagem mantendo a reserva |
 | `POST` | `/operations/orders/:id/cancel` | Cancela orçamento/aprovação e libera a reserva |
-| `POST` | `/operations/orders/:id/close` | Registra quantidades queimadas e baixa consumo real |
+| `POST` | `/operations/orders/:id/close` | Registra queima, baixa consumo real e gera conta a receber |
 
 A criação gera um orçamento sem reservar estoque. A aprovação verifica
 elegibilidade do cliente e do blaster, validade dos lotes e disponibilidade,
@@ -234,6 +234,11 @@ independentes não podem consumir quantidades reservadas por OS ou orçamento.
 Cancelar ou encerrar a OS libera a reserva. No encerramento, a baixa é baseada
 na quantidade efetivamente queimada, e as sobras voltam a ficar disponíveis.
 O relatório de queima e as movimentações ficam registrados na auditoria.
+Ao criar a OS, informe o valor contratado. Ao concluir a execução, informe
+também o vencimento; o sistema cria atomicamente uma única conta a receber pelo
+valor contratado, vinculada ao cliente e à OS. O valor não é recalculado com
+base na quantidade disparada. Ordens antigas sem valor contratado precisam ser
+canceladas e recriadas antes de concluir.
 
 ### Contas a pagar/receber e fluxo de caixa
 
@@ -253,8 +258,9 @@ entre `ABERTO`, `PARCIAL` e `PAGO`; lançamentos sem pagamentos podem ser
 caixa representa pagamentos realizados, não projeções futuras.
 
 Lançamentos avulsos continuam manuais; cada recebimento de compra gera
-automaticamente uma conta a pagar vinculada à etapa recebida. Vendas e ordens de
-serviço ainda não geram lançamentos automaticamente. Não há integração bancária,
+automaticamente uma conta a pagar vinculada à etapa recebida, e a conclusão de
+uma OS gera uma conta a receber com o valor contratado. Vendas ainda não geram
+lançamentos automaticamente. Não há integração bancária,
 conciliação, parcelamento ou estorno de pagamentos. Emissão fiscal, Guias de
 Tráfego, mapas regulatórios e relatórios avançados ainda não estão expostos pela
 API. As telas do frontend também ainda não consomem estes endpoints.
@@ -277,7 +283,7 @@ as rotas e regras detalhadas devem ser definidas antes de iniciar cada módulo.
 | Área | Situação atual | Trabalho pendente |
 | --- | --- | --- |
 | Acesso e operadores | Login JWT, refresh rotativo, usuários e perfis por módulo implementados; auditoria de autenticação identifica ator | Recuperação de senha, MFA, limitação de tentativas, transporte seguro de refresh no cliente e propagação de ator nos demais logs de negócio |
-| Financeiro de vendas e OS | Contas avulsas são manuais; compras geram contas a pagar por recebimento | Definir e implementar geração de contas a receber conforme checkout/venda e regras de cobrança de OS |
+| Financeiro de vendas | Contas avulsas são manuais; compras e execução de OS geram lançamentos vinculados | Definir e implementar geração de contas a receber conforme checkout/venda |
 | Devolução e financeiro | Devolução reentra estoque; não gera estorno financeiro | Definir e registrar estorno/crédito vinculado à devolução e à venda original |
 | Orçamentos comerciais | Emissão, consulta, cancelamento e conversão em venda implementados; reserva de lote por sete dias integrada a vendas, OS e movimentações | Revisar regras comerciais e evoluir conforme necessidade (por exemplo, edição e envio do orçamento) |
 | Preços promocionais | Tabelas de preço básicas implementadas | Regras de promoção, vigência e precedência de preços |

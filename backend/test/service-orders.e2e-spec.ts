@@ -19,6 +19,7 @@ describe('Service order APIs (e2e)', () => {
   const magazineIds: string[] = [];
   const lotIds: string[] = [];
   const orderIds: string[] = [];
+  const financialEntryIds: string[] = [];
 
   beforeAll(async () => {
     const moduleFixture = await Test.createTestingModule({
@@ -39,6 +40,17 @@ describe('Service order APIs (e2e)', () => {
   });
 
   afterAll(async () => {
+    const entries = await prisma.financialEntry.findMany({
+      where: { serviceOrderId: { in: orderIds } },
+      select: { id: true },
+    });
+    financialEntryIds.push(...entries.map((entry) => entry.id));
+    await prisma.auditLog.deleteMany({
+      where: { aggregateId: { in: financialEntryIds } },
+    });
+    await prisma.financialEntry.deleteMany({
+      where: { id: { in: financialEntryIds } },
+    });
     await prisma.serviceOrder.deleteMany({ where: { id: { in: orderIds } } });
     await prisma.stockMovement.deleteMany({
       where: { productLotId: { in: lotIds } },
@@ -131,6 +143,7 @@ describe('Service order APIs (e2e)', () => {
         .post('/api/v1/operations/orders')
         .send({
           customerId: customer.body.id,
+          contractedAmount: 1500,
           eventAt: '2099-12-30T20:00:00-03:00',
           eventLocation: 'Local de teste de OS',
           items: [
@@ -153,6 +166,7 @@ describe('Service order APIs (e2e)', () => {
 
     const firstOrder = await createOrder(7);
     expect(firstOrder.body.status).toBe('ORCAMENTO');
+    expect(firstOrder.body.contractedAmount).toBe('1500');
     const approved = await approveOrder(firstOrder.body.id).expect(201);
     expect(approved.body.status).toBe('APROVADO');
     expect(approved.body.reservationActive).toBe(true);
@@ -180,9 +194,15 @@ describe('Service order APIs (e2e)', () => {
     expect(started.body.status).toBe('EM_MONTAGEM');
 
     const itemId = firstOrder.body.items[0].id as string;
+    expect(
+      await prisma.financialEntry.count({
+        where: { serviceOrderId: firstOrder.body.id },
+      }),
+    ).toBe(0);
     const closed = await request(app.getHttpServer())
       .post(`/api/v1/operations/orders/${firstOrder.body.id}/close`)
       .send({
+        dueDate: '2099-12-31',
         items: [{ itemId, firedQuantity: 5 }],
         reportNotes: 'Queima concluída no teste automatizado.',
       })
@@ -190,6 +210,23 @@ describe('Service order APIs (e2e)', () => {
     expect(closed.body.status).toBe('EXECUTADO');
     expect(closed.body.reservationActive).toBe(false);
     expect(closed.body.items[0].firedQuantity).toBe('5');
+    expect(closed.body.financialEntry).toMatchObject({
+      amount: '1500',
+      dueDate: '2099-12-31',
+      status: 'ABERTO',
+    });
+    const receivable = await request(app.getHttpServer())
+      .get(`/api/v1/finance/entries/${closed.body.financialEntry.id}`)
+      .expect(200);
+    expect(receivable.body).toMatchObject({
+      direction: 'RECEBER',
+      amount: '1500',
+      customerId: customer.body.id,
+      serviceOrderId: firstOrder.body.id,
+      serviceOrder: {
+        id: firstOrder.body.id,
+      },
+    });
 
     const afterBurn = await request(app.getHttpServer())
       .get(`/api/v1/inventory/lots/${lot.body.id}`)
@@ -286,6 +323,7 @@ describe('Service order APIs (e2e)', () => {
         .post('/api/v1/operations/orders')
         .send({
           customerId: customer.body.id,
+          contractedAmount: 2000,
           eventAt: '2099-12-30T20:00:00-03:00',
           eventLocation: location,
           items: [

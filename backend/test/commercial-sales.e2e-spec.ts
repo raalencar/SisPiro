@@ -230,6 +230,7 @@ describe('Commercial sales API (e2e)', () => {
       .post('/api/v1/operations/orders')
       .send({
         customerId: customer.body.id,
+        contractedAmount: 1000,
         eventAt: '2099-12-30T20:00:00-03:00',
         eventLocation: 'Evento teste reserva comercial',
         items: [
@@ -454,6 +455,7 @@ describe('Commercial sales API (e2e)', () => {
       .post('/api/v1/operations/orders')
       .send({
         customerId: customer.body.id,
+        contractedAmount: 1000,
         eventAt: '2099-12-30T20:00:00-03:00',
         eventLocation: 'Evento reservado por orçamento comercial',
         items: [

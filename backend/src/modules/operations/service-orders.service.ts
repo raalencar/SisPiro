@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  FinancialDirection,
   Prisma,
   ProductType,
   SalesQuoteStatus,
@@ -152,6 +153,7 @@ export class ServiceOrdersService {
       const order = await tx.serviceOrder.create({
         data: {
           customerId: dto.customerId,
+          contractedAmount: new Prisma.Decimal(dto.contractedAmount),
           eventAt: new Date(dto.eventAt),
           eventLocation: dto.eventLocation.trim(),
           status: ServiceOrderStatus.ORCAMENTO,
@@ -176,6 +178,7 @@ export class ServiceOrdersService {
       await this.audit(tx, 'service-order.created', order.id, undefined, {
         code: order.code,
         customerId: order.customerId,
+        contractedAmount: order.contractedAmount?.toString() ?? null,
         eventAt: order.eventAt.toISOString(),
         itemCount: order.items.length,
         status: order.status,
@@ -391,7 +394,10 @@ export class ServiceOrdersService {
       await this.lockOrder(tx, id);
       const order = await tx.serviceOrder.findUnique({
         where: { id },
-        include: { items: { include: { product: true, productLot: true } } },
+        include: {
+          customer: true,
+          items: { include: { product: true, productLot: true } },
+        },
       });
       if (!order) {
         throw new NotFoundException('Ordem de serviço não encontrada.');
@@ -399,6 +405,11 @@ export class ServiceOrdersService {
       if (order.status !== ServiceOrderStatus.EM_MONTAGEM) {
         throw new ConflictException(
           'Somente uma OS em montagem pode receber o relatório de queima.',
+        );
+      }
+      if (!order.contractedAmount || order.contractedAmount.lte(0)) {
+        throw new ConflictException(
+          'A OS não possui valor contratado. Cancele-a e crie uma nova OS com o valor informado.',
         );
       }
       if (dto.items.length !== order.items.length) {
@@ -523,7 +534,45 @@ export class ServiceOrdersService {
           unusedReservationsReleased: true,
         },
       );
-      return this.serializeOrder(updated);
+      const financialEntry = await tx.financialEntry.create({
+        data: {
+          direction: FinancialDirection.RECEBER,
+          description: `Ordem de serviço ${order.code}`,
+          category: 'SERVICO_PIROTECNICO',
+          counterparty: order.customer.legalName,
+          customerId: order.customerId,
+          serviceOrderId: order.id,
+          amount: order.contractedAmount,
+          dueDate: this.dateOnly(dto.dueDate),
+          reference: `OS-${order.code}`,
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          action: 'finance.entry.created',
+          aggregateType: 'FinancialEntry',
+          aggregateId: financialEntry.id,
+          after: {
+            code: financialEntry.code,
+            direction: financialEntry.direction,
+            amount: financialEntry.amount.toString(),
+            dueDate: dto.dueDate,
+            category: financialEntry.category,
+            customerId: financialEntry.customerId,
+            serviceOrderId: order.id,
+          },
+        },
+      });
+      return {
+        ...this.serializeOrder(updated),
+        financialEntry: {
+          id: financialEntry.id,
+          code: financialEntry.code,
+          amount: financialEntry.amount.toString(),
+          dueDate: dto.dueDate,
+          status: financialEntry.status,
+        },
+      };
     });
   }
 
@@ -620,6 +669,10 @@ export class ServiceOrdersService {
         'O paiol do lote está com a licença dos Bombeiros vencida.',
       );
     }
+  }
+
+  private dateOnly(value: string): Date {
+    return new Date(`${value}T00:00:00.000Z`);
   }
 
   private async audit(

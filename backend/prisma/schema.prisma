@@ -224,6 +224,7 @@ model ServiceOrder {
   code                 Int                @unique @default(autoincrement()) @map("codigo_os")
   customerId           String             @map("cliente_id") @db.Uuid
   responsibleBlasterId String?            @map("blaster_responsavel_id") @db.Uuid
+  contractedAmount     Decimal?           @map("valor_contratado") @db.Decimal(12, 2)
   eventAt              DateTime           @map("data_evento") @db.Timestamptz(3)
   eventLocation        String             @map("local_evento")
   status               ServiceOrderStatus @default(ORCAMENTO)
@@ -232,6 +233,7 @@ model ServiceOrder {
   customer             Customer           @relation(fields: [customerId], references: [id], onDelete: Restrict)
   responsibleBlaster   Blaster?           @relation(fields: [responsibleBlasterId], references: [id], onDelete: Restrict)
   items                ServiceOrderItem[]
+  financialEntry       FinancialEntry?
 
   @@index([status, eventAt])
   @@map("ordens_servico")
@@ -487,6 +489,7 @@ model FinancialEntry {
   customerId     String?               @map("cliente_id") @db.Uuid
   supplierId     String?               @map("fornecedor_id") @db.Uuid
   receiptBatchId String?               @unique @map("recebimento_compra_id") @db.Uuid
+  serviceOrderId String?               @unique @map("ordem_servico_id") @db.Uuid
   amount         Decimal               @db.Decimal(12, 2)
   dueDate        DateTime              @map("data_vencimento") @db.Date
   status         FinancialEntryStatus  @default(ABERTO)
@@ -495,6 +498,7 @@ model FinancialEntry {
   customer       Customer?             @relation(fields: [customerId], references: [id], onDelete: Restrict)
   supplier       Supplier?             @relation(fields: [supplierId], references: [id], onDelete: Restrict)
   receiptBatch   PurchaseReceiptBatch? @relation(fields: [receiptBatchId], references: [id], onDelete: Restrict)
+  serviceOrder   ServiceOrder?         @relation(fields: [serviceOrderId], references: [id], onDelete: Restrict)
   payments       FinancialPayment[]
 
   @@index([direction, status, dueDate])
