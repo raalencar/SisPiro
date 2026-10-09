@@ -8,57 +8,48 @@ import {
   setAuthCookies,
 } from "@/lib/server-auth";
 
-type LoginRequest = {
-  email: string;
-  password: string;
-  mfaCode?: string;
-};
-
-type MfaChallengeResponse = {
-  mfaRequired: true;
+type MfaLoginRequest = {
   mfaToken: string;
+  code: string;
 };
 
-function isMfaChallenge(value: unknown): value is MfaChallengeResponse {
+function isMfaLoginRequest(value: unknown): value is MfaLoginRequest {
   return (
     typeof value === "object" &&
     value !== null &&
-    "mfaRequired" in value &&
-    (value as { mfaRequired: unknown }).mfaRequired === true &&
     "mfaToken" in value &&
-    typeof (value as { mfaToken: unknown }).mfaToken === "string"
-  );
-}
-
-function isLoginRequest(value: unknown): value is LoginRequest {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "email" in value &&
-    typeof value.email === "string" &&
-    "password" in value &&
-    typeof value.password === "string" &&
-    (!("mfaCode" in value) || typeof (value as { mfaCode?: unknown }).mfaCode === "string")
+    typeof value.mfaToken === "string" &&
+    "code" in value &&
+    typeof value.code === "string"
   );
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
   if (!isSameOriginRequest(request)) {
-    return NextResponse.json({ message: "Origem da requisição não permitida." }, { status: 403 });
+    return NextResponse.json(
+      { message: "Origem da requisição não permitida." },
+      { status: 403 },
+    );
   }
 
   let input: unknown;
   try {
     input = await request.json();
   } catch {
-    return NextResponse.json({ message: "Informe e-mail e senha válidos." }, { status: 400 });
+    return NextResponse.json(
+      { message: "Informe o token MFA e o código de autenticação." },
+      { status: 400 },
+    );
   }
-  if (!isLoginRequest(input)) {
-    return NextResponse.json({ message: "Informe e-mail e senha válidos." }, { status: 400 });
+  if (!isMfaLoginRequest(input)) {
+    return NextResponse.json(
+      { message: "Informe o token MFA e o código de autenticação." },
+      { status: 400 },
+    );
   }
 
   try {
-    const upstream = await requestBackend("auth/login", {
+    const upstream = await requestBackend("auth/login/mfa", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),
@@ -66,9 +57,6 @@ export async function POST(request: Request): Promise<NextResponse> {
     const payload = await readBackendPayload(upstream);
     if (!upstream.ok) {
       return NextResponse.json(payload, { status: upstream.status });
-    }
-    if (isMfaChallenge(payload)) {
-      return NextResponse.json(payload, { status: 200 });
     }
     if (!isTokenBundle(payload) || !isAuthUser(payload.user)) {
       return NextResponse.json(
@@ -86,9 +74,10 @@ export async function POST(request: Request): Promise<NextResponse> {
         message:
           error instanceof Error
             ? error.message
-            : "Não foi possível autenticar com a API.",
+            : "Não foi possível validar o código MFA com a API.",
       },
       { status: 502 },
     );
   }
 }
+

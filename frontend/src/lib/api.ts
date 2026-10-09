@@ -150,7 +150,13 @@ export async function requestJson<T>(
   init: RequestInit = {},
 ): Promise<T> {
   const isBusinessRequest =
-    path.startsWith("/api/inventory/") || path.startsWith("/api/operations/");
+    path.startsWith("/api/inventory/") ||
+    path.startsWith("/api/operations/") ||
+    path.startsWith("/api/customers/") ||
+    path.startsWith("/api/blasters/") ||
+    path.startsWith("/api/procurement/") ||
+    path.startsWith("/api/commercial/") ||
+    path.startsWith("/api/finance/");
   if (isBusinessRequest) await ensureSessionAndNotify();
 
   let payload: unknown;
@@ -763,4 +769,570 @@ export const operationsApi = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+};
+
+// ==========================================
+// Clientes & Blasters
+// ==========================================
+
+export type Customer = {
+  id: string;
+  legalName: string;
+  tradeName?: string | null;
+  taxId: string;
+  email?: string | null;
+  phone?: string | null;
+  hasCr: boolean;
+  crNumber?: string | null;
+  crExpiresAt?: string | null;
+  authorizedPceClasses: string[];
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CustomerEligibility = {
+  eligible: boolean;
+  reasons: string[];
+};
+
+export type Blaster = {
+  id: string;
+  name: string;
+  taxId: string;
+  licenseNumber: string;
+  licenseExpiresAt: string;
+  authorizedClasses: string[];
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type BlasterEligibility = {
+  eligible: boolean;
+  reasons: string[];
+};
+
+export const customersApi = {
+  getCustomers: (page = 1, search?: string, active?: boolean) => {
+    const query = pageQuery(page, search);
+    if (active !== undefined) query.set("active", String(active));
+    return requestJson<PageResult<Customer>>(`/api/customers?${query.toString()}`);
+  },
+  getCustomer: (id: string) => requestJson<Customer>(`/api/customers/${id}`),
+  createCustomer: (body: Partial<Customer>) =>
+    requestJson<Customer>("/api/customers", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  updateCustomer: (id: string, body: Partial<Customer>) =>
+    requestJson<Customer>(`/api/customers/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  checkPceEligibility: (id: string, requestedClasses: string[]) =>
+    requestJson<CustomerEligibility>(`/api/customers/${id}/pce-eligibility`, {
+      method: "POST",
+      body: JSON.stringify({ requestedClasses }),
+    }),
+};
+
+export const blastersApi = {
+  getBlasters: (page = 1, search?: string, active?: boolean) => {
+    const query = pageQuery(page, search);
+    if (active !== undefined) query.set("active", String(active));
+    return requestJson<PageResult<Blaster>>(`/api/blasters?${query.toString()}`);
+  },
+  getBlaster: (id: string) => requestJson<Blaster>(`/api/blasters/${id}`),
+  createBlaster: (body: Partial<Blaster>) =>
+    requestJson<Blaster>("/api/blasters", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  updateBlaster: (id: string, body: Partial<Blaster>) =>
+    requestJson<Blaster>(`/api/blasters/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  checkEligibility: (id: string, eventDate: string) =>
+    requestJson<BlasterEligibility>(`/api/blasters/${id}/eligibility`, {
+      method: "POST",
+      body: JSON.stringify({ eventDate }),
+    }),
+};
+
+// ==========================================
+// Compras & Fornecedores
+// ==========================================
+
+export type Supplier = {
+  id: string;
+  legalName: string;
+  tradeName?: string | null;
+  taxId: string;
+  email?: string | null;
+  phone?: string | null;
+  hasCr: boolean;
+  crNumber?: string | null;
+  crExpiresAt?: string | null;
+  authorizedPceClasses: string[];
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PurchaseItem = {
+  id: string;
+  productId: string;
+  product?: Product;
+  quantity: string;
+  unitCost: string;
+  totalCost: string;
+  receivedQuantity: string;
+};
+
+export type PurchaseStatus = "PENDENTE" | "PARCIAL" | "RECEBIDO" | "CANCELADO";
+
+export type Purchase = {
+  id: string;
+  supplierId: string;
+  supplier?: Supplier;
+  status: PurchaseStatus;
+  totalAmount: string;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  items: PurchaseItem[];
+};
+
+export const procurementApi = {
+  getSuppliers: (page = 1, search?: string, active?: boolean) => {
+    const query = pageQuery(page, search);
+    if (active !== undefined) query.set("active", String(active));
+    return requestJson<PageResult<Supplier>>(
+      `/api/procurement/suppliers?${query.toString()}`,
+    );
+  },
+  createSupplier: (body: Partial<Supplier>) =>
+    requestJson<Supplier>("/api/procurement/suppliers", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  updateSupplier: (id: string, body: Partial<Supplier>) =>
+    requestJson<Supplier>(`/api/procurement/suppliers/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  getPurchases: (page = 1, status?: PurchaseStatus, supplierId?: string) => {
+    const query = new URLSearchParams({ page: String(page), limit: "100" });
+    if (status) query.set("status", status);
+    if (supplierId) query.set("supplierId", supplierId);
+    return requestJson<PageResult<Purchase>>(
+      `/api/procurement/purchases?${query.toString()}`,
+    );
+  },
+  getPurchase: (id: string) =>
+    requestJson<Purchase>(`/api/procurement/purchases/${id}`),
+  createPurchase: (body: {
+    supplierId: string;
+    notes?: string;
+    items: Array<{ productId: string; quantity: number; unitCost: number }>;
+  }) =>
+    requestJson<Purchase>("/api/procurement/purchases", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  receivePurchase: (
+    id: string,
+    body: {
+      dueDate: string;
+      invoiceReference?: string;
+      batches: Array<{
+        productId: string;
+        magazineId: string;
+        lotNumber: string;
+        quantity: number;
+        manufacturedAt: string;
+        expiresAt: string;
+        manufacturerOrImporter: string;
+      }>;
+    },
+  ) =>
+    requestJson<Purchase>(`/api/procurement/purchases/${id}/receive`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  cancelPurchase: (id: string) =>
+    requestJson<Purchase>(`/api/procurement/purchases/${id}/cancel`, {
+      method: "POST",
+      body: JSON.stringify({}),
+    }),
+};
+
+// ==========================================
+// Comercial, Vendas, Orçamentos & Promoções
+// ==========================================
+
+export type PricingList = {
+  id: string;
+  name: string;
+  active: boolean;
+  createdAt: string;
+  items?: Array<{ id: string; productId: string; unitPrice: string; product?: Product }>;
+};
+
+export type PromotionDiscountType = "PRECO_FIXO" | "PERCENTUAL";
+
+export type ProductPromotion = {
+  id: string;
+  name: string;
+  startsAt: string;
+  endsAt: string;
+  active: boolean;
+  createdAt: string;
+  items?: Array<{
+    id: string;
+    productId: string;
+    discountType: PromotionDiscountType;
+    promotionalPrice?: string | null;
+    discountPercent?: string | null;
+    product?: Product;
+  }>;
+};
+
+export type SalesQuoteItem = {
+  id: string;
+  productId: string;
+  productLotId: string;
+  quantity: string;
+  unitPrice: string;
+  subtotal: string;
+  product?: Product;
+  productLot?: ProductLot;
+};
+
+export type SalesQuoteStatus = "EMITIDO" | "CONVERTIDO" | "CANCELADO";
+
+export type SalesQuote = {
+  id: string;
+  customerId: string;
+  pricingListId: string;
+  status: SalesQuoteStatus;
+  totalAmount: string;
+  validUntil: string;
+  reservationActive: boolean;
+  customer?: Customer;
+  pricingList?: PricingList;
+  items: SalesQuoteItem[];
+  createdAt: string;
+};
+
+export type SaleItem = {
+  id: string;
+  productId: string;
+  productLotId: string;
+  quantity: string;
+  unitPrice: string;
+  subtotal: string;
+  returnedQuantity: string;
+  product?: Product;
+  productLot?: ProductLot;
+};
+
+export type Sale = {
+  id: string;
+  customerId?: string | null;
+  pricingListId: string;
+  quoteId?: string | null;
+  totalAmount: string;
+  customer?: Customer | null;
+  items: SaleItem[];
+  createdAt: string;
+};
+
+export type QuotesConversionReport = {
+  period: { from: string; to: string };
+  totals: {
+    totalQuotes: number;
+    convertedQuotes: number;
+    expiredQuotes: number;
+    activeQuotes: number;
+    conversionRatePercent: number;
+    totalAmountQuoted: string;
+    totalAmountConverted: string;
+    averageTicket: string;
+  };
+};
+
+export type SalesReportSummary = {
+  period: { from: string; to: string };
+  totals: {
+    grossSales: string;
+    returns: string;
+    netSales: string;
+    salesCount: number;
+    returnsCount: number;
+  };
+  byProduct: Array<{
+    productId: string;
+    productName: string;
+    grossAmount: string;
+    returnedAmount: string;
+    netAmount: string;
+  }>;
+  byCustomer: Array<{
+    customerId: string | null;
+    customerName: string;
+    grossAmount: string;
+    returnedAmount: string;
+    netAmount: string;
+  }>;
+};
+
+export const commercialApi = {
+  getPricingLists: (page = 1, search?: string) =>
+    requestJson<PageResult<PricingList>>(
+      `/api/commercial/pricing/lists?${pageQuery(page, search).toString()}`,
+    ),
+  createPricingList: (body: {
+    name: string;
+    items: Array<{ productId: string; unitPrice: number }>;
+  }) =>
+    requestJson<PricingList>("/api/commercial/pricing/lists", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  getPromotions: (page = 1) =>
+    requestJson<PageResult<ProductPromotion>>(
+      `/api/commercial/pricing/promotions?page=${page}&limit=100`,
+    ),
+  createPromotion: (body: {
+    name: string;
+    startsAt: string;
+    endsAt: string;
+    items: Array<{
+      productId: string;
+      discountType: PromotionDiscountType;
+      promotionalPrice?: number;
+      discountPercent?: number;
+    }>;
+  }) =>
+    requestJson<ProductPromotion>("/api/commercial/pricing/promotions", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  togglePromotion: (id: string, active: boolean) =>
+    requestJson<ProductPromotion>(`/api/commercial/pricing/promotions/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ active }),
+    }),
+  getQuotes: (page = 1, status?: SalesQuoteStatus) => {
+    const query = new URLSearchParams({ page: String(page), limit: "100" });
+    if (status) query.set("status", status);
+    return requestJson<PageResult<SalesQuote>>(
+      `/api/commercial/quotes?${query.toString()}`,
+    );
+  },
+  getQuote: (id: string) =>
+    requestJson<SalesQuote>(`/api/commercial/quotes/${id}`),
+  createQuote: (body: {
+    customerId: string;
+    pricingListId: string;
+    items: Array<{ productId: string; productLotId: string; quantity: number }>;
+  }) =>
+    requestJson<SalesQuote>("/api/commercial/quotes", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  updateQuote: (
+    id: string,
+    body: {
+      customerId?: string;
+      pricingListId?: string;
+      items: Array<{ productId: string; productLotId: string; quantity: number }>;
+    },
+  ) =>
+    requestJson<SalesQuote>(`/api/commercial/quotes/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+  sendQuote: (id: string) =>
+    requestJson<{ queued: boolean; jobId?: string }>(
+      `/api/commercial/quotes/${id}/send`,
+      { method: "POST", body: JSON.stringify({}) },
+    ),
+  cancelQuote: (id: string) =>
+    requestJson<SalesQuote>(`/api/commercial/quotes/${id}/cancel`, {
+      method: "POST",
+      body: JSON.stringify({}),
+    }),
+  convertQuote: (
+    id: string,
+    body: {
+      condition: "IMEDIATO" | "PRAZO";
+      paymentMethod?: string;
+      dueDate?: string;
+    },
+  ) =>
+    requestJson<Sale>(`/api/commercial/quotes/${id}/convert`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  getSales: (page = 1) =>
+    requestJson<PageResult<Sale>>(`/api/commercial/sales?page=${page}&limit=100`),
+  getSale: (id: string) => requestJson<Sale>(`/api/commercial/sales/${id}`),
+  createSale: (body: {
+    customerId?: string;
+    pricingListId: string;
+    condition: "IMEDIATO" | "PRAZO";
+    paymentMethod?: string;
+    dueDate?: string;
+    items: Array<{ productId: string; productLotId: string; quantity: number }>;
+  }) =>
+    requestJson<Sale>("/api/commercial/sales", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  createReturn: (
+    saleId: string,
+    body: {
+      reason: string;
+      dueDate?: string;
+      items: Array<{ saleItemId: string; quantity: number }>;
+    },
+  ) =>
+    requestJson<unknown>(`/api/commercial/sales/${saleId}/returns`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  getSalesReport: (from: string, to: string) =>
+    requestJson<SalesReportSummary>(
+      `/api/commercial/sales/reports/summary?from=${from}&to=${to}`,
+    ),
+  getQuotesConversionReport: (from: string, to: string) =>
+    requestJson<QuotesConversionReport>(
+      `/api/commercial/reports/quotes-conversion?from=${from}&to=${to}`,
+    ),
+};
+
+// ==========================================
+// Financeiro & Relatórios
+// ==========================================
+
+export type FinancialDirection = "PAGAR" | "RECEBER";
+export type FinancialStatus =
+  | "ABERTO"
+  | "PARCIAL"
+  | "PAGO"
+  | "COMPENSADO"
+  | "CANCELADO";
+
+export type FinancialPayment = {
+  id: string;
+  amount: string;
+  method: string;
+  paidAt: string;
+  notes?: string | null;
+};
+
+export type FinancialEntry = {
+  id: string;
+  direction: FinancialDirection;
+  status: FinancialStatus;
+  category: string;
+  counterpart: string;
+  amount: string;
+  paidAmount: string;
+  remainingAmount: string;
+  dueDate: string;
+  overdue: boolean;
+  customerId?: string | null;
+  customer?: Customer | null;
+  saleId?: string | null;
+  serviceOrderId?: string | null;
+  purchaseId?: string | null;
+  payments: FinancialPayment[];
+  createdAt: string;
+};
+
+export type CashFlowSummary = {
+  period: { from: string; to: string };
+  totals: { totalInflow: string; totalOutflow: string; netCashFlow: string };
+  daily: Array<{
+    date: string;
+    inflow: string;
+    outflow: string;
+    net: string;
+  }>;
+};
+
+export type AgingBucket = {
+  current: string;
+  overdue1to30: string;
+  overdue31to60: string;
+  overdue61to90: string;
+  overdueOver90: string;
+  total: string;
+};
+
+export type AgingReport = {
+  asOf: string;
+  receivables: AgingBucket;
+  payables: AgingBucket;
+  netExposure: string;
+};
+
+export const financeApi = {
+  getEntries: (
+    page = 1,
+    direction?: FinancialDirection,
+    status?: FinancialStatus,
+    from?: string,
+    to?: string,
+  ) => {
+    const query = new URLSearchParams({ page: String(page), limit: "100" });
+    if (direction) query.set("direction", direction);
+    if (status) query.set("status", status);
+    if (from) query.set("from", from);
+    if (to) query.set("to", to);
+    return requestJson<PageResult<FinancialEntry>>(
+      `/api/finance/entries?${query.toString()}`,
+    );
+  },
+  getEntry: (id: string) =>
+    requestJson<FinancialEntry>(`/api/finance/entries/${id}`),
+  createEntry: (body: {
+    direction: FinancialDirection;
+    category: string;
+    counterpart: string;
+    amount: number;
+    dueDate: string;
+    customerId?: string;
+  }) =>
+    requestJson<FinancialEntry>("/api/finance/entries", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  createPayment: (
+    id: string,
+    body: {
+      amount: number;
+      method: string;
+      paidAt?: string;
+      notes?: string;
+    },
+  ) =>
+    requestJson<FinancialEntry>(`/api/finance/entries/${id}/payments`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  cancelEntry: (id: string) =>
+    requestJson<FinancialEntry>(`/api/finance/entries/${id}/cancel`, {
+      method: "POST",
+      body: JSON.stringify({}),
+    }),
+  getCashFlow: (from: string, to: string) =>
+    requestJson<CashFlowSummary>(`/api/finance/cash-flow?from=${from}&to=${to}`),
+  getAgingReport: (asOf: string) =>
+    requestJson<AgingReport>(`/api/finance/reports/aging?asOf=${asOf}`),
 };

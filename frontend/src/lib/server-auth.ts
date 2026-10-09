@@ -185,7 +185,10 @@ export async function proxyAuthenticatedRequest(
       return result;
     }
 
-    const body = method === "POST" ? await request.text() : undefined;
+    const body =
+      method === "GET" || method === "DELETE"
+        ? undefined
+        : await request.text();
     response = await sendAuthorizedRequest(
       backendPath,
       method,

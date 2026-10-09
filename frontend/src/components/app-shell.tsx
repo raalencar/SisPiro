@@ -8,12 +8,14 @@ import { ApiHealthIndicator } from "@/components/api-health";
 import { Icon } from "@/components/icon";
 import { LoginPanel } from "@/components/login-panel";
 import { useAuth } from "@/components/auth-provider";
-import { modules } from "@/lib/modules";
+import { getModule, hasModuleAccess, modules } from "@/lib/modules";
 
 const groupOrder = ["Governança", "Cadastros", "Operações", "Gestão", "Sistema"];
 
 function AppNavigation({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const { user } = useAuth();
+  const roles = user?.roles ?? [];
 
   return (
     <nav className="primary-nav flex flex-1 flex-col" aria-label="Navegação principal">
@@ -34,6 +36,21 @@ function AppNavigation({ onNavigate }: { onNavigate?: () => void }) {
             {groupModules.map((item) => {
               const href = `/modules/${item.slug}`;
               const active = pathname === href;
+              const allowed = hasModuleAccess(item, roles);
+              if (!allowed) {
+                return (
+                  <span
+                    className="nav-link nav-link--disabled"
+                    key={item.slug}
+                    aria-disabled="true"
+                    title={`Requer o perfil ${item.requiredRoles?.join(" ou ")}`}
+                  >
+                    <Icon name={item.icon} size={19} />
+                    <span>{item.shortTitle}</span>
+                    <Icon name="shield" size={14} />
+                  </span>
+                );
+              }
               return (
                 <Link
                   className={`nav-link ${active ? "nav-link--active" : ""}`}
@@ -51,6 +68,19 @@ function AppNavigation({ onNavigate }: { onNavigate?: () => void }) {
         );
       })}
     </nav>
+  );
+}
+
+function RestrictedModule({ requiredRoles }: { requiredRoles: string[] }) {
+  return (
+    <section className="panel session-state" role="alert">
+      <h1>Acesso restrito</h1>
+      <p>
+        Este módulo exige o perfil {requiredRoles.join(" ou ")}. Sua conta não
+        possui esse perfil. Peça a um administrador para ajustar seus perfis
+        em Usuários, se precisar deste acesso.
+      </p>
+    </section>
   );
 }
 
@@ -82,6 +112,22 @@ function Breadcrumbs() {
       <span aria-current="page">{current}</span>
     </nav>
   );
+}
+
+function ModuleAccessGate({
+  roles,
+  children,
+}: {
+  roles: readonly string[];
+  children: ReactNode;
+}) {
+  const pathname = usePathname();
+  const match = /^\/modules\/([^/]+)/.exec(pathname);
+  const currentModule = match ? getModule(match[1]) : undefined;
+  if (currentModule && !hasModuleAccess(currentModule, roles)) {
+    return <RestrictedModule requiredRoles={currentModule.requiredRoles ?? []} />;
+  }
+  return <>{children}</>;
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -241,7 +287,11 @@ export function AppShell({ children }: { children: ReactNode }) {
             </section>
           )}
           {auth.status === "anonymous" && <LoginPanel />}
-          {auth.status === "authenticated" && children}
+          {auth.status === "authenticated" && (
+            <ModuleAccessGate roles={auth.user?.roles ?? []}>
+              {children}
+            </ModuleAccessGate>
+          )}
         </main>
         <footer className="page-footer">
           <span>Pirotécnico ERP</span>

@@ -19,7 +19,7 @@ import {
   formatNumber,
 } from "@/lib/format";
 
-type OrderAction = "create" | "approve" | "start" | "cancel" | "close";
+type OrderAction = "create" | "edit" | "approve" | "start" | "cancel" | "close";
 type OrderDraftItem = { lotId: string; quantity: string };
 
 function isUsableLot(lot: OperationalLot): boolean {
@@ -250,12 +250,35 @@ export function OperationsWorkspace() {
     setActionError(null);
     setNotice(null);
     setAction(nextAction);
-    if (nextAction === "create" || nextAction === "approve") {
+    if (nextAction === "create" || nextAction === "edit" || nextAction === "approve") {
       try {
         await loadReferences();
       } catch {
         return;
       }
+    }
+  }
+
+  async function openEditOrder(order: ServiceOrder) {
+    setActionError(null);
+    setNotice(null);
+    setCustomerId(order.customerId);
+    setContractedAmount(String(order.contractedAmount));
+    const evDate = new Date(order.eventAt);
+    evDate.setMinutes(evDate.getMinutes() - evDate.getTimezoneOffset());
+    setEventAt(evDate.toISOString().slice(0, 16));
+    setEventLocation(order.eventLocation);
+    setDraftItems(
+      order.items.map((it) => ({
+        lotId: it.productLotId,
+        quantity: String(it.plannedQuantity),
+      })),
+    );
+    setAction("edit");
+    try {
+      await loadReferences();
+    } catch {
+      return;
     }
   }
 
@@ -302,6 +325,40 @@ export function OperationsWorkspace() {
       setEventLocation("");
       setContractedAmount("");
       setDraftItems([newOrderItem()]);
+    } catch (reason) {
+      setActionError(errorMessage(reason));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function submitEdit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selected) return;
+    setSubmitting(true);
+    setActionError(null);
+    try {
+      const items = draftItems.map((item) => {
+        const lot = lots.find((entry) => entry.id === item.lotId);
+        if (!lot) throw new Error("Selecione um lote válido para cada item.");
+        return {
+          productId: lot.productId,
+          productLotId: lot.id,
+          plannedQuantity: Number(item.quantity),
+        };
+      });
+      const updated = await operationsApi.updateOrder(selected.id, {
+        customerId,
+        contractedAmount: Number(contractedAmount),
+        eventAt: new Date(eventAt).toISOString(),
+        eventLocation,
+        items,
+      });
+      setSelected(updated);
+      setSelectedId(updated.id);
+      await completeAction(
+        `Orçamento #${updated.code} atualizado com sucesso.`,
+      );
     } catch (reason) {
       setActionError(errorMessage(reason));
     } finally {
@@ -631,13 +688,22 @@ export function OperationsWorkspace() {
             <div className="operations-detail__actions">
               <StatusPill status={selected.status} />
               {selected.status === "ORCAMENTO" && (
-                <button
-                  className="button button--primary"
-                  type="button"
-                  onClick={() => void openAction("approve")}
-                >
-                  Aprovar orçamento
-                </button>
+                <>
+                  <button
+                    className="button button--secondary"
+                    type="button"
+                    onClick={() => void openEditOrder(selected)}
+                  >
+                    Editar orçamento
+                  </button>
+                  <button
+                    className="button button--primary"
+                    type="button"
+                    onClick={() => void openAction("approve")}
+                  >
+                    Aprovar orçamento
+                  </button>
+                </>
               )}
               {selected.status === "APROVADO" && (
                 <button
@@ -794,13 +860,15 @@ export function OperationsWorkspace() {
               <h2 id="operations-action-heading">
                 {action === "create"
                   ? "Criar orçamento de serviço"
-                  : action === "approve"
-                    ? `Aprovar ordem #${selected?.code}`
-                    : action === "start"
-                      ? `Iniciar montagem da ordem #${selected?.code}`
-                      : action === "cancel"
-                        ? `Cancelar ordem #${selected?.code}`
-                        : `Concluir ordem #${selected?.code}`}
+                  : action === "edit"
+                    ? `Editar orçamento #${selected?.code}`
+                    : action === "approve"
+                      ? `Aprovar ordem #${selected?.code}`
+                      : action === "start"
+                        ? `Iniciar montagem da ordem #${selected?.code}`
+                        : action === "cancel"
+                          ? `Cancelar ordem #${selected?.code}`
+                          : `Concluir ordem #${selected?.code}`}
               </h2>
             </div>
             <button
@@ -823,7 +891,7 @@ export function OperationsWorkspace() {
               role="alert"
             >
               <span>{actionError}</span>
-              {(action === "create" || action === "approve") && (
+              {(action === "create" || action === "edit" || action === "approve") && (
                 <button
                   className="button button--quiet"
                   type="button"
@@ -834,10 +902,10 @@ export function OperationsWorkspace() {
               )}
             </div>
           )}
-          {action === "create" && !referencesLoading && (
+          {(action === "create" || action === "edit") && !referencesLoading && (
             <form
               className="operations-form"
-              onSubmit={(event) => void submitCreate(event)}
+              onSubmit={(event) => void (action === "edit" ? submitEdit(event) : submitCreate(event))}
             >
               <div className="operations-form__grid">
                 <label className="operations-form__wide">
@@ -1017,7 +1085,11 @@ export function OperationsWorkspace() {
                   type="submit"
                   disabled={submitting || referencesLoading}
                 >
-                  {submitting ? "Salvando..." : "Criar orçamento"}
+                  {submitting
+                    ? "Salvando..."
+                    : action === "edit"
+                      ? "Salvar alterações"
+                      : "Criar orçamento"}
                 </button>
               </div>
             </form>

@@ -172,6 +172,20 @@ button {
   color: #e5a66d;
 }
 
+.nav-link--disabled {
+  cursor: not-allowed;
+  color: #6b7a74;
+  opacity: 0.6;
+}
+
+.nav-link--disabled svg {
+  color: #6b7a74;
+}
+
+.nav-link--disabled svg:last-child {
+  margin-left: auto;
+}
+
 .sidebar-footer {
   display: flex;
   gap: 10px;

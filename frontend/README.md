@@ -1,7 +1,8 @@
 # Frontend SisPiro ERP
 
 Interface web em Next.js 16 e React 19, em português do Brasil. A integração
-usa a API NestJS do diretório `../backend`.
+usa a API NestJS do diretório `../backend` através de um Backend-for-Frontend (BFF)
+completamente seguro baseado em cookies `HttpOnly` e proteção `Same-Origin`.
 
 ## Requisitos e execução local
 
@@ -21,68 +22,95 @@ variáveis são públicas: não coloque credenciais ou tokens nelas.
 
 ## Dados de demonstração
 
-Para visualizar o seed, habilite e aplique o seed local conforme a documentação
+Para visualizar o seed, aplique o seed local conforme a documentação
 do backend. Entre com `demo.admin@local.test` e com a senha configurada em
-`DEV_SEED_ADMIN_PASSWORD`. Use esses dados somente no ambiente local de
-desenvolvimento.
+`DEV_SEED_ADMIN_PASSWORD`. Se o MFA estiver ativado, utilize o aplicativo autenticador
+(Google Authenticator, Authy, etc.) ou o código de backup correspondente.
 
-## Integrações disponíveis
+## Módulos e Integrações Disponíveis (V1.0)
 
-- **Autenticação:** login, consulta de sessão e logout via rotas same-origin
-  do Next.js. Os tokens de acesso e renovação ficam em cookies `HttpOnly`,
-  `SameSite=Lax`, com escopo `/api`; o cliente não usa `localStorage` nem
-  `sessionStorage` para tokens.
-- **Estoque e WMS:** resumo de estoque (quando a rota estiver disponível na
-  instância da API), catálogo de produtos, lotes, paióis e histórico de
-  movimentações.
-- **Operações de estoque:** cadastro de produtos e paióis, recebimento de lote,
-  entrada, saída, ajuste e transferência, sempre delegando ao backend as
-  validações de licença, validade, reservas e capacidade NEQ.
-- **Ordens de serviço:** lista e relatório por período, criação de orçamento,
-  consulta detalhada, aprovação com blaster/ART, início da montagem,
-  cancelamento seguro (inclusive em montagem com liberação de reservas) e encerramento com quantidades
-  efetivamente disparadas. Aprovação, cancelamento e fechamento delegam reservas, consumo e
-  lançamento a receber às transações do backend.
-- **Autorização:** a API é a autoridade para autenticação e perfis. A tela
-  apresenta somente as transições compatíveis com a situação atual da OS e
-  informa erros de acesso retornados pelo backend; a API continua validando
-  perfil e regras de negócio.
+1. **Autenticação & MFA:**
+   - Login, consulta de sessão ativa (`/api/auth/session`), renovação automática transparente e logout via rotas same-origin do Next.js.
+   - Desafio de segundo fator MFA (TOTP de 6 dígitos ou código de recuperação de emergência).
+   - Sessão protegida em cookies `HttpOnly`, `SameSite=Lax`, com zero tokens JWT em `localStorage` ou `sessionStorage`.
 
-A API ainda não possui endpoints de edição ou exclusão de produtos, paióis,
-lotes e movimentos; a interface não oferece esses controles. Lotes e
-movimentações preservam a trilha de auditoria.
+2. **Estoque e WMS:**
+   - Posição consolidada de estoque e cálculo em tempo real de NEQ (Número Equivalente de TNT).
+   - Catálogo de produtos, lotes, paióis e histórico de movimentações auditadas.
+   - Operações de estoque: recebimento de lote, entrada, saída, ajuste, quarentena, bloqueio, e desmembramento entre paióis (`/inventory/lots/:id/split`).
+   - Relatório regulamentar do Mapa Mensal SFPC (R-105) para fiscalização do Exército Brasileiro.
 
-## Rotas da interface
+3. **Cadastros Regulamentares (Clientes e Blasters):**
+   - **Clientes (`/modules/customers`):** Gestão cadastral completa, validação de CPF/CNPJ, controle de validade do Certificado de Registro (CR), seleção de classes PCE autorizadas (`1.1`, `1.2`, `1.3`, `1.4`) e verificador visual de aptidão para compra de materiais controlados.
+   - **Blasters & Equipes (`/modules/teams`):** Registro de responsáveis técnicos, controle de carteira profissional e teste de aptidão operacional para eventos pirotécnicos.
 
-- `/` — visão geral e estado dos módulos.
-- `/modules/inventory` — posição de estoque e abas de produtos, lotes (com controle de quarentena/bloqueio e desmembramento rastreável), paióis (com ativação/inativação controlada), movimentações e Mapa Mensal SFPC (R-105).
-- `/modules/products` — catálogo de produtos (atalho para a área de estoque).
-- `/modules/operations` — ordens de serviço, relatório operacional e ações de
-  orçamento, aprovação, montagem, cancelamento e encerramento.
-- Os demais módulos ainda apresentam estado informativo; suas APIs não estão
-  integradas às telas.
+4. **Compras e Fornecedores (`/modules/purchases`):**
+   - Cadastro e verificação de fornecedores homologados com CR.
+   - Emissão e acompanhamento de pedidos de compra (`PENDENTE`, `PARCIAL`, `RECEBIDO`, `CANCELADO`).
+   - Recebimento físico de lotes com validação atômica de capacidade NEQ do paiol e lançamento financeiro automático de Contas a Pagar.
 
-O módulo de estoque agora suporta alteração de situação do lote (`DISPONIVEL`, `QUARENTENA`, `BLOQUEADO`),
-desmembramento entre paióis (`/inventory/lots/:id/split`), ativação e inativação de paióis com trava de saldo zero,
-e relatório consolidado de Mapa Mensal SFPC para o Exército Brasileiro.
-A API agora suporta edição de orçamento via `PUT /operations/orders/:id`, mas a interface
-ainda não oferece tela para essa edição; apenas o cancelamento seguro até `EM_MONTAGEM`
-foi integrado. A seleção de referências usa endpoints de leitura limitados ao necessário
-para operações; CPF/CNPJ e número do CR não são retornados nessas opções.
+5. **Comercial, PDV e Orçamentos (`/modules/sales`):**
+   - Gestão de Tabelas de Preço por canal e Campanhas Promocionais (desconto percentual ou preço fixo promocional com controle de vigência).
+   - Orçamentos comerciais com reserva atômica de estoque por 7 dias, **edição completa (`PUT /sales/quotes/:id`)**, disparo assíncrono por e-mail via fila BullMQ e conversão direta em venda.
+   - Ponto de Venda (PDV): Checkout imediato de balcão (produtos não PCE) e vendas a prazo com regras financeiras.
+   - Devoluções de mercadorias parciais/totais com reentrada imediata no lote de estoque e reconciliação financeira.
+   - Relatórios analíticos de vendas brutas/líquidas e taxa de conversão de orçamentos com ticket médio.
 
-## Verificação
+6. **Operações e Ordens de Serviço (`/modules/operations`):**
+   - Gestão do ciclo de vida de espetáculos: Orçamento -> Aprovação (reserva atômica com validação de cliente e blaster habilitado) -> Montagem -> Conclusão / Cancelamento seguro.
+   - **Edição de orçamento de OS (`PUT /operations/orders/:id`)** antes da aprovação.
+   - Registro de quantidades disparadas e lançamento automático no Contas a Receber no encerramento.
+
+7. **Financeiro, Fluxo de Caixa e Aging Schedule (`/modules/finance`):**
+   - Gestão integral de Contas a Pagar e Contas a Receber com filtros por direção, status e vencimento.
+   - Destaque visual de títulos vencidos (`overdue`) e histórico de amortizações.
+   - Modal de quitação / pagamentos parciais com seleção de método (PIX, Dinheiro, Boleto, Cartão, Transferência).
+   - Demonstrativo de Fluxo de Caixa Realizado diário com totais de entradas, saídas e saldo operacional líquido.
+   - Relatório analítico de Aging Schedule (cronograma de vencimento e risco de inadimplência em 5 faixas: A Vencer, 1-30d, 31-60d, 61-90d, >90d).
+
+8. **Controles de apresentação por perfil:**
+   - Itens de navegação para módulos fora do perfil do usuário (`ESTOQUE`, `COMERCIAL`, `OPERACOES`, `COMPRAS`, `FINANCEIRO`; `ADMIN` sempre tem acesso) aparecem visualmente desabilitados, e o acesso direto por URL mostra uma tela de "Acesso restrito" (`src/lib/modules.ts`, `src/components/app-shell.tsx`).
+   - Granularidade por módulo/tela, não por botão ou operação individual. A autorização final de toda regra de negócio continua exclusivamente no backend.
+
+## Rotas da Interface
+
+- `/` — Visão geral e atalhos rápidos do sistema.
+- `/modules/inventory` — Estoque, paióis, lotes, quarentena e Mapa SFPC.
+- `/modules/products` — Catálogo unificado de produtos e insumos pirotécnicos.
+- `/modules/customers` — Clientes e conformidade de CR / classes autorizadas.
+- `/modules/teams` — Blasters habilitados e equipes de espetáculo.
+- `/modules/purchases` — Compras, fornecedores e recebimento físico.
+- `/modules/sales` — Comercial, tabelas de preço, promoções, orçamentos e PDV.
+- `/modules/operations` — Ordens de serviço e eventos pirotécnicos.
+- `/modules/finance` — Financeiro, contas a pagar/receber, fluxo de caixa e Aging schedule.
+
+## Verificação e Quality Gates
 
 ```bash
-npm run lint
-npm run typecheck
-npm test
-npm run build
+npm run lint       # ESLint estrito (zero warnings)
+npm run typecheck  # Checagem estrita de tipos com tsc
+npm test           # Testes unitários com Vitest
+npm run build      # Build de produção otimizado Next.js
 ```
 
-## Segurança e configuração
+## Limitações conhecidas
 
-As rotas de negócio do navegador passam pelo BFF do Next.js e usam cookies
-`HttpOnly`. Não exponha access/refresh tokens no JavaScript, não os grave em
-armazenamento acessível ao cliente e não use as contas DEMO fora do ambiente
-local. Em produção, publique frontend e BFF sob HTTPS, configure a origem da API
-corretamente e valide os controles de sessão, CORS e cookies no ambiente final.
+- Não há tela de recuperação de senha ("esqueci minha senha"). O backend já
+  expõe `POST /auth/password-reset/request` e `/confirm`; falta a rota BFF e
+  o componente correspondente.
+- Os controles de apresentação por perfil atuam no nível de módulo/tela, não
+  de ação individual dentro de uma tela compartilhada por perfis diferentes.
+- Não há testes de componente (React Testing Library ou equivalente) — a
+  suíte Vitest atual cobre apenas lógica pura (clientes HTTP, proxy BFF,
+  mapeamento de módulos). Ver [`docs/STATUS-IMPLEMENTACAO.md`](../docs/STATUS-IMPLEMENTACAO.md)
+  para o histórico de um bug crítico de proxy que essa lacuna deixou passar.
+- Smoke test visual autenticado das jornadas completas (OS, estoque,
+  cadastros novos) contra o seed local ainda não foi realizado nesta
+  entrega.
+
+## Diretrizes de Segurança
+
+As requisições de negócio passam obrigatoriamente pelo BFF do Next.js sob cookies
+`HttpOnly` e cabeçalhos `Same-Origin`. Nenhuma credencial sensível ou token de acesso
+é exposta ao JavaScript do navegador. Em produção, opere sob conexão criptografada (HTTPS)
+com certificados TLS válidos e cookies com flag `Secure`.

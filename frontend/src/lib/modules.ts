@@ -20,7 +20,22 @@ export type ErpModule = {
   emptyTitle: string;
   emptyDescription: string;
   statusLabel: string;
+  /**
+   * Perfis que o backend exige para este módulo (ver backend/README.md).
+   * `ADMIN` sempre tem acesso. Omitido = nenhuma restrição conhecida (módulo
+   * ainda não integrado ou sem regra de perfil dedicada).
+   */
+  requiredRoles?: string[];
 };
+
+export function hasModuleAccess(
+  module: ErpModule,
+  userRoles: readonly string[],
+): boolean {
+  if (!module.requiredRoles || module.requiredRoles.length === 0) return true;
+  if (userRoles.includes("ADMIN")) return true;
+  return module.requiredRoles.some((role) => userRoles.includes(role));
+}
 
 export const modules: ErpModule[] = [
   {
@@ -46,6 +61,7 @@ export const modules: ErpModule[] = [
     emptyDescription:
       "A tela já consulta produtos, paióis, lotes e movimentações e envia cadastros e operações à API protegida por autenticação.",
     statusLabel: "Tela integrada",
+    requiredRoles: ["ESTOQUE"],
   },
   {
     slug: "products",
@@ -58,18 +74,20 @@ export const modules: ErpModule[] = [
     emptyDescription:
       "O catálogo de produtos está integrado à API de estoque, incluindo classificação PCE e massa NEQ.",
     statusLabel: "Tela integrada",
+    requiredRoles: ["ESTOQUE"],
   },
   {
     slug: "customers",
-    title: "Clientes",
+    title: "Clientes e Controle de CR",
     shortTitle: "Clientes",
-    description: "Cadastro e documentação de clientes.",
+    description: "Cadastro de clientes, controle de CR e classes PCE autorizadas.",
     icon: "users",
     group: "Cadastros",
-    emptyTitle: "O cadastro de clientes aguarda integração",
+    emptyTitle: "Cadastro de clientes conectado",
     emptyDescription:
-      "O backend disponibiliza cadastro e consulta de clientes, mas a interface deste módulo ainda não está conectada.",
-    statusLabel: "API disponível",
+      "Acompanhe clientes, validade de Certificados de Registro e habilitação de classes de produtos controlados.",
+    statusLabel: "Tela integrada",
+    requiredRoles: ["COMERCIAL"],
   },
   {
     slug: "operations",
@@ -82,6 +100,7 @@ export const modules: ErpModule[] = [
     emptyDescription:
       "Acompanhe orçamentos, reservas e execução de eventos. As regras e transições são validadas pelo backend.",
     statusLabel: "Tela integrada",
+    requiredRoles: ["OPERACOES"],
   },
   {
     slug: "teams",
@@ -90,22 +109,37 @@ export const modules: ErpModule[] = [
     description: "Profissionais habilitados e equipes de operação.",
     icon: "hardhat",
     group: "Cadastros",
-    emptyTitle: "A gestão de equipes aguarda integração",
+    emptyTitle: "Gestão de blasters conectada",
     emptyDescription:
-      "O backend disponibiliza cadastro e consulta de blasters, mas a interface deste módulo ainda não está conectada.",
-    statusLabel: "API disponível",
+      "Acompanhe carteiras funcionais, prazos de validade e elegibilidade para espetáculos pirotécnicos.",
+    statusLabel: "Tela integrada",
+    requiredRoles: ["OPERACOES"],
+  },
+  {
+    slug: "purchases",
+    title: "Compras e Fornecedores",
+    shortTitle: "Compras / suprimentos",
+    description: "Pedidos de compra, fornecedores e recebimento de lotes em paióis.",
+    icon: "briefcase",
+    group: "Gestão",
+    emptyTitle: "Compras conectadas",
+    emptyDescription:
+      "Emissão de pedidos de compra, controle de fornecedores com CR e recebimento físico rastreável.",
+    statusLabel: "Tela integrada",
+    requiredRoles: ["COMPRAS"],
   },
   {
     slug: "sales",
     title: "Comercial e Vendas",
     shortTitle: "Comercial e vendas",
-    description: "Propostas e relacionamento comercial.",
-    icon: "briefcase",
+    description: "Propostas, tabelas de preço, promoções, orçamentos e PDV.",
+    icon: "receipt",
     group: "Gestão",
-    emptyTitle: "O fluxo comercial ainda não está conectado",
+    emptyTitle: "O fluxo comercial conectado",
     emptyDescription:
-      "A API já oferece tabelas de preço, orçamentos, vendas e devoluções. A interface ainda não está conectada nem realiza transações comerciais.",
-    statusLabel: "API disponível",
+      "A API oferece tabelas de preço, orçamentos, vendas e devoluções com controle de reservas de estoque.",
+    statusLabel: "Tela integrada",
+    requiredRoles: ["COMERCIAL"],
   },
   {
     slug: "billing",
@@ -123,13 +157,14 @@ export const modules: ErpModule[] = [
     slug: "finance",
     title: "Financeiro e Relatórios",
     shortTitle: "Financeiro",
-    description: "Indicadores financeiros e relatórios gerenciais.",
+    description: "Contas a pagar/receber, fluxo de caixa e Aging schedule.",
     icon: "chart",
     group: "Gestão",
-    emptyTitle: "Os dados financeiros aguardam integração",
+    emptyTitle: "Gestão financeira conectada",
     emptyDescription:
-      "A API já oferece contas a pagar e receber, pagamentos e relatórios financeiros. A interface ainda não consulta esses dados.",
-    statusLabel: "API disponível",
+      "Controle de contas a pagar e receber, baixas de pagamentos, conciliação e relatórios de vencimento.",
+    statusLabel: "Tela integrada",
+    requiredRoles: ["FINANCEIRO"],
   },
   {
     slug: "settings",

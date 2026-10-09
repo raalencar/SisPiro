@@ -10,7 +10,12 @@ import {
   type ReactNode,
 } from "react";
 import { ApiError } from "@/lib/api";
-import { authApi, type AuthUser } from "@/lib/auth";
+import {
+  authApi,
+  isMfaChallenge,
+  type AuthUser,
+  type LoginResult,
+} from "@/lib/auth";
 
 type AuthStatus = "checking" | "authenticated" | "anonymous" | "error";
 
@@ -19,7 +24,8 @@ type AuthContextValue = {
   user: AuthUser | null;
   error: string | null;
   refreshSession: () => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, mfaCode?: string) => Promise<LoginResult>;
+  verifyMfa: (mfaToken: string, code: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
 };
 
@@ -54,13 +60,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
+  const login = useCallback(
+    async (email: string, password: string, mfaCode?: string) => {
+      setStatus("checking");
+      setError(null);
+      try {
+        const result = await authApi.login(email, password, mfaCode);
+        if (isMfaChallenge(result)) {
+          setStatus("anonymous");
+          return result;
+        }
+        setUser(result);
+        setStatus("authenticated");
+        return result;
+      } catch (requestError) {
+        setUser(null);
+        setStatus("anonymous");
+        throw requestError;
+      }
+    },
+    [],
+  );
+
+  const verifyMfa = useCallback(async (mfaToken: string, code: string) => {
     setStatus("checking");
     setError(null);
     try {
-      const sessionUser = await authApi.login(email, password);
+      const sessionUser = await authApi.verifyMfa(mfaToken, code);
       setUser(sessionUser);
       setStatus("authenticated");
+      return sessionUser;
     } catch (requestError) {
       setUser(null);
       setStatus("anonymous");
@@ -120,8 +149,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ status, user, error, refreshSession, login, logout }),
-    [status, user, error, refreshSession, login, logout],
+    () => ({ status, user, error, refreshSession, login, verifyMfa, logout }),
+    [status, user, error, refreshSession, login, verifyMfa, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

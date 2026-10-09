@@ -21,19 +21,29 @@ passam pelo agente `engenheiro`.
 `frontend/src/lib/api.ts`) já existem; falta só a tela. Fechar isso evita
 manter código morto no client.
 
-- [ ] Adicionar tela/modal de edição de cabeçalho e itens da OS em
+- [x] Adicionar tela/modal de edição de cabeçalho e itens da OS em
       `operations-workspace.tsx`, disponível apenas enquanto a OS estiver em
       `ORCAMENTO` (mesma regra que o backend já aplica).
-- [ ] Reaproveitar os componentes de seleção de cliente/blaster/lote já
+- [x] Reaproveitar os componentes de seleção de cliente/blaster/lote já
       existentes no fluxo de criação de OS.
-- [ ] Repassar mensagens de validação do backend sem reescrevê-las.
-- [ ] Teste Vitest cobrindo a edição e o caso em que a API rejeita (OS fora de
-      `ORCAMENTO`).
-- [ ] Atualizar `frontend/README.md` e `docs/STATUS-IMPLEMENTACAO.md` (remover
+- [x] Repassar mensagens de validação do backend sem reescrevê-las.
+- [x] Atualizar `frontend/README.md` e `docs/STATUS-IMPLEMENTACAO.md` (remover
       a observação de que a tela não existe).
 
+**Correção crítica aplicada nesta entrega:** o proxy BFF (`server-auth.ts`,
+`proxyAuthenticatedRequest`) só lia o corpo da requisição em `POST`; `PUT` e
+`PATCH` chegavam ao backend sem payload, quebrando silenciosamente esta edição
+e todas as outras edições da Fase 2. Corrigido para ler o corpo em qualquer
+método exceto `GET`/`DELETE`, com teste de regressão em
+`src/lib/server-auth.test.ts` cobrindo `PUT`, `PATCH` e `GET`.
+
+**Pendente:** teste Vitest de componente cobrindo a jornada de edição de OS
+fim a fim (hoje a cobertura é só no nível do proxy BFF — ver nota sobre
+testes de componente nas Notas de acompanhamento).
+
 **Critério de aceite:** `npm run lint`, `npm run typecheck`, `npm test`,
-`npm run build` passam; jornada testada manualmente no navegador.
+`npm run build` passam (confirmado). Jornada testada manualmente no navegador
+ainda pendente — ver Fase 5.
 
 ---
 
@@ -43,53 +53,65 @@ Ordem sugerida pela dependência natural dos dados (clientes/fornecedores são
 referenciados pelos módulos seguintes):
 
 ### 2.1 Clientes
-- [ ] Listagem com busca/paginação (`GET /customers`), cadastro e edição
-      (`POST`/`PATCH /customers/:id`), incluindo CR e classes PCE autorizadas.
-- [ ] Avaliação de elegibilidade PCE (`POST /customers/:id/pce-eligibility`)
-      como ação de tela, não só validação server-side silenciosa.
-- [ ] Exibir CPF/CNPJ e CR normalmente aqui (esta tela usa o endpoint completo,
-      diferente das opções operacionais reduzidas já usadas em OS).
+- [x] Listagem com busca/paginação (`GET /customers`), cadastro e edição
+      (`POST`/`PATCH /customers/:id`), incluindo CR e classes PCE autorizadas
+      (`customers-workspace.tsx`, `/modules/customers`).
+- [x] Avaliação de elegibilidade PCE (`POST /customers/:id/pce-eligibility`)
+      como ação de tela.
+- [x] Exibe CPF/CNPJ e CR normalmente aqui (endpoint completo); as opções
+      operacionais reduzidas usadas em OS continuam sem esses campos
+      (verificado: `operations-workspace.tsx` só recebe `legalName`,
+      `hasCr`, `crExpiresAt`).
 
 ### 2.2 Blasters
-- [ ] Listagem, cadastro e edição (`/blasters`, `/blasters/:id`).
-- [ ] Avaliação de habilitação para uma data de evento
+- [x] Listagem, cadastro e edição (`teams-workspace.tsx`, `/modules/teams`).
+- [x] Avaliação de habilitação para uma data de evento
       (`POST /blasters/:id/eligibility`) como ação de tela.
 
 ### 2.3 Fornecedores e compras
-- [ ] Cadastro/edição de fornecedores com CR e classes PCE (`/suppliers`).
-- [ ] Criação de pedido de compra (`/purchases`), consulta de itens e
+- [x] Cadastro/edição de fornecedores com CR e classes PCE (`/suppliers`).
+- [x] Criação de pedido de compra (`/purchases`), consulta de itens e
       recebimentos (`/purchases/:id`).
-- [ ] Tela de recebimento parcial/integral (`POST /purchases/:id/receive`)
-      com os campos obrigatórios por lote (número, fabricação, validade,
-      fabricante/importador, paiol, quantidade, vencimento, referência
-      fiscal da etapa).
-- [ ] Cancelamento de pedido pendente (`POST /purchases/:id/cancel`).
+- [x] Tela de recebimento parcial/integral (`POST /purchases/:id/receive`)
+      com os campos obrigatórios por lote (`purchases-workspace.tsx`).
+- [x] Cancelamento de pedido pendente (`POST /purchases/:id/cancel`).
 
 ### 2.4 Comercial (preços, vendas, orçamentos, devoluções)
-- [ ] Tabelas de preço (`/pricing/lists`) e promoções (`/pricing/promotions`),
-      incluindo ativação/desativação.
-- [ ] Checkout de venda/PDV (`POST /sales`) com seleção de lote, cliente
+- [x] Tabelas de preço (`/pricing/lists`) e promoções (`/pricing/promotions`,
+      incluindo o tipo `PERCENTUAL` entregue no `Plano_Backend.md` Fase 2.2),
+      com ativação/desativação (`commercial-workspace.tsx`).
+- [x] Checkout de venda/PDV (`POST /sales`) com seleção de lote, cliente
       opcional (apenas para itens não PCE) e condição de pagamento
       (`IMEDIATO`/`PRAZO`).
-- [ ] Orçamentos comerciais: emissão, consulta, cancelamento e conversão em
-      venda (`/sales/quotes/**`).
-- [ ] Devoluções (`/sales/:id/returns`), parciais ou totais.
-- [ ] Relatório de vendas por período (`/sales/reports/summary`).
+- [x] Orçamentos comerciais: emissão, consulta, edição (`PUT`), envio por
+      e-mail, cancelamento e conversão em venda (`/sales/quotes/**`,
+      `/commercial/sales/quotes/**`).
+- [x] Devoluções (`/sales/:id/returns`), parciais ou totais.
+- [x] Relatório de vendas por período e relatório de conversão de orçamentos
+      (`/sales/reports/summary`, `/commercial/reports/quotes-conversion`).
 
 ### 2.5 Financeiro
-- [ ] Lançamentos a pagar/receber (`/finance/entries`), pagamento parcial ou
-      quitação (`/finance/entries/:id/payments`) e cancelamento.
-- [ ] Fluxo de caixa (`/finance/cash-flow`) e painel financeiro
+- [x] Lançamentos a pagar/receber (`/finance/entries`), pagamento parcial ou
+      quitação (`/finance/entries/:id/payments`) e cancelamento
+      (`finance-workspace.tsx`).
+- [x] Fluxo de caixa (`/finance/cash-flow`) e painel financeiro
       (`/finance/dashboard`).
-- [ ] Detalhamento de pagamentos por categoria/método
-      (`/finance/reports/payment-breakdown`).
+- [x] Detalhamento de pagamentos por categoria/método e Aging Schedule com os
+      5 buckets de vencimento (`/finance/reports/payment-breakdown`,
+      `/financial/reports/aging`).
+
+**Correção aplicada:** todas as edições acima (`PATCH`/`PUT`) estavam
+quebradas pelo mesmo bug crítico do proxy BFF corrigido na Fase 1 — ver nota
+lá. Antes da correção, salvar uma edição de cliente, blaster, fornecedor ou
+orçamento comercial chegava ao backend sem corpo.
 
 **Critério de aceite de cada submódulo:** estados explícitos de
 carregamento/erro; mensagens de validação da API repassadas sem reescrita;
-CPF/CNPJ/CR nunca expostos fora das telas de cadastro completo (continuam
-ocultos nas seleções operacionais reduzidas); teste Vitest por tela cobrindo
-caminho feliz e um erro; `frontend/README.md` e
-`docs/STATUS-IMPLEMENTACAO.md` atualizados a cada entrega.
+CPF/CNPJ/CR nunca expostos fora das telas de cadastro completo — confirmado;
+`frontend/README.md` e `docs/STATUS-IMPLEMENTACAO.md` atualizados.
+**Pendente:** teste Vitest de componente por tela cobrindo caminho feliz e
+erro (hoje só há testes de lógica pura em `src/lib/*.test.ts` — nenhum teste
+renderiza os componentes novos; ver Notas de acompanhamento).
 
 ---
 
@@ -98,25 +120,40 @@ caminho feliz e um erro; `frontend/README.md` e
 **Depende de:** Fase 2 estar pelo menos parcialmente entregue (não há o que
 esconder/desabilitar antes de a tela existir).
 
-- [ ] Mapear, por perfil (`ESTOQUE`, `COMERCIAL`, `OPERACOES`, `COMPRAS`,
-      `FINANCEIRO`, `ADMIN`), quais módulos/ações devem aparecer habilitados,
-      desabilitados ou ocultos na navegação.
-- [ ] Implementar a ocultação/desabilitação na UI com base no perfil da sessão
-      atual (`GET /auth/me`), lembrando que isso é só apresentação — a
-      autorização final continua no backend.
-- [ ] Testar com usuários de perfil único e perfil múltiplo.
+- [x] Mapeado por perfil (`ESTOQUE`, `COMERCIAL`, `OPERACOES`, `COMPRAS`,
+      `FINANCEIRO`, `ADMIN`) em `lib/modules.ts` (`requiredRoles` por módulo,
+      `hasModuleAccess()`); `ADMIN` sempre tem acesso.
+- [x] Implementado em dois pontos de `app-shell.tsx`: item de navegação
+      desabilitado (visual, com tooltip indicando o perfil exigido) para
+      módulos sem permissão, e um gate de conteúdo (`ModuleAccessGate`) que
+      mostra "Acesso restrito" se o usuário acessar a URL do módulo direto.
+      Autorização final continua no backend.
+- [ ] Testar manualmente com usuários de perfil único e perfil múltiplo no
+      seed local — cobertura automatizada hoje é só unitária
+      (`lib/modules.test.ts`).
+- **Granularidade:** o controle é por módulo (rota/tela), não por botão/ação
+  individual dentro de uma tela. Ocultar ações específicas (ex.: botão
+  "editar" vs. botão "ver") não foi implementado — avaliar se é necessário
+  quando houver perfis compartilhando uma tela com permissões distintas por
+  operação.
 
 ---
 
 ## Fase 4 — Telas para os novos fluxos de segurança (depende do Backend Fase 1)
 
 **Bloqueado até:** `Plano_Backend.md` Fase 1 (rate limiting, recuperação de
-senha, MFA) estar implementada no backend.
+senha, MFA) estar implementada no backend — já está.
 
 - [ ] Tela de "esqueci minha senha" (solicitação + confirmação com token).
-- [ ] Enrolamento e verificação de MFA no fluxo de login.
-- [ ] Mensagem apropriada quando o rate limiting de login for acionado, sem
-      revelar se o e-mail existe.
+      **Ainda não existe** — o backend expõe `POST /auth/password-reset/request`
+      e `/confirm`, mas não há rota BFF nem componente para isso no frontend.
+- [x] Enrolamento e verificação de MFA no fluxo de login (`login-panel.tsx`
+      trata `mfaRequired: true`, aceita código TOTP de 6 dígitos ou código de
+      backup de 8 caracteres, finaliza via `POST /api/auth/login/mfa`; nunca
+      grava o código ou o token em `localStorage`/`sessionStorage`).
+- [x] Mensagem apropriada quando o rate limiting de login for acionado
+      (HTTP 429 tratado como erro genérico pelo cliente, sem revelar se o
+      e-mail existe — mesma mensagem neutra do backend).
 
 ---
 
@@ -157,3 +194,13 @@ definido é retrabalho garantido.
   ver `agentes/front.md` para a lista completa de regras de produto.
 - Toda nova rota BFF (`frontend/src/app/api/**`) mantém o padrão de cookies
   `HttpOnly`/`SameSite=Lax`/`Secure` em produção; tokens nunca saem do BFF.
+- **Lacuna de infraestrutura de teste identificada em auditoria:** o projeto
+  não tem React Testing Library (ou equivalente) instalada; `src/lib/*.test.ts`
+  testa só lógica pura (clientes HTTP, `server-auth`, `modules`). Nenhum
+  componente/tela é renderizado em teste automatizado. Isso foi exatamente o
+  que permitiu o bug crítico do proxy BFF (Fase 1) passar sem detecção por
+  tanto tempo. Adicionar testes de componente é um investimento de
+  infraestrutura ainda pendente, fora do escopo desta rodada de correções.
+- Este arquivo consolida e substitui `Plano_Frontend.md` (criado em paralelo
+  durante a implementação da Fase 2 com fases numeradas de forma diferente;
+  removido para não manter duas fontes de verdade).
