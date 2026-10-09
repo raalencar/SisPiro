@@ -91,13 +91,13 @@ fases já concluídas, veja [`Plano_Backend.md`](../Plano_Backend.md) e
 Nenhum destes bloqueia o uso do que já está entregue; são lacunas de
 validação/refinamento, não de funcionalidade ausente.
 
-| Item | Observação |
-| --- | --- |
-| RBAC por ação (não só por módulo) | Avaliado nesta rodada: não há hoje nenhuma tela real compartilhada por mais de um perfil com permissões diferentes por ação. Não é lacuna ativa — reavaliar se isso mudar. |
-| Validação de sessão expirada/refresh em múltiplos navegadores | Não coberto ainda. |
-| Acessibilidade (contraste, navegação por teclado, labels de formulário) | Não coberto ainda. |
-| Responsividade completa | Só houve smoke test pontual (estoque, viewport mobile); não é cobertura exaustiva de todas as telas. |
-| Permissões de banco de dados e rotina de backup | Documentadas como runbook de implantação em `backend/README.md`, mas não provisionadas neste repositório — é decisão de infraestrutura de produção, não de código. |
+| Item | Observação | No sprint atual? |
+| --- | --- | --- |
+| RBAC por ação (não só por módulo) | Avaliado nesta rodada: não há hoje nenhuma tela real compartilhada por mais de um perfil com permissões diferentes por ação. Não é lacuna ativa — reavaliar se isso mudar. | Não — fechado por avaliação |
+| Validação de sessão expirada/refresh em múltiplos navegadores | Escopo: Chrome/Firefox/Safari desktop, versões estáveis mais recentes. Ver `Plano_Front.md` Fase 5. | **Sim** |
+| Acessibilidade (contraste, navegação por teclado, labels de formulário) | Ver `Plano_Front.md` Fase 6. | **Sim** |
+| Responsividade completa | Só houve smoke test pontual (estoque, viewport mobile); próximo sprint cobre as 9 telas integradas em 3 breakpoints. Ver `Plano_Front.md` Fase 6. | **Sim** |
+| Permissões de banco de dados e rotina de backup | Documentadas como runbook de implantação em `backend/README.md`, mas não provisionadas neste repositório — é decisão de infraestrutura de produção, não de código. | Não |
 
 ---
 

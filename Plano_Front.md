@@ -12,6 +12,13 @@ para revisar antes de considerar a fase concluída (ver `agentes/front.md` e
 `agentes/auditor.md`). Decisões de contrato que exijam mudança no backend
 passam pelo agente `engenheiro`.
 
+**Sprint atual:** Fases 1–5 (exceto sessão/refresh) e a RBAC-por-ação já estão
+fechadas ou avaliadas. O escopo combinado para este sprint é só QA/polimento,
+sem funcionalidade nova: sessão expirada/refresh (fim da Fase 5),
+responsividade completa e acessibilidade básica (Fase 6). Fiscal/bancário
+(Fase 7) segue bloqueado aguardando decisão explícita sobre o escopo de
+negócio — não faz parte deste sprint.
+
 ---
 
 ## Fase 1 — Fechar lacuna já mapeada: edição de orçamento de OS
@@ -183,8 +190,23 @@ senha, MFA) estar implementada no backend — já está.
       em Redis → confirmação → login com a nova senha), edição de orçamento de
       OS via `PUT` (alteração persistida e refletida na listagem), e navegação
       por módulo restrito/liberado por perfil.
-- [ ] Validar sessão expirada e renovação (refresh) nos navegadores
-      suportados — não coberto nesta rodada.
+- [ ] **Sessão expirada e renovação (refresh) — próximo sprint.** Não há hoje
+      uma matriz de navegadores suportados definida; para este trabalho,
+      escopo mínimo: Chrome, Firefox e Safari, versões estáveis mais
+      recentes, desktop (o produto é majoritariamente usado em escritório/
+      operação, não em campo). Tarefas:
+      - [ ] Mapear o comportamento atual de renovação em `lib/auth.ts` e nas
+            rotas BFF (`/api/auth/session`, refresh automático) — confirmar
+            se é transparente (silencioso) ou se o usuário percebe
+            interrupção.
+      - [ ] Testar expiração real: deixar o access token expirar em uso
+            (ou revogar a sessão via admin) e confirmar que o usuário é
+            redirecionado ao login com mensagem clara, sem tela quebrada ou
+            erro silencioso.
+      - [ ] Repetir o teste de expiração nos 3 navegadores do escopo,
+            prestando atenção a comportamento de cookie `HttpOnly`/
+            `SameSite=Lax` (é a base de toda a autenticação do BFF).
+      - [ ] Registrar o resultado em `docs/STATUS-IMPLEMENTACAO.md`.
 - [x] Smoke test visual autenticado da jornada completa de OS contra o seed
       local: listagem, detalhe, edição de orçamento (`PUT`) com persistência
       confirmada.
@@ -213,9 +235,27 @@ senha, MFA) estar implementada no backend — já está.
       nas telas de Estoque (resumo e lista de lotes): sidebar colapsa para
       menu hamburguer, grid reflui para coluna única, sem overflow horizontal.
       Não é cobertura exaustiva de todas as telas/breakpoints.
-- [ ] Validar acessibilidade básica (contraste, navegação por teclado, labels
-      de formulário) nas telas novas e nas já existentes de estoque/operações
-      — não coberto nesta rodada.
+- [ ] **Responsividade completa — próximo sprint.** Testar nas 9 telas
+      integradas (login, estoque, produtos, clientes, blasters, compras,
+      comercial, operações, financeiro) em 3 breakpoints: mobile (390px),
+      tablet (768px) e desktop (1280px+). Critério de aceite por tela: sem
+      overflow horizontal, tabelas legíveis ou com alternativa (cards/scroll
+      controlado), modais utilizáveis sem corte de conteúdo. Registrar
+      matriz de resultado (tela × breakpoint) em
+      `docs/STATUS-IMPLEMENTACAO.md`; corrigir o que for trivial (CSS/layout)
+      na própria rodada e abrir item separado para qualquer redesenho maior.
+- [ ] **Acessibilidade básica — próximo sprint.**
+      - [ ] Contraste mínimo (WCAG AA) nos elementos principais: login, nav,
+            tabelas, badges de status.
+      - [ ] Navegação por teclado: completar login, navegar módulos pela
+            sidebar, abrir/fechar modais (ex.: edição de OS, pagamento) e
+            submeter formulários usando só Tab/Enter/Esc.
+      - [ ] Labels de formulário: todo `<input>` tem `<label>` associado
+            (não só placeholder) — relevante para leitor de tela.
+      - [ ] Registrar achados em `docs/STATUS-IMPLEMENTACAO.md`; corrigir o
+            que for trivial (contraste/labels) nesta rodada e abrir item
+            separado para qualquer reestruturação maior de navegação por
+            teclado.
 
 ---
 
