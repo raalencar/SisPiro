@@ -666,6 +666,32 @@ describe('Inventory API (e2e)', () => {
       .expect(409);
     expect(movementBlocked.body.message).toContain('QUARENTENA');
 
+    // Tentativa de entrada em lote em quarentena também deve ser bloqueada
+    // (antes havia uma assimetria: ENTRADA só rejeitava BLOQUEADO, permitindo
+    // QUARENTENA, diferente de SAIDA/AJUSTE/TRANSFERENCIA)
+    const entradaQuarantineBlocked = await request(app.getHttpServer())
+      .post('/api/v1/inventory/movements')
+      .send({
+        type: 'ENTRADA',
+        productLotId: lot.body.id,
+        quantity: 3,
+        reference: 'TENTATIVA_ENTRADA_QUARENTENA',
+      })
+      .expect(409);
+    expect(entradaQuarantineBlocked.body.message).toContain('QUARENTENA');
+
+    // Tentativa de ajuste em lote em quarentena também deve ser bloqueada
+    const ajusteQuarantineBlocked = await request(app.getHttpServer())
+      .post('/api/v1/inventory/movements')
+      .send({
+        type: 'AJUSTE',
+        productLotId: lot.body.id,
+        quantity: 1,
+        reference: 'TENTATIVA_AJUSTE_QUARENTENA',
+      })
+      .expect(409);
+    expect(ajusteQuarantineBlocked.body.message).toContain('QUARENTENA');
+
     // Tentativa de split deve ser bloqueada
     const splitBlocked = await request(app.getHttpServer())
       .post(`/api/v1/inventory/lots/${lot.body.id}/split`)
@@ -697,7 +723,7 @@ describe('Inventory API (e2e)', () => {
         reference: 'TENTATIVA_ENTRADA_BLOQUEADO',
       })
       .expect(409);
-    expect(entradaBlocked.body.message).toContain('Lote bloqueado');
+    expect(entradaBlocked.body.message).toContain('BLOQUEADO');
 
     // Ajuste em lote bloqueado deve ser rejeitado
     const ajusteBlocked = await request(app.getHttpServer())

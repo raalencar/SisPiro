@@ -1335,9 +1335,9 @@ export class InventoryService {
 
         switch (dto.type) {
           case StockMovementType.ENTRADA:
-            if (lot.status === ProductLotStatus.BLOQUEADO) {
+            if (lot.status !== ProductLotStatus.DISPONIVEL) {
               throw new ConflictException(
-                'Lote bloqueado não pode receber novas entradas de estoque.',
+                `Lote com status ${lot.status} não pode receber novas entradas de estoque. Libere o lote antes de prosseguir.`,
               );
             }
             targetMagazineId = lot.magazineId;

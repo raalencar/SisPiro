@@ -165,11 +165,10 @@ anteriores.
 
 ## Notas de acompanhamento
 
-- Lacuna de baixo risco já identificada em auditoria anterior e não corrigida
-  por estar fora do escopo aprovado naquele momento: `ENTRADA` de estoque
-  bloqueia lote `BLOQUEADO` mas permite `QUARENTENA` (assimetria com
-  `AJUSTE`/`SAIDA`/`TRANSFERENCIA`, que bloqueiam ambos). Avaliar alinhamento
-  ao tocar o módulo de estoque novamente.
+- [x] **Assimetria ENTRADA/QUARENTENA (Resolvido):** `ENTRADA` de estoque agora exige
+  `status === DISPONIVEL`, igual a `AJUSTE`/`SAIDA`/`TRANSFERENCIA`, em vez de bloquear
+  apenas `BLOQUEADO` e permitir `QUARENTENA`. Cobertura e2e adicionada em
+  `test/inventory.e2e-spec.ts` (entrada e ajuste rejeitados com o lote em quarentena).
 - [x] **Rate Limiter Redis (Resolvido):** `LoginRateLimiterService` migrado para Redis
   (`ioredis`) com expiração em milissegundos, suporte a escalonamento horizontal de
   instâncias de API e fallback gracioso em memória caso o Redis esteja inacessível
