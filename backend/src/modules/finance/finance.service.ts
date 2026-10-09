@@ -19,6 +19,7 @@ import {
   FinanceDashboardQueryDto,
   FinanceEntriesQueryDto,
   FinancePaymentReportQueryDto,
+  AgingReportQueryDto,
 } from './finance.dto.js';
 
 @Injectable()
@@ -696,6 +697,112 @@ export class FinanceService {
           method: aggregate.method,
           ...serializeTotals(aggregate),
         })),
+    };
+  }
+
+  async agingReport(query: AgingReportQueryDto) {
+    const referenceStr =
+      query.referenceDate ?? new Date().toISOString().slice(0, 10);
+    const referenceDate = this.dateOnly(referenceStr);
+
+    const where: Prisma.FinancialEntryWhereInput = {
+      status: {
+        in: [FinancialEntryStatus.ABERTO, FinancialEntryStatus.PARCIAL],
+      },
+      ...(query.direction ? { direction: query.direction } : {}),
+    };
+
+    const entries = await this.prisma.financialEntry.findMany({
+      where,
+      include: {
+        payments: { select: { amount: true } },
+      },
+      orderBy: { dueDate: 'asc' },
+    });
+
+    const createBucket = () => ({
+      count: 0,
+      amount: new Prisma.Decimal(0),
+    });
+
+    const createDirectionAging = () => ({
+      current: createBucket(),
+      overdue1to30: createBucket(),
+      overdue31to60: createBucket(),
+      overdue61to90: createBucket(),
+      overdueOver90: createBucket(),
+      total: createBucket(),
+    });
+
+    const report = {
+      payable: createDirectionAging(),
+      receivable: createDirectionAging(),
+    };
+
+    const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+    for (const entry of entries) {
+      const paid = entry.payments.reduce(
+        (sum, p) => sum.plus(p.amount),
+        new Prisma.Decimal(0),
+      );
+      const remaining = entry.amount.minus(paid).minus(entry.creditedAmount);
+      if (remaining.lte(0)) {
+        continue;
+      }
+
+      const dirKey =
+        entry.direction === FinancialDirection.PAGAR ? 'payable' : 'receivable';
+      const targetAging = report[dirKey];
+
+      const entryDue = this.dateOnly(entry.dueDate.toISOString().slice(0, 10));
+      const diffMs = referenceDate.getTime() - entryDue.getTime();
+      const daysOverdue = Math.floor(diffMs / MS_PER_DAY);
+
+      let bucket: { count: number; amount: Prisma.Decimal };
+      if (daysOverdue <= 0) {
+        bucket = targetAging.current;
+      } else if (daysOverdue <= 30) {
+        bucket = targetAging.overdue1to30;
+      } else if (daysOverdue <= 60) {
+        bucket = targetAging.overdue31to60;
+      } else if (daysOverdue <= 90) {
+        bucket = targetAging.overdue61to90;
+      } else {
+        bucket = targetAging.overdueOver90;
+      }
+
+      bucket.count++;
+      bucket.amount = bucket.amount.plus(remaining);
+
+      targetAging.total.count++;
+      targetAging.total.amount = targetAging.total.amount.plus(remaining);
+    }
+
+    const serializeBucket = (b: {
+      count: number;
+      amount: Prisma.Decimal;
+    }) => ({
+      count: b.count,
+      amount: b.amount.toString(),
+    });
+
+    const serializeDirection = (
+      d: ReturnType<typeof createDirectionAging>,
+    ) => ({
+      current: serializeBucket(d.current),
+      overdue1to30: serializeBucket(d.overdue1to30),
+      overdue31to60: serializeBucket(d.overdue31to60),
+      overdue61to90: serializeBucket(d.overdue61to90),
+      overdueOver90: serializeBucket(d.overdueOver90),
+      total: serializeBucket(d.total),
+    });
+
+    return {
+      referenceDate: referenceStr,
+      direction: query.direction ?? null,
+      payable: serializeDirection(report.payable),
+      receivable: serializeDirection(report.receivable),
     };
   }
 

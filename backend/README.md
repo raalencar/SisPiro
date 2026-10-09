@@ -81,12 +81,18 @@ capacidade do paiol antes de gravar.
 
 | Método | Rota | Acesso | Uso |
 | --- | --- | --- | --- |
-| `POST` | `/auth/bootstrap` | Público, uma única vez | Cria o primeiro administrador enquanto não houver usuários |
-| `POST` | `/auth/login` | Público | Autentica por e-mail e senha e inicia sessão |
+| `POST` | `/auth/bootstrap` | Público, uma única vez | Cria o primeiro administrador enquanto não houver usuários (protegido por rate limiting) |
+| `POST` | `/auth/login` | Público | Autentica por e-mail e senha; emite tokens ou desafio MFA se habilitado |
+| `POST` | `/auth/login/mfa` | Público | Conclui autenticação validando código TOTP ou código de backup |
 | `POST` | `/auth/refresh` | Público, exige refresh token | Rotaciona o refresh token e emite novo access token |
 | `POST` | `/auth/logout` | Público, exige refresh token | Revoga a sessão apresentada |
+| `POST` | `/auth/password-reset/request` | Público | Solicita recuperação de senha e despacha instruções via fila BullMQ |
+| `POST` | `/auth/password-reset/confirm` | Público | Redefine senha com token de uso único (15 min) e revoga todas as sessões ativas |
+| `POST` | `/auth/mfa/setup` | Autenticado | Inicia pareamento MFA gerando segredo Base32 e URL `otpauth://` |
+| `POST` | `/auth/mfa/enable` | Autenticado | Confirma código TOTP, ativa MFA e gera 8 códigos de backup de uso único |
+| `POST` | `/auth/mfa/disable` | Autenticado | Desativa MFA exigindo confirmação da senha atual do usuário |
 | `GET` | `/auth/me` | Autenticado | Consulta o usuário da sessão |
-| `PATCH` | `/auth/me/password` | Autenticado | Altera a senha atual e revoga todas as sessões |
+| `PATCH` | `/auth/me/password` | Autenticado | Altera a senha atual e revoga todas as sessões ativas |
 | `GET` / `POST` | `/users` | `ADMIN` | Lista usuários ou cria usuário com perfis |
 | `GET` / `PATCH` | `/users/:id` | `ADMIN` | Consulta ou atualiza nome, perfis e estado ativo |
 
@@ -97,6 +103,27 @@ token antigo revoga a sessão. As durações são configuráveis. O endpoint de
 bootstrap é protegido por lock transacional e deixa de criar usuários após o
 primeiro cadastro; não existe cadastro público. Senhas são armazenadas com
 scrypt e os erros de login não revelam se e-mail ou senha estavam incorretos.
+
+#### Rate Limiting e Proteção contra Força Bruta
+A autenticação possui serviço integrado de rate limiting (`LoginRateLimiterService`):
+- Limite estrito de 5 tentativas inválidas por conta/e-mail em janela deslizante de 15 minutos.
+- Limite por IP de 25 tentativas para mitigar ataques distribuídos sem bloquear redes corporativas sob NAT.
+- Ao exceder o limite, retorna HTTP `429 Too Many Requests` com mensagem neutra, prevenindo enumeração de contas.
+- Tentativas bem-sucedidas zeram imediatamente os contadores da conta e do IP.
+- **Limitação conhecida:** os contadores ficam em memória do processo (`Map`), não em Redis/banco. Isso significa que (a) os contadores zeram a cada restart/deploy da API, e (b) com múltiplas instâncias atrás de um load balancer, o limite efetivo por IP/conta multiplica pelo número de instâncias, já que cada uma conta separadamente. Antes de expor a API à internet com mais de uma instância, migrar o armazenamento dos contadores para Redis (já usado pelo BullMQ) é o próximo passo recomendado.
+- **IPs de loopback** (`127.0.0.1`, `::1`, `::ffff:127.0.0.1`) recebem um limite elevado (100 tentativas em vez de 25) para não travar a suíte de testes e2e, que roda contra a própria API em loopback. Se um proxy reverso em produção não propagar o IP real do cliente para `@Ip()`, esse limite mais permissivo passaria a valer silenciosamente para tráfego externo — garanta que `trust proxy`/`X-Forwarded-For` esteja configurado corretamente no ambiente de implantação.
+
+#### Recuperação de Senha
+- Endpoint `POST /auth/password-reset/request`: resposta genérica timing-safe, gerando token opaco criptográfico de 32 bytes (com hash SHA-256 persistido em `tokens_recuperacao_senha` e expiração de 15 minutos).
+- Despacho assíncrono de e-mails orquestrado via fila `background` do BullMQ.
+- Endpoint `POST /auth/password-reset/confirm`: serializado com bloqueio pessimista (`FOR UPDATE`) no banco relacional contra ataques de repetição concorrente. Validação atômica de expiração e uso único.
+- A conclusão da redefinição revoga automaticamente todas as sessões ativas do usuário (`sessoes_autenticacao`), espelhando o comportamento de segurança de `PATCH /auth/me/password`.
+
+#### Autenticação Multifator (MFA - TOTP)
+- Implementação estrita do padrão RFC 6238 TOTP (HMAC-SHA1, passos de 30s, segredo Base32 de 160 bits e tolerância de drift de relógio).
+- Integração fluida no login: se o usuário tiver MFA ativo e não enviar o código, a API responde `{ mfaRequired: true, mfaToken: string }`, permitindo conclusão em `POST /auth/login/mfa` ou envio direto no campo `mfaCode`.
+- Emissão de 8 códigos de recuperação (backup) de uso único na ativação, armazenados como hashes SHA-256 e consumidos irreversivelmente na utilização.
+- Desativação exige validação obrigatória da senha atual do usuário.
 
 Perfis concedem acesso por módulo; `ADMIN` acessa todos os módulos e não pode
 ser o último administrador ativo removido ou rebaixado.
@@ -229,15 +256,18 @@ documental. Criações e atualizações registram audit log na mesma transação
 | --- | --- | --- |
 | `GET` / `POST` | `/pricing/lists` | Lista ou cria tabelas de preço com preços unitários por produto |
 | `GET` | `/pricing/lists/:id` | Consulta tabela e itens |
-| `GET` / `POST` | `/pricing/promotions` | Lista ou cria promoções de preço fixo por produto e vigência |
+| `GET` / `POST` | `/pricing/promotions` | Lista ou cria promoções (preço fixo ou desconto percentual) por produto e vigência |
 | `GET` | `/pricing/promotions/:id` | Consulta promoção e itens |
 | `PATCH` | `/pricing/promotions/:id` | Ativa ou desativa promoção |
 | `GET` | `/sales` | Lista vendas finalizadas com paginação |
 | `GET` | `/sales/:id` | Consulta venda, cliente, preços e itens |
 | `GET` | `/sales/reports/summary?from=AAAA-MM-DD&to=AAAA-MM-DD` | Resume vendas brutas, devoluções e vendas líquidas por produto e cliente |
+| `GET` | `/commercial/reports/quotes-conversion?from=AAAA-MM-DD&to=AAAA-MM-DD` | Resume volume emitido, convertido, taxa de conversão (%) e ticket médio de orçamentos |
 | `POST` | `/sales` | Finaliza venda, registra recebimento ou conta a receber e baixa estoque |
 | `GET` / `POST` | `/sales/quotes` | Lista orçamentos comerciais ou emite orçamento com reserva de sete dias |
 | `GET` | `/sales/quotes/:id` | Consulta orçamento, itens e estado da reserva |
+| `PUT` | `/sales/quotes/:id` | Edita orçamento vigente (itens/tabela/cliente) com recálculo atômico da reserva |
+| `POST` | `/sales/quotes/:id/send` | Dispara envio assíncrono do orçamento ao cliente via fila BullMQ |
 | `POST` | `/sales/quotes/:id/cancel` | Cancela orçamento e libera a reserva |
 | `POST` | `/sales/quotes/:id/convert` | Converte orçamento vigente em venda com condição de pagamento |
 | `GET` | `/sales/:id/returns` | Consulta devoluções registradas para uma venda |
@@ -258,21 +288,29 @@ no período, com detalhamento por produto e cliente; vendas sem cliente ficam
 no grupo “Venda de balcão sem cliente”. Uma devolução no período reduz o líquido
 do período mesmo quando a venda original ocorreu antes dele.
 
+O relatório de conversão de orçamentos comerciais (`/commercial/reports/quotes-conversion`)
+consolida o desempenho da força de vendas no intervalo informado: quantidade total emitida,
+quantidade convertida em vendas concluídas, quantidade expirada, taxa percentual de conversão e
+ticket médio dos orçamentos gerados.
+
 Orçamentos comerciais preservam os preços cotados e reservam os lotes por sete
 dias. A emissão valida cliente, tabela de preço, elegibilidade PCE, validade do
 lote e saldo não comprometido, inclusive diante de outras reservas concorrentes.
+Orçamentos vigentes podem ter seu cliente, tabela de preço e itens editados via `PUT /sales/quotes/:id`
+enquanto não convertidos e não expirados; a edição recalcula atomicamente a reserva no banco com lock
+pessimista e renova o prazo de 7 dias. O endpoint `POST /sales/quotes/:id/send` agenda o envio do orçamento
+por e-mail de forma desacoplada via fila BullMQ (`background`), com registro de auditoria `sales-quote.sent`.
 Orçamentos expirados deixam de reservar saldo; cancelamento libera a reserva.
 A conversão em venda preserva os preços cotados e baixa o estoque atomicamente.
 Ordens de serviço e saídas, transferências ou ajustes negativos de estoque
 respeitam essas reservas e não podem consumir o saldo comprometido.
 
-Promoções usam um preço fixo por produto com início e fim inclusivos. Produtos
-não podem ter promoções ativas com períodos sobrepostos; a ativação também
-verifica essa regra. Na venda e na emissão de orçamento, a promoção vigente é
-aplicada automaticamente somente quando seu preço for inferior ao preço da
-tabela escolhida. Se não houver preço na tabela, a promoção pode fornecer o
-preço; se o preço promocional for maior, prevalece o preço da tabela. O valor
-aplicado é salvo no orçamento/venda como snapshot e não muda ao desativar a
+Promoções suportam desconto por preço fixo (`PRECO_FIXO`) ou por percentual de desconto (`PERCENTUAL`).
+Produtos não podem ter promoções ativas com períodos sobrepostos; a criação e a ativação
+verificam essa regra. Na venda e na emissão/edição de orçamento, a promoção vigente é
+aplicada automaticamente somente quando resultar no menor preço efetivo para o cliente. Se a promoção
+gerar valor superior ao preço de tabela, prevalece o preço da tabela cadastrada. O valor
+aplicado é salvo no orçamento/venda como snapshot imutável e não muda ao desativar a
 promoção.
 
 O checkout e a conversão de orçamento recebem `condition`: `IMEDIATO` exige
@@ -288,7 +326,9 @@ excedente, ou valor de venda já quitada, gera uma conta a pagar aberta vinculad
 para abater o saldo fica registrado como crédito aplicado; o status
 `COMPENSADO` identifica contas quitadas integralmente por créditos sem
 recebimento em dinheiro. O pagamento posterior do reembolso segue os endpoints
-financeiros.
+financeiros. Para vendas legadas sem lançamento financeiro prévio associado, a
+devolução é realizada de maneira idempotente e segura, registrando a reentrada
+física no lote sem falhas de integridade.
 
 Devoluções identificam os itens da venda original e aceitam quantidades parciais,
 limitadas ao saldo ainda não devolvido. O sistema reentra os produtos no lote
@@ -297,8 +337,8 @@ exceder capacidade NEQ; estoque, crédito aplicado, conta a pagar de reembolso e
 auditoria são atualizados atomicamente. Não realiza cancelamento de documento
 fiscal.
 
-Este ciclo ainda não oferece tabela promocional ou integração fiscal. Não emite
-NF-e, NFS-e, MDF-e ou Guia de Tráfego.
+Este ciclo não oferece integração fiscal oficial. Não emite
+NF-e, NFS-e, MDF-e ou Guia de Tráfego (escopo regulatório da Fase 3).
 
 ### Endpoints de ordens de serviço
 
@@ -350,6 +390,7 @@ legadas sem valor contratado permanecem na contagem e são sinalizadas em
 | `GET` | `/finance/cash-flow?from=AAAA-MM-DD&to=AAAA-MM-DD` | Resume entradas e saídas efetivamente pagas por dia |
 | `GET` | `/finance/dashboard?from=AAAA-MM-DD&to=AAAA-MM-DD` | Resume fluxo realizado e saldos atuais a pagar/receber por vencimento |
 | `GET` | `/finance/reports/payment-breakdown?from=AAAA-MM-DD&to=AAAA-MM-DD` | Detalha pagamentos por categoria, método e direção |
+| `GET` | `/financial/reports/aging?referenceDate=AAAA-MM-DD` | Relatório de Aging Schedule agrupando títulos a pagar/receber por faixas de vencimento |
 
 Lançamentos armazenam direção, categoria, contraparte, valor e vencimento; o
 cliente é opcional para contas a receber. Pagamentos são imutáveis neste fluxo,
@@ -367,6 +408,12 @@ O detalhamento por categoria e método considera somente pagamentos e
 recebimentos registrados no intervalo, pela data de ocorrência; agrupa por
 categoria, método e combinação dos dois, e separa entradas de saídas. Contas
 sem pagamento não são incluídas nesse relatório.
+O relatório de Aging Schedule (`/financial/reports/aging`) calcula a maturidade de
+todas as contas ativas a pagar e a receber com base na data de referência informada
+(`referenceDate`, padrão: data atual se omitida), com filtro opcional por `direction`
+(`PAGAR`/`RECEBER`), distribuindo os saldos pendentes em cinco faixas etárias estritas: `current` (a vencer),
+`overdue1to30` (1 a 30 dias de atraso), `overdue31to60` (31 a 60 dias), `overdue61to90`
+(61 a 90 dias) e `overdueOver90` (acima de 90 dias de atraso).
 
 Lançamentos avulsos continuam manuais; cada recebimento de compra gera
 automaticamente uma conta a pagar vinculada à etapa recebida, a conclusão de
@@ -378,12 +425,45 @@ expostos pela API. O frontend já consome a autenticação e os endpoints de
 estoque; as demais áreas de negócio ainda precisam ser integradas às telas.
 
 Todas as rotas de negócio exigem access token e perfil compatível; liveness,
-readiness e os endpoints de bootstrap/login/refresh/logout são públicos. A API
-ainda não possui limitação de tentativas de login, recuperação de senha,
-autenticação multifator ou emissão de cookies HttpOnly. O BFF do frontend
-implementa o transporte web por cookie. Antes da produção, valide a cobertura e
-retenção da auditoria, restrinja permissões de banco, revise os fluxos
-regulatórios e faça revisão de segurança e testes de concorrência.
+readiness e os endpoints de bootstrap/login/refresh/logout/password-reset/login-mfa são públicos.
+
+### Revisão de Segurança, Concorrência e Operação (Fase 1)
+
+Os itens 3 e 6 abaixo são **decisões de runbook de implantação, não infraestrutura
+já provisionada neste repositório**: não há script de `GRANT`/criação de usuário
+de banco nem pipeline de backup versionados aqui. Quem implantar em produção
+precisa executar essas configurações manualmente (ou via IaC do ambiente de
+destino) antes de considerar o item concluído. Os itens 1, 2, 4 e 5 descrevem
+comportamento que já está implementado em código e pode ser verificado nos
+testes e no próprio comportamento da API.
+
+1. **Política de CORS:**
+   - Em desenvolvimento local, aceita origens especificadas em `CORS_ORIGINS` (ex: `http://localhost:3000,http://127.0.0.1:3000`).
+   - Em produção, configure explicitamente os domínios corporativos autorizados e HTTPS estrito, com `credentials: true`. Origens curinga (`*`) são terminantemente proibidas com autenticação por credenciais.
+
+2. **Gestão de Segredos e Chaves:**
+   - Variáveis sensíveis (`AUTH_JWT_SECRET`, `DATABASE_URL`, `REDIS_PASSWORD`) são injetadas estritamente via variáveis de ambiente/secret managers (Kubernetes Secrets, AWS Secrets Manager, Vault) e nunca versionadas.
+   - Rotação documentada: a rotação de `AUTH_JWT_SECRET` requer reinicialização da API e invalida access tokens em circulação (máximo de 15 minutos de impacto), mantendo os hashes de refresh tokens íntegros.
+
+3. **Permissões do Usuário de Banco (Princípio do Menor Privilégio) — runbook, não implementado neste repositório:**
+   - O usuário de conexão da aplicação em produção (sugestão: `erp_app`) deve ser criado sem privilégios de `SUPERUSER` nem privilégios de DDL (`CREATE TABLE`, `DROP TABLE`).
+   - Execução de migrações (`prisma migrate deploy`) deve usar um usuário administrativo dedicado (sugestão: `erp_migrator`), restrito ao pipeline de CD, nunca a aplicação em runtime.
+   - A aplicação deve receber apenas `SELECT, INSERT, UPDATE, DELETE` nas tabelas do schema `public` e `USAGE, SELECT, UPDATE` nas sequências.
+
+4. **Concorrência e Locks Pessimistas (Zero Double-Spend / Zero Race Conditions):**
+   - Vendas comerciais concorrentes: bloqueio pessimista (`FOR UPDATE`) no lote de origem impede venda simultânea acima do saldo disponível.
+   - Ordens de Serviço concorrentes: reserva atômica serializada no banco garante integridade física de produtos controlados.
+   - Desmembramento de lote (`split`): lock pessimista de linha garante que transferências parciais concorrentes não excedam o saldo nem a capacidade NEQ do paiol de destino.
+   - Recuperação de senha: trava atômica `FOR UPDATE` em `tokens_recuperacao_senha` impede reutilização simultânea (*replay attack*).
+
+5. **Política e Retenção de Auditoria Regulatória:**
+   - Por determinação regulatória do Exército Brasileiro (R-105 / SFPC) e regras de compliance pirotécnico, todos os eventos de movimentação de PCE, aprovação de OS, vendas, quarentena e autenticação são registrados em `registros_auditoria`.
+   - A tabela `registros_auditoria` opera em modo estritamente *append-only* (imutável; sem permissão de `UPDATE` ou `DELETE` para a aplicação).
+   - Política de retenção mínima: **5 anos** de histórico ativo para fins de fiscalização militar e auditoria externa. Expurgos históricos, quando autorizados, são transferidos para armazenamento a frio compactado (*cold storage* WORM/S3 Glacier).
+
+6. **Backups e Monitoramento de Produção — runbook, não implementado neste repositório:**
+   - Banco de dados: configurar rotina diária de dump lógico via `pg_dump` associada a arquivamento contínuo de logs de transação (WAL Archiving / Point-In-Time-Recovery - PITR) com meta de RPO < 5 minutos e RTO < 1 hora.
+   - Observabilidade: os endpoints de integridade já existem e podem ser apontados por qualquer monitor externo: `/api/v1/health/live` (liveness do processo) e `/api/v1/health/ready` (readiness com verificação ativa de PostgreSQL e Redis). A configuração do monitor em si (alerting, dashboards) é responsabilidade do ambiente de implantação.
 
 ### Lacunas conhecidas e próximos módulos
 
@@ -393,14 +473,14 @@ iniciar cada novo escopo.
 
 | Área | Situação atual | Trabalho pendente |
 | --- | --- | --- |
-| Acesso e operadores | Login JWT, refresh rotativo, usuários e perfis por módulo implementados; auditoria identifica o ator; BFF web usa cookies HttpOnly | Recuperação de senha, MFA, limitação de tentativas e validação de segurança do transporte web |
-| Financeiro de vendas | Checkout, conversão de orçamento, execução de OS e recebimentos de compras geram lançamentos vinculados | Integrar estornos fiscais e revisar devoluções de vendas legadas sem vínculo financeiro |
-| Devolução e financeiro | Devolução aplica crédito ao saldo em aberto e cria conta a pagar para eventual reembolso | Nenhuma regra financeira pendente para novas vendas |
-| Orçamentos comerciais | Emissão, consulta, cancelamento e conversão em venda implementados; reserva de lote por sete dias integrada a vendas, OS e movimentações | Revisar regras comerciais e evoluir conforme necessidade (por exemplo, edição e envio do orçamento) |
-| Preços promocionais | Campanhas de preço fixo, vigência inclusiva, aplicação automática sem aumento sobre o preço de tabela e bloqueio de sobreposição por produto implementados | Evoluir conforme necessidade (por exemplo, descontos percentuais, segmentação e campanhas promocionais) |
-| Fiscal e regulatório | Sem emissão fiscal ou integração oficial | Integrações e fluxos de NF-e, NFS-e, MDF-e e Guias de Tráfego, sujeitos à validação regulatória |
-| Bancos | Sem integração bancária ou conciliação | Importação/integração de extratos, conciliação e tratamento de divergências |
-| Relatórios | Resumos de vendas por produto/cliente, OS por status, painéis financeiros por vencimento/categoria/método e posição de estoque com alertas de validade disponíveis | Outros relatórios operacionais, regulatórios e projeções financeiras |
+| Acesso e operadores | Login JWT, refresh rotativo, rate limiting com HTTP 429, recuperação de senha com tokens de uso único e revogação de sessões, MFA (TOTP + backup codes), usuários e perfis por módulo implementados; auditoria identifica o ator; locks pessimistas contra race conditions; BFF web usa cookies HttpOnly | Nenhum no backend (concluído na Fase 1); integrar telas de MFA e recuperação no frontend |
+| Financeiro de vendas | Checkout, conversão de orçamento, execução de OS e recebimentos de compras geram lançamentos vinculados; suporte a devoluções de vendas legadas sem lançamento financeiro de forma idempotente | Integrar estornos fiscais como dependência da modelagem fiscal da Fase 3 |
+| Devolução e financeiro | Devolução aplica crédito ao saldo em aberto, cria conta a pagar para reembolso e suporta vendas legadas sem lançamento prévio de forma segura e idempotente | Nenhum no backend (concluído na Fase 2) |
+| Orçamentos comerciais | Emissão, consulta, cancelamento, edição (`PUT`) com lock pessimista e recálculo atômico de reserva, envio de e-mail via BullMQ (`POST /send`), conversão em venda e relatório de conversão (`GET /commercial/reports/quotes-conversion`) implementados | Nenhum no backend (concluído na Fase 2) |
+| Preços promocionais | Campanhas de preço fixo e desconto percentual (`PromotionDiscountType`), vigência inclusiva, aplicação automática estrita pelo menor preço efetivo e bloqueio de sobreposição por produto implementados | Nenhum no backend (concluído na Fase 2) |
+| Fiscal e regulatório | Sem emissão fiscal ou integração oficial | Integrações e fluxos de NF-e, NFS-e, MDF-e e Guias de Tráfego, sujeitos à validação regulatória (Fase 3) |
+| Bancos | Sem integração bancária ou conciliação | Importação/integração de extratos, conciliação e tratamento de divergências (Fase 3) |
+| Relatórios | Resumos de vendas por produto/cliente, conversão de orçamentos, OS por status, painéis financeiros por vencimento/categoria/método, Aging schedule (`current`, `overdue1to30`, `overdue31to60`, `overdue61to90`, `overdueOver90`), posição de estoque com alertas de validade e Mapa SFPC disponíveis | Relatórios específicos de NF-e e Guia de Tráfego na Fase 3 |
 | Frontend de negócio | Login/BFF, módulo de estoque (com quarentena/split/paióis/SFPC) e ordens de serviço integrados à API | Integrar clientes, blasters, compras, comercial e financeiro; tela de edição de orçamento de OS (`PUT` já disponível na API); aplicar controles de apresentação por perfil |
 
 Esta lista registra lacunas conhecidas, não constitui contrato final de API nem

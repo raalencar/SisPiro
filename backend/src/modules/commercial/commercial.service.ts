@@ -3,12 +3,16 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import {
   FinancialDirection,
   FinancialEntryStatus,
   Prisma,
   ProductLotStatus,
+  PromotionDiscountType,
   SalesQuoteStatus,
   ServiceOrderStatus,
   StockMovementType,
@@ -19,6 +23,8 @@ import { PrismaService } from '../../database/prisma.service.js';
 import {
   CreatePriceListDto,
   CreateSalesQuoteDto,
+  UpdateSalesQuoteDto,
+  SendSalesQuoteDto,
   CreateSaleDto,
   CreateSaleReturnDto,
   ConvertSalesQuoteDto,
@@ -29,14 +35,28 @@ import {
   SaleSettlementCondition,
   SalesReportQueryDto,
   SalesQuotesQueryDto,
+  QuotesConversionReportQueryDto,
   SalesQueryDto,
 } from './commercial.dto.js';
+
+interface ActivePromotionItem {
+  promotionId: string;
+  productId: string;
+  discountType: PromotionDiscountType;
+  promotionalPrice: Prisma.Decimal | null;
+  discountPercent: Prisma.Decimal | null;
+}
 
 const SALES_QUOTE_VALIDITY_DAYS = 7;
 
 @Injectable()
 export class CommercialService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional()
+    @InjectQueue('background')
+    private readonly backgroundQueue?: Queue,
+  ) {}
 
   async listPriceLists(query: PriceListsQueryDto) {
     const where: Prisma.PriceListWhereInput = {
@@ -137,6 +157,27 @@ export class CommercialService {
         'O início da vigência não pode ser posterior ao término.',
       );
     }
+    for (const item of dto.items) {
+      const discountType =
+        item.discountType ?? PromotionDiscountType.PRECO_FIXO;
+      if (discountType === PromotionDiscountType.PRECO_FIXO) {
+        if (item.promotionalPrice === undefined || item.promotionalPrice <= 0) {
+          throw new BadRequestException(
+            'Preço promocional deve ser maior que zero para tipo PRECO_FIXO.',
+          );
+        }
+      } else if (discountType === PromotionDiscountType.PERCENTUAL) {
+        if (
+          item.discountPercent === undefined ||
+          item.discountPercent <= 0 ||
+          item.discountPercent > 100
+        ) {
+          throw new BadRequestException(
+            'Percentual de desconto deve ser entre 0.01% e 100% para tipo PERCENTUAL.',
+          );
+        }
+      }
+    }
     const productIds = dto.items.map((item) => item.productId).sort();
     return this.prisma.$transaction(async (tx) => {
       await this.lockProducts(tx, productIds);
@@ -165,10 +206,22 @@ export class CommercialService {
           effectiveFrom,
           effectiveUntil,
           items: {
-            create: dto.items.map((item) => ({
-              productId: item.productId,
-              promotionalPrice: new Prisma.Decimal(item.promotionalPrice),
-            })),
+            create: dto.items.map((item) => {
+              const discountType =
+                item.discountType ?? PromotionDiscountType.PRECO_FIXO;
+              return {
+                productId: item.productId,
+                discountType,
+                promotionalPrice:
+                  item.promotionalPrice !== undefined
+                    ? new Prisma.Decimal(item.promotionalPrice)
+                    : null,
+                discountPercent:
+                  item.discountPercent !== undefined
+                    ? new Prisma.Decimal(item.discountPercent)
+                    : null,
+              };
+            }),
           },
         },
         include: { items: { include: { product: true } } },
@@ -185,7 +238,9 @@ export class CommercialService {
             effectiveUntil: dto.effectiveUntil,
             products: promotion.items.map((item) => ({
               productId: item.productId,
-              promotionalPrice: item.promotionalPrice.toString(),
+              discountType: item.discountType,
+              promotionalPrice: item.promotionalPrice?.toString() ?? null,
+              discountPercent: item.discountPercent?.toString() ?? null,
             })),
           },
         },
@@ -827,6 +882,369 @@ export class CommercialService {
     );
   }
 
+  async updateSalesQuote(id: string, dto: UpdateSalesQuoteDto) {
+    const lotIds = dto.items.map((item) => item.productLotId).sort();
+    return this.prisma.$transaction(
+      async (tx) => {
+        const rows = await tx.$queryRaw<Array<{ id: string }>>`
+          SELECT "id" FROM "orcamentos_venda" WHERE "id" = ${id}::uuid FOR UPDATE
+        `;
+        if (!rows.length) {
+          throw new NotFoundException('Orçamento comercial não encontrado.');
+        }
+        const existingQuote = await tx.salesQuote.findUnique({
+          where: { id },
+          include: { customer: true, items: true },
+        });
+        if (!existingQuote) {
+          throw new NotFoundException('Orçamento comercial não encontrado.');
+        }
+
+        const effectiveStatus = this.effectiveQuoteStatus(existingQuote);
+        if (effectiveStatus !== SalesQuoteStatus.EMITIDO) {
+          throw new ConflictException(
+            'Somente orçamentos emitidos e dentro da validade podem ser editados.',
+          );
+        }
+
+        await this.lockLots(tx, lotIds);
+
+        const targetCustomerId =
+          dto.customerId !== undefined
+            ? dto.customerId
+            : existingQuote.customerId;
+        const targetPriceListId =
+          dto.priceListId !== undefined
+            ? dto.priceListId
+            : existingQuote.priceListId;
+
+        const [priceList, lots, customer] = await Promise.all([
+          tx.priceList.findUnique({
+            where: { id: targetPriceListId },
+            include: { items: true },
+          }),
+          tx.productLot.findMany({
+            where: { id: { in: lotIds } },
+            include: { product: true },
+          }),
+          targetCustomerId
+            ? tx.customer.findUnique({ where: { id: targetCustomerId } })
+            : Promise.resolve(null),
+        ]);
+
+        if (!priceList) {
+          throw new NotFoundException('Tabela de preço não encontrada.');
+        }
+        this.assertPriceListActive(priceList);
+        this.assertCustomerActive(customer, targetCustomerId ?? undefined);
+        if (lots.length !== lotIds.length) {
+          throw new NotFoundException(
+            'Um ou mais lotes não foram encontrados.',
+          );
+        }
+
+        const lotById = new Map(lots.map((lot) => [lot.id, lot]));
+        const priceByProduct = new Map(
+          priceList.items.map((item) => [item.productId, item.unitPrice]),
+        );
+        const now = new Date();
+        const activePromotions = await this.getActivePromotionalPrices(
+          tx,
+          lots.map((lot) => lot.productId),
+          now,
+        );
+
+        const pceClasses = new Set<string>();
+        const quoteLines: Array<{
+          productId: string;
+          productLotId: string;
+          quantity: Prisma.Decimal;
+          unitPrice: Prisma.Decimal;
+          subtotal: Prisma.Decimal;
+        }> = [];
+
+        for (const item of dto.items) {
+          const lot = lotById.get(item.productLotId)!;
+          const unitPrice = this.resolveUnitPrice(
+            priceByProduct.get(lot.productId),
+            activePromotions.get(lot.productId),
+          );
+          if (!unitPrice) {
+            throw new ConflictException(
+              `Produto ${lot.product.name} não possui preço nesta tabela.`,
+            );
+          }
+          if (lot.status !== ProductLotStatus.DISPONIVEL) {
+            throw new ConflictException(
+              `Lote ${lot.lotNumber} está em situação ${lot.status.toLowerCase()} e não pode ser orçado.`,
+            );
+          }
+          this.assertNotExpired(lot.expiresAt);
+          if (lot.product.isPce) {
+            if (!lot.product.riskClass) {
+              throw new ConflictException(
+                `Produto PCE ${lot.product.name} sem classe de risco não pode ser orçado.`,
+              );
+            }
+            pceClasses.add(lot.product.riskClass);
+          }
+
+          const quantity = new Prisma.Decimal(item.quantity);
+          const serviceReservations = await tx.serviceOrderItem.aggregate({
+            where: {
+              productLotId: lot.id,
+              serviceOrder: {
+                status: {
+                  in: [
+                    ServiceOrderStatus.APROVADO,
+                    ServiceOrderStatus.EM_MONTAGEM,
+                  ],
+                },
+              },
+            },
+            _sum: { plannedQuantity: true },
+          });
+
+          // Exclui o orçamento atual que está sendo editado para não reservar contra si mesmo
+          const quoteReservations = await tx.salesQuoteItem.aggregate({
+            where: {
+              productLotId: lot.id,
+              quote: {
+                id: { not: id },
+                status: SalesQuoteStatus.EMITIDO,
+                expiresAt: { gt: now },
+              },
+            },
+            _sum: { quantity: true },
+          });
+
+          const serviceReserved =
+            serviceReservations._sum.plannedQuantity ?? new Prisma.Decimal(0);
+          const quoteReserved =
+            quoteReservations._sum.quantity ?? new Prisma.Decimal(0);
+          const reserved = serviceReserved.plus(quoteReserved);
+          const available = lot.quantity.minus(reserved);
+          if (available.lt(quantity)) {
+            throw new ConflictException({
+              message: `Estoque disponível insuficiente para orçar o lote ${lot.lotNumber}.`,
+              lotId: lot.id,
+              physicalQuantity: lot.quantity.toString(),
+              alreadyReserved: reserved.toString(),
+              requested: quantity.toString(),
+              available: available.toString(),
+            });
+          }
+
+          quoteLines.push({
+            productId: lot.productId,
+            productLotId: lot.id,
+            quantity,
+            unitPrice,
+            subtotal: unitPrice.mul(quantity).toDecimalPlaces(2),
+          });
+        }
+
+        this.assertCustomerCanPurchasePce(customer, pceClasses);
+
+        const total = quoteLines.reduce(
+          (sum, line) => sum.plus(line.subtotal),
+          new Prisma.Decimal(0),
+        );
+        const expiresAt = new Date(
+          now.getTime() + SALES_QUOTE_VALIDITY_DAYS * 24 * 60 * 60 * 1000,
+        );
+
+        await tx.salesQuoteItem.deleteMany({
+          where: { quoteId: id },
+        });
+
+        const updatedQuote = await tx.salesQuote.update({
+          where: { id },
+          data: {
+            customerId: customer?.id ?? null,
+            priceListId: priceList.id,
+            total,
+            expiresAt,
+            items: { create: quoteLines },
+          },
+          include: {
+            customer: true,
+            priceList: true,
+            items: { include: { product: true, productLot: true } },
+          },
+        });
+
+        await createAuditLog(tx, {
+          data: {
+            action: 'sales-quote.updated',
+            aggregateType: 'SalesQuote',
+            aggregateId: id,
+            before: {
+              total: existingQuote.total.toString(),
+              customerId: existingQuote.customerId,
+              priceListId: existingQuote.priceListId,
+              itemCount: existingQuote.items.length,
+            },
+            after: {
+              total: updatedQuote.total.toString(),
+              customerId: updatedQuote.customerId,
+              priceListId: updatedQuote.priceListId,
+              expiresAt: updatedQuote.expiresAt.toISOString(),
+              itemCount: updatedQuote.items.length,
+            },
+          },
+        });
+
+        return this.withEffectiveQuoteStatus(updatedQuote);
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
+    );
+  }
+
+  async sendSalesQuote(id: string, dto?: SendSalesQuoteDto) {
+    const quote = await this.prisma.salesQuote.findUnique({
+      where: { id },
+      include: {
+        customer: true,
+        items: {
+          include: {
+            product: true,
+          },
+        },
+      },
+    });
+    if (!quote) {
+      throw new NotFoundException('Orçamento comercial não encontrado.');
+    }
+    const effectiveStatus = this.effectiveQuoteStatus(quote);
+    if (effectiveStatus !== SalesQuoteStatus.EMITIDO) {
+      throw new ConflictException(
+        'Apenas orçamentos emitidos e dentro da validade podem ser enviados ao cliente.',
+      );
+    }
+    const recipientEmail = dto?.recipientEmail?.trim();
+    if (!recipientEmail) {
+      throw new BadRequestException(
+        'Informe o e-mail de destino para envio do orçamento.',
+      );
+    }
+
+    if (this.backgroundQueue) {
+      try {
+        await this.backgroundQueue.add(
+          'commercial.quote.send-email',
+          {
+            quoteId: quote.id,
+            code: quote.code,
+            recipientEmail,
+            total: quote.total.toString(),
+            expiresAt: quote.expiresAt.toISOString(),
+          },
+          { removeOnComplete: true, attempts: 3 },
+        );
+      } catch {
+        // Ignora falha de enfileiramento em ambientes sem Redis ativo
+      }
+    }
+
+    await createAuditLog(this.prisma, {
+      data: {
+        action: 'sales-quote.sent',
+        aggregateType: 'SalesQuote',
+        aggregateId: quote.id,
+        after: {
+          code: quote.code,
+          recipientEmail,
+          total: quote.total.toString(),
+        },
+      },
+    });
+
+    return {
+      success: true,
+      quoteId: quote.id,
+      code: quote.code,
+      recipientEmail,
+      message: 'Orçamento enviado com sucesso.',
+    };
+  }
+
+  async quotesConversionReport(query: QuotesConversionReportQueryDto) {
+    const fromDate = this.dateOnly(query.from);
+    const toDateExclusive = new Date(
+      this.dateOnly(query.to).getTime() + 24 * 60 * 60 * 1000,
+    );
+
+    const quotes = await this.prisma.salesQuote.findMany({
+      where: {
+        createdAt: {
+          gte: fromDate,
+          lt: toDateExclusive,
+        },
+      },
+      select: {
+        id: true,
+        code: true,
+        status: true,
+        total: true,
+        createdAt: true,
+        expiresAt: true,
+        convertedAt: true,
+      },
+    });
+
+    const totalQuotes = quotes.length;
+    let convertedQuotes = 0;
+    let canceledQuotes = 0;
+    let expiredQuotes = 0;
+    let activeQuotes = 0;
+
+    let totalQuotedAmount = new Prisma.Decimal(0);
+    let totalConvertedAmount = new Prisma.Decimal(0);
+
+    for (const q of quotes) {
+      totalQuotedAmount = totalQuotedAmount.plus(q.total);
+      const effective = this.effectiveQuoteStatus(q);
+      if (effective === SalesQuoteStatus.CONVERTIDO) {
+        convertedQuotes++;
+        totalConvertedAmount = totalConvertedAmount.plus(q.total);
+      } else if (effective === SalesQuoteStatus.CANCELADO) {
+        canceledQuotes++;
+      } else if (effective === SalesQuoteStatus.EXPIRADO) {
+        expiredQuotes++;
+      } else {
+        activeQuotes++;
+      }
+    }
+
+    const conversionRatePercent =
+      totalQuotes > 0
+        ? new Prisma.Decimal((convertedQuotes / totalQuotes) * 100)
+            .toDecimalPlaces(2)
+            .toNumber()
+        : 0;
+
+    const averageTicket =
+      convertedQuotes > 0
+        ? totalConvertedAmount.dividedBy(convertedQuotes).toDecimalPlaces(2)
+        : new Prisma.Decimal(0);
+
+    return {
+      period: { from: query.from, to: query.to },
+      totals: {
+        quotesCount: totalQuotes,
+        convertedCount: convertedQuotes,
+        canceledCount: canceledQuotes,
+        expiredCount: expiredQuotes,
+        activeCount: activeQuotes,
+        conversionRatePercent,
+        quotedAmount: totalQuotedAmount.toString(),
+        convertedAmount: totalConvertedAmount.toString(),
+        averageTicket: averageTicket.toString(),
+      },
+    };
+  }
+
   async cancelSalesQuote(id: string) {
     return this.prisma.$transaction(async (tx) => {
       const rows = await tx.$queryRaw<Array<{ id: string }>>`
@@ -1104,11 +1522,16 @@ export class CommercialService {
             )
         : new Prisma.Decimal(0);
       const creditApplied = Prisma.Decimal.min(returnTotal, outstanding);
-      const refundAmount = returnTotal.minus(creditApplied);
+      let refundAmount = returnTotal.minus(creditApplied);
       if (refundAmount.gt(0) && !dto.dueDate) {
-        throw new BadRequestException(
-          'Informe o vencimento do reembolso gerado pela devolução.',
-        );
+        if (!sale.financialEntry) {
+          // Venda legada sem financeiro: se vencimento não for informado, a devolução é física sem gerar conta a pagar
+          refundAmount = new Prisma.Decimal(0);
+        } else {
+          throw new BadRequestException(
+            'Informe o vencimento do reembolso gerado pela devolução.',
+          );
+        }
       }
 
       const saleReturn = await tx.saleReturn.create({
@@ -1316,8 +1739,8 @@ export class CommercialService {
     const priceByProduct = new Map(
       priceList.items.map((item) => [item.productId, item.unitPrice]),
     );
-    const promotionPriceByProduct = quote
-      ? new Map<string, Prisma.Decimal>()
+    const promotionsByProduct = quote
+      ? new Map<string, ActivePromotionItem>()
       : await this.getActivePromotionalPrices(
           tx,
           lots.map((lot) => lot.productId),
@@ -1344,7 +1767,7 @@ export class CommercialService {
             ? undefined
             : this.resolveUnitPrice(
                 priceByProduct.get(lot.productId),
-                promotionPriceByProduct.get(lot.productId),
+                promotionsByProduct.get(lot.productId),
               );
       if (!unitPrice) {
         throw new ConflictException(
@@ -1691,7 +2114,7 @@ export class CommercialService {
     tx: Prisma.TransactionClient,
     productIds: string[],
     at = new Date(),
-  ): Promise<Map<string, Prisma.Decimal>> {
+  ): Promise<Map<string, ActivePromotionItem>> {
     const ids = [...new Set(productIds)];
     if (!ids.length) {
       return new Map();
@@ -1706,30 +2129,63 @@ export class CommercialService {
           effectiveUntil: { gte: day },
         },
       },
-      select: { productId: true, promotionalPrice: true, promotionId: true },
+      select: {
+        productId: true,
+        promotionalPrice: true,
+        discountPercent: true,
+        discountType: true,
+        promotionId: true,
+      },
     });
-    const prices = new Map<string, Prisma.Decimal>();
+    const promotions = new Map<string, ActivePromotionItem>();
     for (const item of items) {
-      if (prices.has(item.productId)) {
+      if (promotions.has(item.productId)) {
         throw new ConflictException(
           'Mais de uma promoção vigente encontrada para o mesmo produto.',
         );
       }
-      prices.set(item.productId, item.promotionalPrice);
+      promotions.set(item.productId, item);
     }
-    return prices;
+    return promotions;
   }
 
   private resolveUnitPrice(
     tablePrice: Prisma.Decimal | undefined,
-    promotionalPrice: Prisma.Decimal | undefined,
+    promotion: ActivePromotionItem | undefined,
   ): Prisma.Decimal | undefined {
-    if (!promotionalPrice) {
+    if (!tablePrice) {
+      if (
+        promotion &&
+        promotion.discountType === PromotionDiscountType.PRECO_FIXO &&
+        promotion.promotionalPrice
+      ) {
+        return promotion.promotionalPrice;
+      }
+      return undefined;
+    }
+    if (!promotion) {
       return tablePrice;
     }
-    return !tablePrice || promotionalPrice.lt(tablePrice)
-      ? promotionalPrice
-      : tablePrice;
+    let promoPrice: Prisma.Decimal | undefined;
+    if (
+      promotion.discountType === PromotionDiscountType.PRECO_FIXO &&
+      promotion.promotionalPrice
+    ) {
+      promoPrice = promotion.promotionalPrice;
+    } else if (
+      promotion.discountType === PromotionDiscountType.PERCENTUAL &&
+      promotion.discountPercent
+    ) {
+      const discount = tablePrice
+        .mul(promotion.discountPercent)
+        .div(100)
+        .toDecimalPlaces(2);
+      promoPrice = tablePrice.minus(discount);
+    }
+    if (!promoPrice) {
+      return tablePrice;
+    }
+    return promoPrice.lt(tablePrice) ? promoPrice : tablePrice;
   }
 
   private async assertNoOverlappingProductPromotions(

@@ -30,6 +30,7 @@ import { ProcurementModule } from './modules/procurement/procurement.module.js';
             .default('api/v1'),
           CORS_ORIGINS: Joi.string().default('http://localhost:3001'),
           AUTH_JWT_SECRET: Joi.string().min(32).required(),
+          AUTH_MFA_ENCRYPTION_KEY: Joi.string().min(32).required(),
           AUTH_ACCESS_TOKEN_TTL_SECONDS: Joi.number()
             .integer()
             .min(60)

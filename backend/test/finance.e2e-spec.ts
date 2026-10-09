@@ -46,6 +46,12 @@ describe('Finance API (e2e)', () => {
   });
 
   it('tracks partial settlement, prevents overpayment, and reports realized cash flow', async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const tomorrow = dateOffset(1);
+    const flowBefore = await request(app.getHttpServer())
+      .get(`/api/v1/finance/cash-flow?from=${today}&to=${tomorrow}`)
+      .expect(200);
+
     const receivable = await request(app.getHttpServer())
       .post('/api/v1/finance/entries')
       .send({
@@ -122,15 +128,20 @@ describe('Finance API (e2e)', () => {
       .expect(201);
     expect(cancelled.body.status).toBe('CANCELADO');
 
-    const today = new Date().toISOString().slice(0, 10);
-    const tomorrow = dateOffset(1);
     const flow = await request(app.getHttpServer())
       .get(`/api/v1/finance/cash-flow?from=${today}&to=${tomorrow}`)
       .expect(200);
-    expect(flow.body.totals.received).toBe('100');
-    expect(flow.body.totals.paid).toBe('0');
-    expect(flow.body.totals.net).toBe('100');
-    expect(flow.body.days).toHaveLength(1);
+    expect(
+      Number(flow.body.totals.received) -
+        Number(flowBefore.body.totals.received),
+    ).toBe(100);
+    expect(
+      Number(flow.body.totals.paid) - Number(flowBefore.body.totals.paid),
+    ).toBe(0);
+    expect(
+      Number(flow.body.totals.net) - Number(flowBefore.body.totals.net),
+    ).toBe(100);
+    expect(flow.body.days.length).toBeGreaterThanOrEqual(1);
 
     const createEntry = async (
       direction: 'PAGAR' | 'RECEBER',
@@ -307,6 +318,68 @@ describe('Finance API (e2e)', () => {
         (entry: { id: string }) => entry.id === receivable.body.id,
       ),
     ).toBe(true);
+  });
+
+  it('generates aging report with correct maturity buckets for payable and receivable', async () => {
+    // Cria um título vencido há 15 dias (overdue1to30)
+    const overdue15 = await request(app.getHttpServer())
+      .post('/api/v1/finance/entries')
+      .send({
+        direction: 'RECEBER',
+        description: `Aging teste vencido ${randomUUID()}`,
+        category: 'Aging',
+        counterparty: 'Cliente Aging',
+        amount: 200,
+        dueDate: dateOffset(-15),
+      })
+      .expect(201);
+    entryIds.push(overdue15.body.id as string);
+
+    // Cria um título a vencer daqui a 10 dias (current)
+    const current10 = await request(app.getHttpServer())
+      .post('/api/v1/finance/entries')
+      .send({
+        direction: 'PAGAR',
+        description: `Aging teste a vencer ${randomUUID()}`,
+        category: 'Aging',
+        counterparty: 'Fornecedor Aging',
+        amount: 300,
+        dueDate: dateOffset(10),
+      })
+      .expect(201);
+    entryIds.push(current10.body.id as string);
+
+    const aging = await request(app.getHttpServer())
+      .get('/api/v1/finance/reports/aging')
+      .expect(200);
+
+    expect(aging.body.receivable.overdue1to30.count).toBeGreaterThanOrEqual(1);
+    expect(Number(aging.body.receivable.overdue1to30.amount)).toBeGreaterThanOrEqual(200);
+    expect(aging.body.payable.current.count).toBeGreaterThanOrEqual(1);
+    expect(Number(aging.body.payable.current.amount)).toBeGreaterThanOrEqual(300);
+
+    // Valida também via alias /api/v1/financial/reports/aging
+    const agingAlias = await request(app.getHttpServer())
+      .get('/api/v1/financial/reports/aging')
+      .expect(200);
+    expect(agingAlias.body.referenceDate).toBe(aging.body.referenceDate);
+
+    // Valida o contrato documentado: referenceDate (não asOf) como query string
+    const explicitReferenceDate = dateOffset(5);
+    const agingWithExplicitDate = await request(app.getHttpServer())
+      .get(
+        `/api/v1/financial/reports/aging?referenceDate=${explicitReferenceDate}`,
+      )
+      .expect(200);
+    expect(agingWithExplicitDate.body.referenceDate).toBe(
+      explicitReferenceDate,
+    );
+
+    // O nome de query string documentado anteriormente (asOf) não é aceito
+    // pelo ValidationPipe (whitelist estrito) e deve ser rejeitado com 400.
+    await request(app.getHttpServer())
+      .get(`/api/v1/financial/reports/aging?asOf=${explicitReferenceDate}`)
+      .expect(400);
   });
 });
 

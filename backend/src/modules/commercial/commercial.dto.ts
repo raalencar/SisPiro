@@ -6,6 +6,7 @@ import {
   IsArray,
   IsBoolean,
   IsDateString,
+  IsEmail,
   IsEnum,
   IsNumber,
   IsOptional,
@@ -20,12 +21,28 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { FinancialPaymentMethod, SalesQuoteStatus } from '@prisma/client';
+import {
+  FinancialPaymentMethod,
+  PromotionDiscountType,
+  SalesQuoteStatus,
+} from '@prisma/client';
 import { PaginationQueryDto } from '../inventory/inventory.dto.js';
 
 export class SalesQueryDto extends PaginationQueryDto {}
 
 export class SalesReportQueryDto {
+  @ApiProperty({ format: 'date', example: '2026-10-01' })
+  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  from!: string;
+
+  @ApiProperty({ format: 'date', example: '2026-10-31' })
+  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  to!: string;
+}
+
+export class QuotesConversionReportQueryDto {
   @ApiProperty({ format: 'date', example: '2026-10-01' })
   @IsDateString({ strict: true })
   @Matches(/^\d{4}-\d{2}-\d{2}$/)
@@ -83,12 +100,44 @@ export class CreateProductPromotionItemDto {
   @IsUUID()
   productId!: string;
 
-  @ApiProperty({ minimum: 0.01, maximum: 9999999999.99 })
+  @ApiPropertyOptional({
+    enum: PromotionDiscountType,
+    default: PromotionDiscountType.PRECO_FIXO,
+  })
+  @IsOptional()
+  @IsEnum(PromotionDiscountType)
+  discountType?: PromotionDiscountType;
+
+  @ApiPropertyOptional({
+    minimum: 0.01,
+    maximum: 9999999999.99,
+    description: 'Obrigatório quando discountType for PRECO_FIXO (padrão).',
+  })
+  @ValidateIf(
+    (item: CreateProductPromotionItemDto) =>
+      !item.discountType ||
+      item.discountType === PromotionDiscountType.PRECO_FIXO,
+  )
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01)
   @Max(9999999999.99)
-  promotionalPrice!: number;
+  promotionalPrice?: number;
+
+  @ApiPropertyOptional({
+    minimum: 0.01,
+    maximum: 100.0,
+    description: 'Obrigatório quando discountType for PERCENTUAL.',
+  })
+  @ValidateIf(
+    (item: CreateProductPromotionItemDto) =>
+      item.discountType === PromotionDiscountType.PERCENTUAL,
+  )
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.01)
+  @Max(100.0)
+  discountPercent?: number;
 }
 
 export class CreateProductPromotionDto {
@@ -264,6 +313,39 @@ export class CreateSaleDto extends CreateSalePayloadDto {
 export class CreateSalesQuoteDto extends CreateSalePayloadDto {}
 
 export class ConvertSalesQuoteDto extends SaleSettlementDto {}
+
+export class UpdateSalesQuoteDto {
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Omitir para venda de balcão sem cadastro ou manter cliente atual.',
+  })
+  @IsOptional()
+  @IsUUID()
+  customerId?: string;
+
+  @ApiPropertyOptional({ format: 'uuid' })
+  @IsOptional()
+  @IsUUID()
+  priceListId?: string;
+
+  @ApiProperty({ type: [CreateSaleItemDto], minItems: 1 })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayUnique((item: CreateSaleItemDto) => item.productLotId)
+  @ValidateNested({ each: true })
+  @Type(() => CreateSaleItemDto)
+  items!: CreateSaleItemDto[];
+}
+
+export class SendSalesQuoteDto {
+  @ApiProperty({
+    format: 'email',
+    description: 'E-mail do destinatário para envio do orçamento.',
+    example: 'cliente@empresa.com.br',
+  })
+  @IsEmail()
+  recipientEmail!: string;
+}
 
 export class CreateSaleReturnItemDto {
   @ApiProperty({ format: 'uuid' })

@@ -79,20 +79,43 @@ enum SalesQuoteStatus {
   EXPIRADO
 }
 
+enum PromotionDiscountType {
+  PRECO_FIXO
+  PERCENTUAL
+}
+
 model User {
-  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name         String        @db.VarChar(150)
-  email        String        @unique @db.VarChar(254)
-  passwordHash String        @map("senha_hash") @db.VarChar(255)
-  roles        UserRole[]    @default([])
-  active       Boolean       @default(true) @map("ativo")
-  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
-  sessions     AuthSession[]
-  auditLogs    AuditLog[]    @relation("AuditActor")
+  id                  String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                String               @db.VarChar(150)
+  email               String               @unique @db.VarChar(254)
+  passwordHash        String               @map("senha_hash") @db.VarChar(255)
+  roles               UserRole[]           @default([])
+  active              Boolean              @default(true) @map("ativo")
+  mfaEnabled          Boolean              @default(false) @map("mfa_habilitado")
+  mfaSecret           String?              @map("mfa_secret") @db.VarChar(128)
+  mfaBackupCodes      String[]             @default([]) @map("mfa_codigos_backup")
+  createdAt           DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+  sessions            AuthSession[]
+  passwordResetTokens PasswordResetToken[]
+  auditLogs           AuditLog[]           @relation("AuditActor")
 
   @@index([active, createdAt])
   @@map("usuarios")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String    @map("usuario_id") @db.Uuid
+  tokenHash String    @map("token_hash") @db.VarChar(64)
+  expiresAt DateTime  @map("expira_em") @db.Timestamptz(3)
+  usedAt    DateTime? @map("usado_em") @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([tokenHash])
+  @@map("tokens_recuperacao_senha")
 }
 
 model AuthSession {
@@ -341,12 +364,14 @@ model ProductPromotion {
 }
 
 model ProductPromotionItem {
-  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  promotionId      String           @map("promocao_id") @db.Uuid
-  productId        String           @map("produto_id") @db.Uuid
-  promotionalPrice Decimal          @map("preco_promocional") @db.Decimal(12, 2)
-  promotion        ProductPromotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
-  product          Product          @relation(fields: [productId], references: [id], onDelete: Restrict)
+  id               String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  promotionId      String                @map("promocao_id") @db.Uuid
+  productId        String                @map("produto_id") @db.Uuid
+  discountType     PromotionDiscountType @default(PRECO_FIXO) @map("tipo_desconto")
+  promotionalPrice Decimal?              @map("preco_promocional") @db.Decimal(12, 2)
+  discountPercent  Decimal?              @map("percentual_desconto") @db.Decimal(5, 2)
+  promotion        ProductPromotion      @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  product          Product               @relation(fields: [productId], references: [id], onDelete: Restrict)
 
   @@unique([promotionId, productId])
   @@index([productId, promotionId])

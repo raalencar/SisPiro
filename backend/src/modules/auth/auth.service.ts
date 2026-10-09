@@ -3,10 +3,13 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  Optional,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { Prisma, UserRole } from '@prisma/client';
 import {
   createHash,
@@ -19,15 +22,22 @@ import { rethrowKnownPrismaError } from '../../common/prisma-errors.js';
 import { PrismaService } from '../../database/prisma.service.js';
 import {
   ChangePasswordDto,
+  ConfirmPasswordResetDto,
   CreateAdminDto,
   CreateUserDto,
   LoginDto,
+  MfaDisableDto,
+  MfaEnableDto,
+  MfaVerifyLoginDto,
   RefreshTokenDto,
+  RequestPasswordResetDto,
   UpdateUserDto,
   UsersQueryDto,
 } from './auth.dto.js';
 import { AuthenticatedUser } from './auth.constants.js';
+import { LoginRateLimiterService } from './login-rate-limiter.service.js';
 import { PasswordHasher } from './password-hasher.js';
+import { TotpService } from './totp.service.js';
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -47,42 +57,73 @@ export class AuthService {
     private readonly config: ConfigService,
     private readonly jwt: JwtService,
     private readonly passwordHasher: PasswordHasher,
+    private readonly rateLimiter: LoginRateLimiterService,
+    private readonly totp: TotpService,
+    @Optional()
+    @InjectQueue('background')
+    private readonly backgroundQueue?: Queue,
   ) {}
 
-  async bootstrap(dto: CreateAdminDto) {
-    return this.prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`
-        SELECT pg_advisory_xact_lock(${ADMIN_CHANGE_LOCK_ID})::text AS "lock"
-      `;
-      if ((await tx.user.count()) > 0) {
-        throw new ConflictException('O administrador inicial já foi criado.');
+  async bootstrap(dto: CreateAdminDto, ip?: string) {
+    const clientIp = ip?.trim() || '';
+    const rateLimitKeys = [
+      clientIp ? `ip:${clientIp}` : '',
+      'auth:bootstrap',
+    ].filter(Boolean);
+
+    this.rateLimiter.assertNotRateLimited(rateLimitKeys);
+
+    try {
+      const result = await this.prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`
+          SELECT pg_advisory_xact_lock(${ADMIN_CHANGE_LOCK_ID})::text AS "lock"
+        `;
+        if ((await tx.user.count()) > 0) {
+          throw new ConflictException('O administrador inicial já foi criado.');
+        }
+        const passwordHash = await this.passwordHasher.hash(dto.password);
+        const user = await tx.user.create({
+          data: {
+            name: dto.name,
+            email: dto.email,
+            passwordHash,
+            roles: [UserRole.ADMIN],
+          },
+          select: { id: true, name: true, email: true, roles: true },
+        });
+        const tokens = await this.createSession(tx, user);
+        await createAuditLog(tx, {
+          data: {
+            actorId: user.id,
+            action: 'auth.bootstrap.completed',
+            aggregateType: 'User',
+            aggregateId: user.id,
+            after: { email: user.email, roles: user.roles },
+          },
+        });
+        const { sessionId: _sessionId, ...publicTokens } = tokens;
+        return { ...publicTokens, user };
+      });
+      this.rateLimiter.recordSuccess(rateLimitKeys);
+      return result;
+    } catch (error) {
+      if (!(error instanceof ConflictException)) {
+        this.rateLimiter.recordFailure(rateLimitKeys);
       }
-      const passwordHash = await this.passwordHasher.hash(dto.password);
-      const user = await tx.user.create({
-        data: {
-          name: dto.name,
-          email: dto.email,
-          passwordHash,
-          roles: [UserRole.ADMIN],
-        },
-        select: { id: true, name: true, email: true, roles: true },
-      });
-      const tokens = await this.createSession(tx, user);
-      await createAuditLog(tx, {
-        data: {
-          actorId: user.id,
-          action: 'auth.bootstrap.completed',
-          aggregateType: 'User',
-          aggregateId: user.id,
-          after: { email: user.email, roles: user.roles },
-        },
-      });
-      const { sessionId: _sessionId, ...publicTokens } = tokens;
-      return { ...publicTokens, user };
-    });
+      throw error;
+    }
   }
 
-  async login(dto: LoginDto) {
+  async login(dto: LoginDto, ip?: string) {
+    const clientIp = ip?.trim() || '';
+    const normalizedEmail = dto.email.trim().toLowerCase();
+    const rateLimitKeys = [
+      clientIp ? `ip:${clientIp}` : '',
+      `email:${normalizedEmail}`,
+    ].filter(Boolean);
+
+    this.rateLimiter.assertNotRateLimited(rateLimitKeys);
+
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
       select: {
@@ -92,19 +133,89 @@ export class AuthService {
         passwordHash: true,
         roles: true,
         active: true,
+        mfaEnabled: true,
+        mfaSecret: true,
+        mfaBackupCodes: true,
       },
     });
+
     if (!user) {
       await this.passwordHasher.hash(dto.password);
+      this.rateLimiter.recordFailure(rateLimitKeys);
       throw new UnauthorizedException('E-mail ou senha inválidos.');
     }
+
     const passwordValid = await this.passwordHasher.verify(
       dto.password,
       user.passwordHash,
     );
+
     if (!passwordValid || !user.active) {
+      this.rateLimiter.recordFailure(rateLimitKeys);
       throw new UnauthorizedException('E-mail ou senha inválidos.');
     }
+
+    // Validação de MFA se ativo
+    if (user.mfaEnabled) {
+      if (!dto.mfaCode) {
+        const mfaToken = await this.jwt.signAsync(
+          { sub: user.id, purpose: 'mfa_challenge' },
+          { expiresIn: '5m' },
+        );
+        return {
+          mfaRequired: true,
+          mfaToken,
+          message: 'Autenticação de dois fatores necessária.',
+        };
+      }
+
+      let validMfa = false;
+      let usedBackupIndex = -1;
+
+      if (
+        user.mfaSecret &&
+        this.totp.verifyCode(
+          dto.mfaCode,
+          this.totp.decryptSecret(user.mfaSecret),
+        )
+      ) {
+        validMfa = true;
+      } else if (user.mfaBackupCodes.length > 0) {
+        usedBackupIndex = this.totp.verifyAndConsumeBackupCode(
+          dto.mfaCode,
+          user.mfaBackupCodes,
+        );
+        if (usedBackupIndex !== -1) {
+          validMfa = true;
+        }
+      }
+
+      if (!validMfa) {
+        this.rateLimiter.recordFailure(rateLimitKeys);
+        throw new UnauthorizedException(
+          'Código de autenticação em dois fatores inválido.',
+        );
+      }
+
+      if (usedBackupIndex !== -1) {
+        const remainingBackupCodes = [...user.mfaBackupCodes];
+        remainingBackupCodes.splice(usedBackupIndex, 1);
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: { mfaBackupCodes: remainingBackupCodes },
+        });
+        await createAuditLog(this.prisma, {
+          data: {
+            actorId: user.id,
+            action: 'auth.mfa.backup_code_used',
+            aggregateType: 'User',
+            aggregateId: user.id,
+          },
+        });
+      }
+    }
+
+    this.rateLimiter.recordSuccess(rateLimitKeys);
     const summary = this.userSummary(user);
     return this.prisma.$transaction(async (tx) => {
       const tokens = await this.createSession(tx, summary);
@@ -489,6 +600,382 @@ export class AuthService {
       });
       return updated;
     });
+  }
+
+  async verifyMfaLogin(dto: MfaVerifyLoginDto, ip?: string) {
+    let payload: { sub: string; purpose?: string };
+    try {
+      payload = await this.jwt.verifyAsync(dto.mfaToken);
+    } catch {
+      throw new UnauthorizedException('Desafio MFA inválido ou expirado.');
+    }
+
+    if (payload.purpose !== 'mfa_challenge' || !payload.sub) {
+      throw new UnauthorizedException('Desafio MFA inválido.');
+    }
+
+    const clientIp = ip?.trim() || '';
+    const rateLimitKeys = [
+      clientIp ? `ip:${clientIp}` : '',
+      `mfa:${payload.sub}`,
+    ].filter(Boolean);
+
+    this.rateLimiter.assertNotRateLimited(rateLimitKeys);
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        roles: true,
+        active: true,
+        mfaEnabled: true,
+        mfaSecret: true,
+        mfaBackupCodes: true,
+      },
+    });
+
+    if (!user || !user.active || !user.mfaEnabled) {
+      throw new UnauthorizedException('Usuário inválido ou MFA não ativo.');
+    }
+
+    let validMfa = false;
+    let usedBackupIndex = -1;
+
+    if (
+      user.mfaSecret &&
+      this.totp.verifyCode(dto.code, this.totp.decryptSecret(user.mfaSecret))
+    ) {
+      validMfa = true;
+    } else if (user.mfaBackupCodes.length > 0) {
+      usedBackupIndex = this.totp.verifyAndConsumeBackupCode(
+        dto.code,
+        user.mfaBackupCodes,
+      );
+      if (usedBackupIndex !== -1) {
+        validMfa = true;
+      }
+    }
+
+    if (!validMfa) {
+      this.rateLimiter.recordFailure(rateLimitKeys);
+      throw new UnauthorizedException(
+        'Código de autenticação em dois fatores inválido.',
+      );
+    }
+
+    this.rateLimiter.recordSuccess(rateLimitKeys);
+
+    if (usedBackupIndex !== -1) {
+      const remainingBackupCodes = [...user.mfaBackupCodes];
+      remainingBackupCodes.splice(usedBackupIndex, 1);
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { mfaBackupCodes: remainingBackupCodes },
+      });
+      await createAuditLog(this.prisma, {
+        data: {
+          actorId: user.id,
+          action: 'auth.mfa.backup_code_used',
+          aggregateType: 'User',
+          aggregateId: user.id,
+        },
+      });
+    }
+
+    const summary = this.userSummary(user);
+    return this.prisma.$transaction(async (tx) => {
+      const tokens = await this.createSession(tx, summary);
+      await createAuditLog(tx, {
+        data: {
+          actorId: user.id,
+          action: 'auth.session.created',
+          aggregateType: 'AuthSession',
+          aggregateId: tokens.sessionId,
+          after: { userId: user.id },
+        },
+      });
+      const { sessionId: _sessionId, ...publicTokens } = tokens;
+      return { ...publicTokens, user: summary };
+    });
+  }
+
+  async setupMfa(user: AuthenticatedUser) {
+    const existing = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      select: { id: true, email: true, mfaEnabled: true },
+    });
+    if (!existing) {
+      throw new NotFoundException('Usuário não encontrado.');
+    }
+    if (existing.mfaEnabled) {
+      throw new ConflictException('MFA já está habilitado nesta conta.');
+    }
+
+    const secret = this.totp.generateSecret();
+    const otpAuthUrl = this.totp.generateOtpAuthUrl(existing.email, secret);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { mfaSecret: this.totp.encryptSecret(secret) },
+    });
+
+    return { secret, otpAuthUrl };
+  }
+
+  async enableMfa(user: AuthenticatedUser, dto: MfaEnableDto) {
+    const existing = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      select: { id: true, mfaEnabled: true, mfaSecret: true },
+    });
+    if (!existing) {
+      throw new NotFoundException('Usuário não encontrado.');
+    }
+    if (existing.mfaEnabled) {
+      throw new ConflictException('MFA já está habilitado nesta conta.');
+    }
+    if (!existing.mfaSecret) {
+      throw new BadRequestException(
+        'Solicitação de MFA não iniciada. Execute o setup primeiro.',
+      );
+    }
+
+    const valid = this.totp.verifyCode(
+      dto.code,
+      this.totp.decryptSecret(existing.mfaSecret),
+    );
+    if (!valid) {
+      throw new BadRequestException('Código TOTP inválido.');
+    }
+
+    const backupCodes = this.totp.generateBackupCodes(8);
+    const backupHashes = backupCodes.map((code) =>
+      this.totp.hashBackupCode(code),
+    );
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          mfaEnabled: true,
+          mfaBackupCodes: backupHashes,
+        },
+      });
+      await createAuditLog(tx, {
+        data: {
+          actorId: user.id,
+          action: 'auth.mfa.enabled',
+          aggregateType: 'User',
+          aggregateId: user.id,
+        },
+      });
+    });
+
+    return {
+      message:
+        'MFA ativado com sucesso. Guarde os códigos de backup em local seguro.',
+      backupCodes,
+    };
+  }
+
+  async disableMfa(user: AuthenticatedUser, dto: MfaDisableDto) {
+    const existing = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      select: { id: true, passwordHash: true, mfaEnabled: true },
+    });
+    if (!existing) {
+      throw new NotFoundException('Usuário não encontrado.');
+    }
+    const passwordValid = await this.passwordHasher.verify(
+      dto.currentPassword,
+      existing.passwordHash,
+    );
+    if (!passwordValid) {
+      throw new UnauthorizedException('Senha incorreta.');
+    }
+    if (!existing.mfaEnabled) {
+      throw new BadRequestException('MFA não está ativo para esta conta.');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          mfaEnabled: false,
+          mfaSecret: null,
+          mfaBackupCodes: [],
+        },
+      });
+      await createAuditLog(tx, {
+        data: {
+          actorId: user.id,
+          action: 'auth.mfa.disabled',
+          aggregateType: 'User',
+          aggregateId: user.id,
+        },
+      });
+    });
+
+    return { message: 'MFA desativado com sucesso.' };
+  }
+
+  async requestPasswordReset(dto: RequestPasswordResetDto, ip?: string) {
+    const clientIp = ip?.trim() || '';
+    const rateLimitKeys = [
+      clientIp ? `ip:${clientIp}` : '',
+      `reset:${dto.email.trim().toLowerCase()}`,
+    ].filter(Boolean);
+
+    this.rateLimiter.assertNotRateLimited(rateLimitKeys);
+
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email.trim().toLowerCase() },
+      select: { id: true, email: true, active: true },
+    });
+
+    if (user && user.active) {
+      const rawToken = randomBytes(32).toString('hex');
+      const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutos
+
+      await this.prisma.$transaction(async (tx) => {
+        await tx.passwordResetToken.deleteMany({
+          where: { userId: user.id, usedAt: null },
+        });
+
+        await tx.passwordResetToken.create({
+          data: {
+            userId: user.id,
+            tokenHash,
+            expiresAt,
+          },
+        });
+
+        await createAuditLog(tx, {
+          data: {
+            actorId: user.id,
+            action: 'auth.password_reset.requested',
+            aggregateType: 'User',
+            aggregateId: user.id,
+            after: { email: user.email },
+          },
+        });
+      });
+
+      if (this.backgroundQueue) {
+        try {
+          await this.backgroundQueue.add(
+            'auth.password-reset',
+            {
+              userId: user.id,
+              email: user.email,
+              token: rawToken,
+              expiresAt: expiresAt.toISOString(),
+            },
+            { removeOnComplete: true, attempts: 3 },
+          );
+        } catch {
+          // Ignora falha de fila em ambientes isolados de teste
+        }
+      }
+    } else {
+      await this.passwordHasher.hash('timing-safe-dummy-protection');
+    }
+
+    return {
+      message:
+        'Se o e-mail informado estiver cadastrado, as instruções para redefinição de senha foram enviadas.',
+    };
+  }
+
+  async confirmPasswordReset(dto: ConfirmPasswordResetDto) {
+    const tokenHash = createHash('sha256')
+      .update(dto.token.trim())
+      .digest('hex');
+
+    await this.prisma.$transaction(async (tx) => {
+      const lockedTokens = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT "id" FROM "tokens_recuperacao_senha"
+        WHERE "token_hash" = ${tokenHash}
+          AND "usado_em" IS NULL
+          AND "expira_em" > CURRENT_TIMESTAMP
+        FOR UPDATE
+      `;
+
+      if (!lockedTokens.length) {
+        throw new BadRequestException(
+          'Token de recuperação de senha inválido ou expirado.',
+        );
+      }
+
+      const tokenRecord = await tx.passwordResetToken.findUnique({
+        where: { id: lockedTokens[0].id },
+        include: {
+          user: {
+            select: { id: true, passwordHash: true, active: true },
+          },
+        },
+      });
+
+      if (!tokenRecord || !tokenRecord.user || !tokenRecord.user.active) {
+        throw new BadRequestException(
+          'Token de recuperação de senha inválido ou expirado.',
+        );
+      }
+
+      await tx.$queryRaw`
+        SELECT "id" FROM "usuarios"
+        WHERE "id" = ${tokenRecord.user.id}::uuid
+        FOR UPDATE
+      `;
+
+      if (
+        await this.passwordHasher.verify(
+          dto.newPassword,
+          tokenRecord.user.passwordHash,
+        )
+      ) {
+        throw new BadRequestException(
+          'A nova senha deve ser diferente da senha anterior.',
+        );
+      }
+
+      const newPasswordHash = await this.passwordHasher.hash(dto.newPassword);
+
+      await tx.passwordResetToken.update({
+        where: { id: tokenRecord.id },
+        data: { usedAt: new Date() },
+      });
+
+      await tx.user.update({
+        where: { id: tokenRecord.user.id },
+        data: { passwordHash: newPasswordHash },
+      });
+
+      await tx.authSession.updateMany({
+        where: {
+          userId: tokenRecord.user.id,
+          revokedAt: null,
+        },
+        data: {
+          revokedAt: new Date(),
+        },
+      });
+
+      await createAuditLog(tx, {
+        data: {
+          actorId: tokenRecord.user.id,
+          action: 'auth.password_reset.completed',
+          aggregateType: 'User',
+          aggregateId: tokenRecord.user.id,
+        },
+      });
+    });
+
+    return {
+      message: 'Senha redefinida com sucesso. Faça login com a nova senha.',
+    };
   }
 
   private async createSession(tx: Prisma.TransactionClient, user: UserSummary) {

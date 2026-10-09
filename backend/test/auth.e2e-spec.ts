@@ -1,16 +1,22 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import type { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import supertest from 'supertest';
 import { App } from 'supertest/types.js';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/database/prisma.service.js';
+import { LoginRateLimiterService } from '../src/modules/auth/login-rate-limiter.service.js';
+import { TotpService } from '../src/modules/auth/totp.service.js';
 import { authenticateE2eAdmin } from './helpers/authenticated-request.js';
 
 describe('Authentication and users API (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
   let adminToken: string;
+  const totp = new TotpService({
+    getOrThrow: () => 'e2e-test-only-mfa-encryption-key-32-chars-min',
+  } as unknown as ConfigService);
   const userIds: string[] = [];
   const suffix = randomUUID();
 
@@ -46,6 +52,9 @@ describe('Authentication and users API (e2e)', () => {
           { aggregateId: { in: sessionIds } },
         ],
       },
+    });
+    await prisma.passwordResetToken.deleteMany({
+      where: { userId: { in: userIds } },
     });
     await prisma.user.deleteMany({ where: { id: { in: userIds } } });
     await app.close();
@@ -234,6 +243,172 @@ describe('Authentication and users API (e2e)', () => {
         data: { active: true },
       });
     }
+  });
+
+  it('enforces login rate limiting without revealing user existence (429)', async () => {
+    const targetEmail = `rate-limit-${suffix}@local.test`;
+    for (let i = 0; i < 5; i++) {
+      await supertest(app.getHttpServer())
+        .post('/api/v1/auth/login')
+        .send({ email: targetEmail, password: 'WrongPassword123' })
+        .expect(401);
+    }
+
+    const rateLimited = await supertest(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ email: targetEmail, password: 'WrongPassword123' })
+      .expect(429);
+
+    expect(rateLimited.body.message).toContain('Muitas tentativas');
+    app.get(LoginRateLimiterService).clearAll();
+  });
+
+  it('handles password recovery request and confirmation with session revocation', async () => {
+    const user = await createUser('ESTOQUE');
+    const initialLogin = await loginAs(user.email, user.password);
+    expect(initialLogin.body.accessToken).toBeDefined();
+
+    const reqResponse = await supertest(app.getHttpServer())
+      .post('/api/v1/auth/password-reset/request')
+      .send({ email: user.email })
+      .expect(200);
+
+    expect(reqResponse.body.message).toContain(
+      'as instruções para redefinição de senha foram enviadas',
+    );
+
+    const resetRawToken = randomBytes(32).toString('hex');
+    const resetHash = createHash('sha256').update(resetRawToken).digest('hex');
+    await prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: resetHash,
+        expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+      },
+    });
+
+    const newPassword = 'NewSecretPassword2026!';
+    await supertest(app.getHttpServer())
+      .post('/api/v1/auth/password-reset/confirm')
+      .send({ token: resetRawToken, newPassword })
+      .expect(200);
+
+    await supertest(app.getHttpServer())
+      .get('/api/v1/auth/me')
+      .set('Authorization', `Bearer ${initialLogin.body.accessToken}`)
+      .expect(401);
+
+    await supertest(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ email: user.email, password: user.password })
+      .expect(401);
+
+    const newLogin = await loginAs(user.email, newPassword);
+    expect(newLogin.body.accessToken).toBeDefined();
+
+    await supertest(app.getHttpServer())
+      .post('/api/v1/auth/password-reset/confirm')
+      .send({ token: resetRawToken, newPassword: 'AnotherPassword2026!' })
+      .expect(400);
+  });
+
+  it('serializes concurrent password reset confirmations with pessimistic locks preventing double-use', async () => {
+    const user = await createUser('ESTOQUE');
+    const resetRawToken = randomBytes(32).toString('hex');
+    const resetHash = createHash('sha256').update(resetRawToken).digest('hex');
+    await prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: resetHash,
+        expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+      },
+    });
+
+    const [req1, req2] = await Promise.all([
+      supertest(app.getHttpServer())
+        .post('/api/v1/auth/password-reset/confirm')
+        .send({ token: resetRawToken, newPassword: 'FirstConcurrentPassword2026!' }),
+      supertest(app.getHttpServer())
+        .post('/api/v1/auth/password-reset/confirm')
+        .send({ token: resetRawToken, newPassword: 'SecondConcurrentPassword2026!' }),
+    ]);
+
+    const statuses = [req1.status, req2.status].sort((a, b) => a - b);
+    expect(statuses).toEqual([200, 400]);
+  });
+
+  it('handles complete MFA lifecycle (setup, enable, challenge/verify, backup codes, disable)', async () => {
+    const user = await createUser('ADMIN');
+    const login = await loginAs(user.email, user.password);
+    const token = login.body.accessToken as string;
+
+    const setup = await supertest(app.getHttpServer())
+      .post('/api/v1/auth/mfa/setup')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(setup.body.secret).toBeDefined();
+    expect(setup.body.otpAuthUrl).toContain('otpauth://totp/');
+
+    await supertest(app.getHttpServer())
+      .post('/api/v1/auth/mfa/enable')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ code: '000000' })
+      .expect(400);
+
+    const validCode = totp.generateCode(setup.body.secret);
+    const enabled = await supertest(app.getHttpServer())
+      .post('/api/v1/auth/mfa/enable')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ code: validCode })
+      .expect(200);
+
+    expect(enabled.body.backupCodes).toHaveLength(8);
+    const backupCode = enabled.body.backupCodes[0] as string;
+
+    const challenge = await supertest(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ email: user.email, password: user.password })
+      .expect(200);
+
+    expect(challenge.body.mfaRequired).toBe(true);
+    expect(challenge.body.mfaToken).toBeDefined();
+
+    const nextCode = totp.generateCode(setup.body.secret);
+    const mfaLogin = await supertest(app.getHttpServer())
+      .post('/api/v1/auth/login/mfa')
+      .send({ mfaToken: challenge.body.mfaToken, code: nextCode })
+      .expect(200);
+
+    expect(mfaLogin.body.accessToken).toBeDefined();
+
+    const backupLogin = await supertest(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ email: user.email, password: user.password, mfaCode: backupCode })
+      .expect(200);
+
+    expect(backupLogin.body.accessToken).toBeDefined();
+
+    await supertest(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ email: user.email, password: user.password, mfaCode: backupCode })
+      .expect(401);
+
+    await supertest(app.getHttpServer())
+      .post('/api/v1/auth/mfa/disable')
+      .set('Authorization', `Bearer ${backupLogin.body.accessToken}`)
+      .send({ currentPassword: 'WrongPassword' })
+      .expect(401);
+
+    await supertest(app.getHttpServer())
+      .post('/api/v1/auth/mfa/disable')
+      .set('Authorization', `Bearer ${backupLogin.body.accessToken}`)
+      .send({ currentPassword: user.password })
+      .expect(200);
+
+    const directLogin = await loginAs(user.email, user.password);
+    expect(directLogin.body.accessToken).toBeDefined();
+    expect(directLogin.body.mfaRequired).toBeUndefined();
   });
 
   async function createUser(role: string) {

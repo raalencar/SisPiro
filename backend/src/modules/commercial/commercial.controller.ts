@@ -6,6 +6,7 @@ import {
   Patch,
   ParseUUIDPipe,
   Post,
+  Put,
   Query,
 } from '@nestjs/common';
 import {
@@ -26,9 +27,12 @@ import {
   CreateSaleReturnDto,
   ConvertSalesQuoteDto,
   CreateSalesQuoteDto,
+  UpdateSalesQuoteDto,
+  SendSalesQuoteDto,
   PriceListsQueryDto,
   SalesReportQueryDto,
   SalesQuotesQueryDto,
+  QuotesConversionReportQueryDto,
   SalesQueryDto,
 } from './commercial.dto.js';
 import { CommercialService } from './commercial.service.js';
@@ -125,6 +129,39 @@ export class CommercialController {
   @ApiParam({ name: 'id', format: 'uuid' })
   cancelSalesQuote(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.commercial.cancelSalesQuote(id);
+  }
+
+  @Put(['sales/quotes/:id', 'commercial/sales/quotes/:id'])
+  @ApiOperation({
+    summary:
+      'Edita orçamento de venda, recalculando reservas de estoque e renovando validade.',
+  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  updateSalesQuote(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: UpdateSalesQuoteDto,
+  ) {
+    return this.commercial.updateSalesQuote(id, dto);
+  }
+
+  @Post(['sales/quotes/:id/send', 'commercial/sales/quotes/:id/send'])
+  @ApiOperation({
+    summary: 'Envia orçamento de venda para o cliente via fila de mensageria.',
+  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  sendSalesQuote(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto?: SendSalesQuoteDto,
+  ) {
+    return this.commercial.sendSalesQuote(id, dto);
+  }
+
+  @Get(['commercial/reports/quotes-conversion', 'sales/quotes/reports/conversion'])
+  @ApiOperation({
+    summary: 'Relatório de taxa de conversão de orçamentos por período.',
+  })
+  quotesConversionReport(@Query() query: QuotesConversionReportQueryDto) {
+    return this.commercial.quotesConversionReport(query);
   }
 
   @Post('sales/quotes/:id/convert')

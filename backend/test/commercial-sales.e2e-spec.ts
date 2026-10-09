@@ -45,29 +45,95 @@ describe('Commercial sales API (e2e)', () => {
   });
 
   afterAll(async () => {
+    const validSaleIds = saleIds.filter((id): id is string => Boolean(id));
+    const validReturnIds = saleReturnIds.filter((id): id is string =>
+      Boolean(id),
+    );
+    const validQuoteIds = salesQuoteIds.filter((id): id is string =>
+      Boolean(id),
+    );
+    const validPriceListIds = priceListIds.filter((id): id is string =>
+      Boolean(id),
+    );
     const saleEntries = await prisma.financialEntry.findMany({
       where: {
         OR: [
-          { saleId: { in: saleIds } },
-          { saleReturn: { saleId: { in: saleIds } } },
+          { saleId: { in: validSaleIds } },
+          { sale: { priceListId: { in: validPriceListIds } } },
+          { saleReturn: { saleId: { in: validSaleIds } } },
+          { id: { in: financialEntryIds.filter((id): id is string => Boolean(id)) } },
         ],
       },
       select: { id: true },
     });
     financialEntryIds.push(...saleEntries.map((entry) => entry.id));
+    const validFinancialEntryIds = [
+      ...new Set(financialEntryIds.filter((id): id is string => Boolean(id))),
+    ];
     await prisma.financialPayment.deleteMany({
-      where: { entryId: { in: financialEntryIds } },
+      where: { entryId: { in: validFinancialEntryIds } },
     });
     await prisma.auditLog.deleteMany({
-      where: { aggregateId: { in: financialEntryIds } },
+      where: { aggregateId: { in: validFinancialEntryIds } },
     });
     await prisma.financialEntry.deleteMany({
-      where: { id: { in: financialEntryIds } },
+      where: { id: { in: validFinancialEntryIds } },
     });
-    await prisma.saleReturn.deleteMany({ where: { saleId: { in: saleIds } } });
-    await prisma.sale.deleteMany({ where: { id: { in: saleIds } } });
+    await prisma.saleReturnItem.deleteMany({
+      where: {
+        OR: [
+          { saleReturn: { saleId: { in: validSaleIds } } },
+          { returnId: { in: validReturnIds } },
+          { productLotId: { in: lotIds } },
+        ],
+      },
+    });
+    await prisma.saleReturn.deleteMany({
+      where: {
+        OR: [
+          { saleId: { in: validSaleIds } },
+          { id: { in: validReturnIds } },
+        ],
+      },
+    });
+    await prisma.saleItem.deleteMany({
+      where: {
+        OR: [
+          { saleId: { in: validSaleIds } },
+          { productLotId: { in: lotIds } },
+        ],
+      },
+    });
+    await prisma.sale.updateMany({
+      where: { quoteId: { in: validQuoteIds } },
+      data: { quoteId: null },
+    });
+    await prisma.sale.deleteMany({
+      where: {
+        OR: [
+          { id: { in: validSaleIds } },
+          { priceListId: { in: priceListIds } },
+        ],
+      },
+    });
+    await prisma.salesQuoteItem.deleteMany({
+      where: {
+        OR: [
+          { quoteId: { in: validQuoteIds } },
+          { productLotId: { in: lotIds } },
+        ],
+      },
+    });
     await prisma.salesQuote.deleteMany({
-      where: { id: { in: salesQuoteIds } },
+      where: {
+        OR: [
+          { id: { in: validQuoteIds } },
+          { priceListId: { in: priceListIds } },
+        ],
+      },
+    });
+    await prisma.serviceOrderItem.deleteMany({
+      where: { productLotId: { in: lotIds } },
     });
     await prisma.productPromotion.deleteMany({
       where: { id: { in: promotionIds } },
@@ -81,22 +147,53 @@ describe('Commercial sales API (e2e)', () => {
     await prisma.auditLog.deleteMany({
       where: {
         OR: [
-          { aggregateId: { in: saleIds } },
-          { aggregateId: { in: salesQuoteIds } },
-          { aggregateId: { in: orderIds } },
-          { aggregateId: { in: financialEntryIds } },
-          { aggregateId: { in: saleReturnIds } },
-          { aggregateId: { in: priceListIds } },
-          { aggregateId: { in: promotionIds } },
-          { aggregateId: { in: customerIds } },
-          { aggregateId: { in: blasterIds } },
-          { aggregateId: { in: productIds } },
-          { aggregateId: { in: lotIds } },
+          { aggregateId: { in: validSaleIds } },
+          { aggregateId: { in: validQuoteIds } },
+          {
+            aggregateId: {
+              in: orderIds.filter((id): id is string => Boolean(id)),
+            },
+          },
+          { aggregateId: { in: validFinancialEntryIds } },
+          { aggregateId: { in: validReturnIds } },
+          {
+            aggregateId: {
+              in: priceListIds.filter((id): id is string => Boolean(id)),
+            },
+          },
+          {
+            aggregateId: {
+              in: promotionIds.filter((id): id is string => Boolean(id)),
+            },
+          },
+          {
+            aggregateId: {
+              in: customerIds.filter((id): id is string => Boolean(id)),
+            },
+          },
+          {
+            aggregateId: {
+              in: blasterIds.filter((id): id is string => Boolean(id)),
+            },
+          },
+          {
+            aggregateId: {
+              in: productIds.filter((id): id is string => Boolean(id)),
+            },
+          },
+          {
+            aggregateId: {
+              in: lotIds.filter((id): id is string => Boolean(id)),
+            },
+          },
         ],
       },
     });
     await prisma.productLot.deleteMany({ where: { id: { in: lotIds } } });
     await prisma.magazine.deleteMany({ where: { id: { in: magazineIds } } });
+    await prisma.priceListItem.deleteMany({
+      where: { priceListId: { in: priceListIds } },
+    });
     await prisma.priceList.deleteMany({
       where: { id: { in: priceListIds } },
     });
@@ -326,10 +423,16 @@ describe('Commercial sales API (e2e)', () => {
       returned: '10',
       netSales: '-10',
     });
+    const baselineWalkIn = baseline.body.byCustomer.find(
+      (item: { customerId: string | null }) => item.customerId === null,
+    );
+    const expectedWalkInGross = String(
+      Number(baselineWalkIn?.grossSales ?? 0) + 10,
+    );
     expect(
       report.body.byCustomer.some(
         (item: { customerId: string | null; grossSales: string }) =>
-          item.customerId === null && item.grossSales === '10',
+          item.customerId === null && item.grossSales === expectedWalkInGross,
       ),
     ).toBe(true);
     await request(app.getHttpServer())
@@ -999,6 +1102,295 @@ describe('Commercial sales API (e2e)', () => {
     expect(
       await prisma.sale.count({ where: { quoteId: quote.body.id as string } }),
     ).toBe(0);
+  });
+
+  it('updates sales quote items, recalculating reservations and rejecting when converted or expired', async () => {
+    const product = await createProduct('QUPD', false);
+    const lot = await createLot(
+      product.body.id as string,
+      `QUPD-${suffix.slice(0, 8)}`,
+      10,
+    );
+    const list = await createPriceList(product.body.id as string, 100);
+
+    // Cria orçamento de 6 unidades
+    const quote = await createSalesQuote(list.id, lot.body.id as string, 6);
+    salesQuoteIds.push(quote.body.id as string);
+    expect(quote.body.total).toBe('600');
+
+    // Atualiza orçamento para 8 unidades (sucesso: 8 <= 10, não compete contra si mesmo)
+    const updated = await request(app.getHttpServer())
+      .put(`/api/v1/commercial/sales/quotes/${quote.body.id}`)
+      .send({
+        priceListId: list.id,
+        items: [{ productLotId: lot.body.id, quantity: 8 }],
+      })
+      .expect(200);
+    expect(updated.body.total).toBe('800');
+    expect(updated.body.items[0].quantity).toBe('8');
+
+    // Tenta atualizar para 11 unidades (excede 10 disponíveis) -> 409
+    await request(app.getHttpServer())
+      .put(`/api/v1/commercial/sales/quotes/${quote.body.id}`)
+      .send({
+        priceListId: list.id,
+        items: [{ productLotId: lot.body.id, quantity: 11 }],
+      })
+      .expect(409);
+
+    // Converte orçamento
+    const sale = await request(app.getHttpServer())
+      .post(`/api/v1/sales/quotes/${quote.body.id}/convert`)
+      .send({ condition: 'IMEDIATO', paymentMethod: 'DINHEIRO' })
+      .expect(201);
+    saleIds.push(sale.body.id as string);
+
+    // Tentativa de editar orçamento já convertido -> 409
+    await request(app.getHttpServer())
+      .put(`/api/v1/commercial/sales/quotes/${quote.body.id}`)
+      .send({
+        priceListId: list.id,
+        items: [{ productLotId: lot.body.id, quantity: 2 }],
+      })
+      .expect(409);
+  });
+
+  it('rejects editing a sales quote that has already expired', async () => {
+    const product = await createProduct('QEXP', false);
+    const lot = await createLot(
+      product.body.id as string,
+      `QEXP-${suffix.slice(0, 8)}`,
+      10,
+    );
+    const list = await createPriceList(product.body.id as string, 100);
+
+    const quote = await createSalesQuote(list.id, lot.body.id as string, 4);
+    salesQuoteIds.push(quote.body.id as string);
+
+    await prisma.salesQuote.update({
+      where: { id: quote.body.id as string },
+      data: { expiresAt: new Date(Date.now() - 1000) },
+    });
+
+    await request(app.getHttpServer())
+      .put(`/api/v1/commercial/sales/quotes/${quote.body.id}`)
+      .send({
+        priceListId: list.id,
+        items: [{ productLotId: lot.body.id, quantity: 2 }],
+      })
+      .expect(409);
+  });
+
+  it('sends sales quote dispatching notification and logging audit', async () => {
+    const product = await createProduct('QSEND', false);
+    const lot = await createLot(
+      product.body.id as string,
+      `QSEND-${suffix.slice(0, 8)}`,
+      5,
+    );
+    const list = await createPriceList(product.body.id as string, 80);
+
+    const quote = await createSalesQuote(list.id, lot.body.id as string, 2);
+    salesQuoteIds.push(quote.body.id as string);
+
+    // Tenta enviar sem e-mail -> 400
+    await request(app.getHttpServer())
+      .post(`/api/v1/commercial/sales/quotes/${quote.body.id}/send`)
+      .send({})
+      .expect(400);
+
+    // Envia com e-mail válido -> 201
+    const sendResponse = await request(app.getHttpServer())
+      .post(`/api/v1/commercial/sales/quotes/${quote.body.id}/send`)
+      .send({ recipientEmail: 'cliente.teste@pirotecnia.com.br' })
+      .expect(201);
+    expect(sendResponse.body.success).toBe(true);
+    expect(sendResponse.body.recipientEmail).toBe(
+      'cliente.teste@pirotecnia.com.br',
+    );
+
+    const audit = await prisma.auditLog.findFirst({
+      where: {
+        action: 'sales-quote.sent',
+        aggregateId: quote.body.id as string,
+      },
+    });
+    expect(audit).not.toBeNull();
+  });
+
+  it('applies percentage-based promotional discount and enforces clear precedence (lowest effective price)', async () => {
+    const productA = await createProduct('PPERC', false);
+    const lotA = await createLot(
+      productA.body.id as string,
+      `PPERC-${suffix.slice(0, 8)}`,
+      10,
+    );
+    const productB = await createProduct('PFIX', false);
+    const lotB = await createLot(
+      productB.body.id as string,
+      `PFIX-${suffix.slice(0, 8)}`,
+      10,
+    );
+
+    // Tabela: Produto A = 100, Produto B = 50
+    const listResponse = await request(app.getHttpServer())
+      .post('/api/v1/pricing/lists')
+      .send({
+        name: `Tabela Promocao ${suffix}`,
+        items: [
+          { productId: productA.body.id, unitPrice: 100 },
+          { productId: productB.body.id, unitPrice: 50 },
+        ],
+      })
+      .expect(201);
+    priceListIds.push(listResponse.body.id as string);
+
+    // Promoção:
+    // Produto A: desconto percentual de 20% -> preço esperado 80
+    // Produto B: preço fixo promocional de 60 -> como tabela é 50, prevalece menor preço: 50
+    const promoResponse = await request(app.getHttpServer())
+      .post('/api/v1/pricing/promotions')
+      .send({
+        name: `Promoção Black Week ${suffix}`,
+        effectiveFrom: '2026-01-01',
+        effectiveUntil: '2099-12-31',
+        items: [
+          {
+            productId: productA.body.id,
+            discountType: 'PERCENTUAL',
+            discountPercent: 20,
+          },
+          {
+            productId: productB.body.id,
+            discountType: 'PRECO_FIXO',
+            promotionalPrice: 60,
+          },
+        ],
+      })
+      .expect(201);
+    promotionIds.push(promoResponse.body.id as string);
+
+    const quote = await request(app.getHttpServer())
+      .post('/api/v1/sales/quotes')
+      .send({
+        priceListId: listResponse.body.id,
+        items: [
+          { productLotId: lotA.body.id, quantity: 2 },
+          { productLotId: lotB.body.id, quantity: 1 },
+        ],
+      })
+      .expect(201);
+    salesQuoteIds.push(quote.body.id as string);
+
+    // 2 * 80 + 1 * 50 = 210
+    expect(quote.body.total).toBe('210');
+    const itemA = quote.body.items.find(
+      (i: { productId: string }) => i.productId === productA.body.id,
+    );
+    const itemB = quote.body.items.find(
+      (i: { productId: string }) => i.productId === productB.body.id,
+    );
+    expect(itemA.unitPrice).toBe('80');
+    expect(itemB.unitPrice).toBe('50');
+  });
+
+  it('handles legacy sale return without financial entry gracefully and idempotently', async () => {
+    const product = await createProduct('RLEG', false);
+    const lot = await createLot(
+      product.body.id as string,
+      `RLEG-${suffix.slice(0, 8)}`,
+      10,
+    );
+    const list = await createPriceList(product.body.id as string, 50);
+
+    // Cria venda balcão
+    const sale = await request(app.getHttpServer())
+      .post('/api/v1/sales')
+      .send({
+        priceListId: list.id,
+        condition: 'IMEDIATO',
+        paymentMethod: 'DINHEIRO',
+        items: [{ productLotId: lot.body.id, quantity: 4 }],
+      })
+      .expect(201);
+    saleIds.push(sale.body.id as string);
+
+    // Simula venda legada sem financialEntry
+    const entry = await prisma.financialEntry.findUnique({
+      where: { saleId: sale.body.id as string },
+    });
+    if (entry) {
+      await prisma.financialPayment.deleteMany({
+        where: { entryId: entry.id },
+      });
+      await prisma.financialEntry.delete({
+        where: { id: entry.id },
+      });
+    }
+
+    // Devolução parcial (2 itens) sem dueDate (venda legada sem financeiro: aceita sem gerar conta a pagar)
+    const returnResponse = await request(app.getHttpServer())
+      .post(`/api/v1/sales/${sale.body.id}/returns`)
+      .send({
+        reason: 'Devolução legada balcão sem financeiro',
+        items: [{ saleItemId: sale.body.items[0].id, quantity: 2 }],
+      })
+      .expect(201);
+    saleReturnIds.push(returnResponse.body.id as string);
+    expect(returnResponse.body.refundAmount).toBe('0');
+    expect(returnResponse.body.items[0].quantity).toBe('2');
+
+    // Lote recuperou 2 unidades (10 - 4 = 6; agora 6 + 2 = 8)
+    const lotCheck = await prisma.productLot.findUnique({
+      where: { id: lot.body.id as string },
+    });
+    expect(lotCheck?.quantity.toString()).toBe('8');
+
+    // Tentativa de devolver mais 3 itens (só restam 2): falha com 409
+    await request(app.getHttpServer())
+      .post(`/api/v1/sales/${sale.body.id}/returns`)
+      .send({
+        reason: 'Tentativa de devolver a mais',
+        items: [{ saleItemId: sale.body.items[0].id, quantity: 3 }],
+      })
+      .expect(409);
+  });
+
+  it('generates quotes conversion report with accurate metrics', async () => {
+    const report = await request(app.getHttpServer())
+      .get(
+        '/api/v1/commercial/reports/quotes-conversion?from=2026-01-01&to=2026-12-31',
+      )
+      .expect(200);
+
+    expect(report.body.period).toEqual({
+      from: '2026-01-01',
+      to: '2026-12-31',
+    });
+    const totals = report.body.totals;
+    expect(totals.quotesCount).toBeGreaterThanOrEqual(1);
+    expect(totals.conversionRatePercent).toBeDefined();
+    expect(Number(totals.conversionRatePercent)).toBeGreaterThanOrEqual(0);
+
+    // conversionRatePercent precisa ser exatamente (convertidos/total)*100,
+    // arredondado a 2 casas — confere a conta, não só o sinal.
+    const expectedRate =
+      Math.round((totals.convertedCount / totals.quotesCount) * 100 * 100) /
+      100;
+    expect(Number(totals.conversionRatePercent)).toBeCloseTo(expectedRate, 2);
+
+    // averageTicket precisa ser exatamente convertedAmount/convertedCount
+    // (ou zero sem conversões) — confere a relação entre os três campos.
+    if (totals.convertedCount > 0) {
+      const expectedAverageTicket =
+        Number(totals.convertedAmount) / totals.convertedCount;
+      expect(Number(totals.averageTicket)).toBeCloseTo(
+        expectedAverageTicket,
+        2,
+      );
+    } else {
+      expect(Number(totals.averageTicket)).toBe(0);
+    }
   });
 
   async function createProduct(label: string, isPce: boolean) {

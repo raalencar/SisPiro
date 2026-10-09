@@ -20,6 +20,7 @@ import {
   CashFlowQueryDto,
   CreateFinancialEntryDto,
   CreateFinancialPaymentDto,
+  AgingReportQueryDto,
   FinanceDashboardQueryDto,
   FinanceEntriesQueryDto,
   FinancePaymentReportQueryDto,
@@ -29,7 +30,7 @@ import { FinanceService } from './finance.service.js';
 @ApiTags('Financeiro')
 @ApiBearerAuth()
 @Roles(UserRole.FINANCEIRO)
-@Controller('finance')
+@Controller(['finance', 'financial'])
 export class FinanceController {
   constructor(private readonly finance: FinanceService) {}
 
@@ -104,5 +105,14 @@ export class FinanceController {
   })
   paymentBreakdown(@Query() query: FinancePaymentReportQueryDto) {
     return this.finance.paymentBreakdown(query);
+  }
+
+  @Get('reports/aging')
+  @ApiOperation({
+    summary:
+      'Aging schedule de títulos a pagar e a receber por faixas de vencimento.',
+  })
+  agingReport(@Query() query: AgingReportQueryDto) {
+    return this.finance.agingReport(query);
   }
 }

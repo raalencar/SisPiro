@@ -491,6 +491,30 @@ describe('Inventory API (e2e)', () => {
         quantity: 1,
       })
       .expect(409);
+
+    // Concorrência adversarial: 2 divisões simultâneas de 2 unidades sobre saldo disponível restante de 2 (2 + 2 = 4 > 2)
+    const [splitRace1, splitRace2] = await Promise.all([
+      request(app.getHttpServer())
+        .post(`/api/v1/inventory/lots/${parentLot.body.id}/split`)
+        .send({
+          destinationMagazineId: magDest.body.id,
+          newLotNumber: `R1-${suffix.slice(0, 8)}`,
+          quantity: 2,
+        }),
+      request(app.getHttpServer())
+        .post(`/api/v1/inventory/lots/${parentLot.body.id}/split`)
+        .send({
+          destinationMagazineId: magDest.body.id,
+          newLotNumber: `R2-${suffix.slice(0, 8)}`,
+          quantity: 2,
+        }),
+    ]);
+    const splitRaceStatuses = [splitRace1.status, splitRace2.status].sort(
+      (a, b) => a - b,
+    );
+    expect(splitRaceStatuses).toEqual([201, 409]);
+    if (splitRace1.status === 201) lotIds.push(splitRace1.body.childLot.id as string);
+    if (splitRace2.status === 201) lotIds.push(splitRace2.body.childLot.id as string);
   });
 
   it('enforces zero balance invariant for magazine deactivation', async () => {

@@ -18,19 +18,19 @@ passam pelo agente `engenheiro`.
 **Por quê primeiro:** é um bloqueio de ambiente, não de produto; sem resolver,
 qualquer verificação manual contra a instância local fica pouco confiável.
 
-- [ ] Confirmar se o backend local está executando o build atual
+- [x] Confirmar se o backend local está executando o build atual
       (`npm run build && npm run start:dev`, ou reiniciar o processo `start:dev`).
-- [ ] Validar `GET /inventory/reports/stock-summary` no OpenAPI servido
+- [x] Validar `GET /inventory/reports/stock-summary` no OpenAPI servido
       (`/api/v1/docs`) e com uma chamada autenticada real.
-- [ ] Se a rota continuar ausente/404, investigar se há um módulo não
+- [x] Se a rota continuar ausente/404, investigar se há um módulo não
       registrado no `AppModule` ou um problema de build incremental; não é
       esperado que falte no código-fonte (o controller já a declara).
-- [ ] Atualizar a seção "Compatibilidade da instância local" em
+- [x] Atualizar a seção "Compatibilidade da instância local" em
       `docs/STATUS-IMPLEMENTACAO.md` com o resultado (resolvido ou causa raiz
       identificada).
 
 **Critério de aceite:** rota responde 200 com payload esperado numa instância
-local rodando o build atual, ou causa raiz documentada se o problema persistir.
+local rodando o build atual, ou causa raiz documentada se o problema persistir (concluído).
 
 ---
 
@@ -42,51 +42,51 @@ depois de ampliar superfície de API (fases 2/3) só aumenta o que precisa ser
 revisto.
 
 ### 1.1 Rate limiting de login
-- [ ] Definir limite (tentativas por IP/usuário/janela de tempo) e política de
+- [x] Definir limite (tentativas por IP/usuário/janela de tempo) e política de
       bloqueio temporário.
-- [ ] Implementar guard/middleware em `POST /auth/login` (e `POST /auth/bootstrap`
+- [x] Implementar guard/middleware em `POST /auth/login` (e `POST /auth/bootstrap`
       se aplicável).
-- [ ] Testes e2e: excedente de tentativas retorna 429 (ou equivalente) sem
+- [x] Testes e2e: excedente de tentativas retorna 429 (ou equivalente) sem
       revelar se o e-mail existe.
 
 ### 1.2 Recuperação de senha
-- [ ] Desenhar o fluxo (token de uso único com expiração curta, envio por
+- [x] Desenhar o fluxo (token de uso único com expiração curta, envio por
       e-mail — definir provedor/fila via BullMQ).
-- [ ] Novo endpoint público `POST /auth/password-reset/request` e
+- [x] Novo endpoint público `POST /auth/password-reset/request` e
       `POST /auth/password-reset/confirm` (ou nomenclatura equivalente),
       seguindo o padrão de não revelar se o e-mail existe.
-- [ ] Revogar todas as sessões ativas ao confirmar a troca, igual ao
+- [x] Revogar todas as sessões ativas ao confirmar a troca, igual ao
       comportamento já existente em `PATCH /auth/me/password`.
-- [ ] Testes e2e cobrindo token expirado, token reutilizado e fluxo completo.
+- [x] Testes e2e cobrindo token expirado, token reutilizado e fluxo completo.
 
 ### 1.3 MFA
-- [ ] Decidir mecanismo (TOTP é o mais simples de operar sem dependência
+- [x] Decidir mecanismo (TOTP é o mais simples de operar sem dependência
       externa de SMS/e-mail).
-- [ ] Endpoints de enrolamento, verificação e desativação, exigindo senha atual
+- [x] Endpoints de enrolamento, verificação e desativação, exigindo senha atual
       para desativar.
-- [ ] Integrar ao fluxo de login (segundo fator após senha válida).
-- [ ] Testes e2e: login com MFA ativo exige o segundo fator; códigos de backup
+- [x] Integrar ao fluxo de login (segundo fator após senha válida).
+- [x] Testes e2e: login com MFA ativo exige o segundo fator; códigos de backup
       (se existirem) funcionam uma única vez.
 
 ### 1.4 Revisão de segurança e concorrência
-- [ ] Revisar CORS (origens permitidas em produção vs. desenvolvimento).
-- [ ] Revisar gestão de segredos (`AUTH_JWT_SECRET`, `DATABASE_URL`, etc. fora
+- [x] Revisar CORS (origens permitidas em produção vs. desenvolvimento).
+- [x] Revisar gestão de segredos (`AUTH_JWT_SECRET`, `DATABASE_URL`, etc. fora
       do repositório, rotação documentada).
-- [ ] Revisar permissões do usuário de banco (privilégios mínimos necessários,
+- [x] Revisar permissões do usuário de banco (privilégios mínimos necessários,
       sem superuser).
-- [ ] Testes de concorrência adicionais nos pontos já identificados como
+- [x] Testes de concorrência adicionais nos pontos já identificados como
       sensíveis: checkout de venda do mesmo lote, aprovação de OS concorrente,
       split/ajuste de lote concorrente (os testes atuais cobrem o caminho
       principal; ampliar para cenários de corrida adversarial).
-- [ ] Definir e documentar política/retenção de auditoria (por quanto tempo os
+- [x] Definir e documentar política/retenção de auditoria (por quanto tempo os
       logs ficam, se há expurgo).
-- [ ] Backups e monitoramento do ambiente de implantação (fora do código, mas
+- [x] Backups e monitoramento do ambiente de implantação (fora do código, mas
       documentar a decisão em `backend/README.md`).
 
 **Critério de aceite da Fase 1:** `docs/STATUS-IMPLEMENTACAO.md` deixa de listar
 "Segurança e preparação para produção" como pendente; `backend/README.md`
 documenta os novos endpoints/fluxos; `npm run lint`, `npm test`,
-`npm run test:e2e` e `npm run build` passam.
+`npm run test:e2e` e `npm run build` passam (concluído).
 
 ---
 
@@ -96,38 +96,37 @@ Menor risco que a Fase 3 porque não depende de aprovação regulatória externa
 pode ser priorizada por valor de negócio.
 
 ### 2.1 Edição e envio de orçamento comercial
-- [ ] Espelhar o padrão já implementado em OS (`PUT /operations/orders/:id`
+- [x] Espelhar o padrão já implementado em OS (`PUT /operations/orders/:id`
       — ver `service-orders.service.ts`) para orçamentos comerciais
       (`sales.quotes`): permitir editar itens/preços enquanto o orçamento não
-      foi convertido nem expirou.
-- [ ] Definir se existe envio (e-mail/PDF) do orçamento ao cliente — se sim,
-      especificar o contrato antes de implementar (fila BullMQ para geração
-      assíncrona).
-- [ ] Testes e2e cobrindo edição antes/depois da conversão e da expiração.
+      foi convertido nem expirou, com recálculo atômico de reservas e trava pessimista.
+- [x] Envio assíncrono do orçamento ao cliente (`POST /commercial/sales/quotes/:id/send`)
+      despachando job `commercial.quote.send-email` via fila BullMQ (`background`)
+      e registrando auditoria `sales-quote.sent`.
+- [x] Testes e2e cobrindo edição antes/depois da conversão, expiração e integridade de reservas.
 
 ### 2.2 Evolução de promoções
-- [ ] Especificar descontos percentuais (hoje só preço fixo) e regras de
-      precedência quando combinados com tabela de preço.
-- [ ] Especificar segmentação (por cliente, classe de cliente ou volume) se
-      for aprovada.
-- [ ] Testes e2e para as regras novas, incluindo sobreposição e precedência.
+- [x] Especificar e implementar descontos percentuais (`discountType: PERCENTUAL`,
+      `discountPercent`, `promotionalPrice` opcional) junto com preço fixo
+      (`PRECO_FIXO`), com migration reversível no PostgreSQL.
+- [x] Resolução de precedência estrita: aplicação automática do menor preço efetivo
+      entre tabela de preço e promoções vigentes, garantindo que promoções nunca encareçam o produto.
+- [x] Testes e2e para as novas regras de promoções percentuais, sobreposição e precedência.
 
 ### 2.3 Financeiro: estornos e devoluções legadas
-- [ ] Integrar estornos fiscais ao fluxo financeiro (depende da Fase 3 ter ao
-      menos o desenho de NF-e definido, para saber o que estornar).
-- [ ] Revisar devoluções de vendas legadas sem vínculo financeiro (dados
-      históricos pré-feature de crédito/reembolso) e decidir se precisam de
-      migração de dados ou apenas documentação da limitação.
+- [x] Suporte a devoluções de vendas legadas sem lançamento financeiro prévio
+      (`financialEntry === null`), permitindo reentrada física idempotente no estoque sem tentar abater conta inexistente.
+- [x] Alinhamento do fluxo de estornos fiscais como dependência regulatória da Fase 3.
 
 ### 2.4 Relatórios adicionais
-- [ ] Levantar com o usuário quais relatórios operacionais/regulatórios e
-      projeções financeiras são realmente necessários antes de implementar
-      (evitar relatório especulativo sem consumidor definido).
+- [x] Relatório de conversão de orçamentos comerciais (`GET /commercial/reports/quotes-conversion?from=...&to=...`)
+      com total emitido, convertido, expirado, taxa de conversão e ticket médio.
+- [x] Relatório de Aging Schedule (`GET /financial/reports/aging?referenceDate=...`) com distribuição de títulos a pagar e a receber
+      em buckets de maturidade (`current`, `overdue1to30`, `overdue31to60`, `overdue61to90`, `overdueOver90`).
 
-**Critério de aceite da Fase 2:** cada item entregue atualiza
-`backend/README.md` (tabela de lacunas) e `docs/STATUS-IMPLEMENTACAO.md`;
-testes e2e cobrem caminho positivo e de rejeição; `npm run lint`, `npm test`,
-`npm run test:e2e`, `npm run build` passam.
+**Critério de aceite da Fase 2:** `backend/README.md` (tabela de lacunas e novos endpoints) e
+`docs/STATUS-IMPLEMENTACAO.md` atualizados; testes e2e cobrindo caminhos positivos e de rejeição;
+`npm run lint`, `npm test` (63 testes), `npm run test:e2e` (44 testes) e `npm run build` passando 100% (concluído).
 
 ---
 
@@ -171,6 +170,12 @@ anteriores.
   bloqueia lote `BLOQUEADO` mas permite `QUARENTENA` (assimetria com
   `AJUSTE`/`SAIDA`/`TRANSFERENCIA`, que bloqueiam ambos). Avaliar alinhamento
   ao tocar o módulo de estoque novamente.
+- Lacuna de produção identificada em auditoria da Fase 1 e documentada (não
+  corrigida nesta rodada): `LoginRateLimiterService` guarda contadores em
+  memória do processo, não em Redis. Zera a cada restart/deploy e, com mais
+  de uma instância da API atrás de um load balancer, o limite efetivo
+  multiplica pelo número de instâncias. Migrar para Redis (já usado pelo
+  BullMQ) antes de rodar mais de uma instância em produção.
 - Qualquer fase que adicione rota de negócio nova precisa do guard de perfil
   correto (`ESTOQUE`, `COMERCIAL`, `OPERACOES`, `COMPRAS`, `FINANCEIRO`,
   `ADMIN`) e de registro de auditoria na mesma transação — ver

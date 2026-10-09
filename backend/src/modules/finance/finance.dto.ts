@@ -60,6 +60,19 @@ export class FinanceDashboardQueryDto extends CashFlowQueryDto {}
 
 export class FinancePaymentReportQueryDto extends CashFlowQueryDto {}
 
+export class AgingReportQueryDto {
+  @ApiPropertyOptional({ format: 'date', example: '2026-10-31' })
+  @IsOptional()
+  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  referenceDate?: string;
+
+  @ApiPropertyOptional({ enum: FinancialDirection })
+  @IsOptional()
+  @IsEnum(FinancialDirection)
+  direction?: FinancialDirection;
+}
+
 export class CreateFinancialEntryDto {
   @ApiProperty({ enum: FinancialDirection })
   @IsEnum(FinancialDirection)
