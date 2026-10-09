@@ -110,7 +110,8 @@ A autenticação possui serviço integrado de rate limiting (`LoginRateLimiterSe
 - Limite por IP de 25 tentativas para mitigar ataques distribuídos sem bloquear redes corporativas sob NAT.
 - Ao exceder o limite, retorna HTTP `429 Too Many Requests` com mensagem neutra, prevenindo enumeração de contas.
 - Tentativas bem-sucedidas zeram imediatamente os contadores da conta e do IP.
-- **Limitação conhecida:** os contadores ficam em memória do processo (`Map`), não em Redis/banco. Isso significa que (a) os contadores zeram a cada restart/deploy da API, e (b) com múltiplas instâncias atrás de um load balancer, o limite efetivo por IP/conta multiplica pelo número de instâncias, já que cada uma conta separadamente. Antes de expor a API à internet com mais de uma instância, migrar o armazenamento dos contadores para Redis (já usado pelo BullMQ) é o próximo passo recomendado.
+- Contadores compartilhados em Redis (`ioredis`, conexão dedicada em `src/infrastructure/redis.provider.ts` com reconexão indefinida — o `retryStrategy` nunca desiste, evitando que uma instabilidade transitória do Redis vire um fallback permanente em memória), suportando múltiplas instâncias atrás de um load balancer sem multiplicar o limite efetivo. A checagem do limite e o incremento da tentativa são feitos atomicamente em uma única operação (script Lua no Redis, bloco síncrono no fallback em memória), eliminando a janela de corrida que existiria entre "checar" e "contabilizar" se fossem operações separadas.
+- **Fallback em memória:** se o Redis estiver inacessível, o serviço cai para contadores em memória do processo (mesmas regras de limite). Nesse modo, os contadores zeram a cada restart/deploy e, com múltiplas instâncias, o limite efetivo multiplica pelo número de instâncias — uma degradação aceita apenas durante a indisponibilidade do Redis, não o comportamento normal.
 - **IPs de loopback** (`127.0.0.1`, `::1`, `::ffff:127.0.0.1`) recebem um limite elevado (100 tentativas em vez de 25) para não travar a suíte de testes e2e, que roda contra a própria API em loopback. Se um proxy reverso em produção não propagar o IP real do cliente para `@Ip()`, esse limite mais permissivo passaria a valer silenciosamente para tráfego externo — garanta que `trust proxy`/`X-Forwarded-For` esteja configurado corretamente no ambiente de implantação.
 
 #### Recuperação de Senha
@@ -415,14 +416,14 @@ todas as contas ativas a pagar e a receber com base na data de referência infor
 `overdue1to30` (1 a 30 dias de atraso), `overdue31to60` (31 a 60 dias), `overdue61to90`
 (61 a 90 dias) e `overdueOver90` (acima de 90 dias de atraso).
 
-Lançamentos avulsos continuam manuais; cada recebimento de compra gera
+Lançamentos avulsos podem ser simples ou parcelados (informando `installmentsCount` e `intervalDays` ou `customDueDates`), gerando títulos vinculados ao mesmo `installmentGroup` com rateio exato de centavos (resto alocado na 1ª parcela) e datas calculadas atomicamente. Cada recebimento de compra gera
 automaticamente uma conta a pagar vinculada à etapa recebida, a conclusão de
 uma OS gera uma conta a receber com o valor contratado e as vendas geram
 recebimentos ou contas a receber de acordo com a condição informada. Não há integração bancária,
-conciliação, parcelamento ou estorno de pagamentos. Emissão fiscal, Guias de
+conciliação ou estorno de pagamentos. Emissão fiscal, Guias de
 Tráfego, mapas regulatórios e relatórios gerenciais adicionais ainda não estão
-expostos pela API. O frontend já consome a autenticação e os endpoints de
-estoque; as demais áreas de negócio ainda precisam ser integradas às telas.
+expostos pela API. O frontend já consome a autenticação, estoque, comercial, financeiro
+e ordens de serviço.
 
 Todas as rotas de negócio exigem access token e perfil compatível; liveness,
 readiness e os endpoints de bootstrap/login/refresh/logout/password-reset/login-mfa são públicos.
@@ -473,15 +474,15 @@ iniciar cada novo escopo.
 
 | Área | Situação atual | Trabalho pendente |
 | --- | --- | --- |
-| Acesso e operadores | Login JWT, refresh rotativo, rate limiting com HTTP 429, recuperação de senha com tokens de uso único e revogação de sessões, MFA (TOTP + backup codes), usuários e perfis por módulo implementados; auditoria identifica o ator; locks pessimistas contra race conditions; BFF web usa cookies HttpOnly | Nenhum no backend (concluído na Fase 1); integrar telas de MFA e recuperação no frontend |
-| Financeiro de vendas | Checkout, conversão de orçamento, execução de OS e recebimentos de compras geram lançamentos vinculados; suporte a devoluções de vendas legadas sem lançamento financeiro de forma idempotente | Integrar estornos fiscais como dependência da modelagem fiscal da Fase 3 |
+| Acesso e operadores | Login JWT, refresh rotativo, rate limiting distribuído em Redis atômico (`ioredis`) com fallback gracioso em memória e HTTP 429, recuperação de senha com tokens de uso único e revogação de sessões, MFA (TOTP + backup codes), usuários e perfis por módulo implementados; auditoria identifica o ator; locks pessimistas contra race conditions; BFF web usa cookies HttpOnly | Nenhum no backend (concluído); integrar telas de MFA e recuperação no frontend |
+| Financeiro de vendas | Checkout, conversão de orçamento, execução de OS e recebimentos de compras geram lançamentos vinculados; suporte a parcelamento nativo com rateio exato de centavos (`installmentCount`, `intervalDays`, `installmentGroup`) e devoluções de vendas legadas sem lançamento financeiro de forma idempotente | Integrar estornos fiscais como dependência da modelagem fiscal da Fase 3 |
 | Devolução e financeiro | Devolução aplica crédito ao saldo em aberto, cria conta a pagar para reembolso e suporta vendas legadas sem lançamento prévio de forma segura e idempotente | Nenhum no backend (concluído na Fase 2) |
 | Orçamentos comerciais | Emissão, consulta, cancelamento, edição (`PUT`) com lock pessimista e recálculo atômico de reserva, envio de e-mail via BullMQ (`POST /send`), conversão em venda e relatório de conversão (`GET /commercial/reports/quotes-conversion`) implementados | Nenhum no backend (concluído na Fase 2) |
 | Preços promocionais | Campanhas de preço fixo e desconto percentual (`PromotionDiscountType`), vigência inclusiva, aplicação automática estrita pelo menor preço efetivo e bloqueio de sobreposição por produto implementados | Nenhum no backend (concluído na Fase 2) |
 | Fiscal e regulatório | Sem emissão fiscal ou integração oficial | Integrações e fluxos de NF-e, NFS-e, MDF-e e Guias de Tráfego, sujeitos à validação regulatória (Fase 3) |
 | Bancos | Sem integração bancária ou conciliação | Importação/integração de extratos, conciliação e tratamento de divergências (Fase 3) |
 | Relatórios | Resumos de vendas por produto/cliente, conversão de orçamentos, OS por status, painéis financeiros por vencimento/categoria/método, Aging schedule (`current`, `overdue1to30`, `overdue31to60`, `overdue61to90`, `overdueOver90`), posição de estoque com alertas de validade e Mapa SFPC disponíveis | Relatórios específicos de NF-e e Guia de Tráfego na Fase 3 |
-| Frontend de negócio | Login/BFF, módulo de estoque (com quarentena/split/paióis/SFPC) e ordens de serviço integrados à API | Integrar clientes, blasters, compras, comercial e financeiro; tela de edição de orçamento de OS (`PUT` já disponível na API); aplicar controles de apresentação por perfil |
+| Frontend de negócio | Login/BFF, estoque (quarentena/split/paióis/SFPC), ordens de serviço, clientes, blasters, compras, comercial, financeiro (incluindo parcelamento), recuperação de senha e controle de acesso por módulo (RBAC de navegação) integrados à API | RBAC refinado por botão de ação (hoje é só por módulo/tela); validação visual em staging |
 
 Esta lista registra lacunas conhecidas, não constitui contrato final de API nem
 garante que todos os itens pertençam ao escopo aprovado do produto. Antes de

@@ -1,6 +1,6 @@
 # Status da implementação SisPiro ERP
 
-Atualizado em 8 de outubro de 2026. Este documento resume as entregas existentes
+Atualizado em 9 de outubro de 2026. Este documento resume as entregas existentes
 no backend e no frontend e registra trabalho ainda necessário. O estado dos
 endpoints de negócio deve ser confirmado também contra a versão efetivamente
 implantada da API.
@@ -11,12 +11,13 @@ implantada da API.
   OpenAPI.
 - Autenticação JWT com login, bootstrap inicial, refresh rotativo, logout,
   alteração de senha, usuários e perfis por módulo.
-- Autenticação avançada e segurança (Fase 1): rate limiting de login e bootstrap com proteção contra força bruta e resposta neutra HTTP 429 (limitação conhecida: contadores em memória do processo, não em Redis — ver `backend/README.md`); recuperação de senha com tokens opacos de uso único (15 min), despacho assíncrono via fila BullMQ e revogação atômica de todas as sessões ativas; autenticação multifator (MFA TOTP RFC 6238) com pareamento Base32, URL `otpauth://`, 8 códigos de backup de uso único e segredo TOTP criptografado em repouso (AES-256-GCM); revisão de CORS, segredos e testes de concorrência adversarial com travas pessimistas (`FOR UPDATE`) implementados em código; privilégios mínimos no PostgreSQL, retenção de auditoria e backups documentados como runbook de implantação (ainda não provisionados neste repositório — ver `backend/README.md`).
+- Autenticação avançada e segurança (Fase 1): rate limiting de login e bootstrap com proteção contra força bruta, contadores distribuídos em Redis (checagem e incremento atômicos, com fallback gracioso em memória por processo caso o Redis esteja indisponível) e resposta neutra HTTP 429; recuperação de senha com tokens opacos de uso único (15 min), despacho assíncrono via fila BullMQ e revogação atômica de todas as sessões ativas; autenticação multifator (MFA TOTP RFC 6238) com pareamento Base32, URL `otpauth://`, 8 códigos de backup de uso único e segredo TOTP criptografado em repouso (AES-256-GCM); revisão de CORS, segredos e testes de concorrência adversarial com travas pessimistas (`FOR UPDATE`) implementados em código; privilégios mínimos no PostgreSQL, retenção de auditoria e backups documentados como runbook de implantação (ainda não provisionados neste repositório — ver `backend/README.md`).
 - Evolução Comercial e Financeira (Fase 2):
   - Orçamentos comerciais: edição de orçamentos vigentes (`PUT /sales/quotes/:id`) antes da conversão, com lock pessimista (`FOR UPDATE`) e recálculo transacional de reservas; envio assíncrono de orçamentos por e-mail (`POST /sales/quotes/:id/send`) despachando jobs via fila BullMQ (`background`) com registro de auditoria `sales-quote.sent`.
   - Promoções comerciais: suporte a desconto fixo (`PRECO_FIXO`) e desconto percentual (`PERCENTUAL`) com migração reversível no PostgreSQL (`PromotionDiscountType`); motor de precedência estrita garantindo a aplicação do menor preço efetivo para o cliente (sempre protegendo contra promoções mais caras que a tabela).
   - Devoluções legadas: suporte a devolução parcial e total de vendas legadas sem lançamento financeiro anterior (`financialEntry === null`), garantindo reentrada física idempotente no lote sem quebra de integridade.
   - Relatórios analíticos: relatório de conversão de orçamentos (`GET /commercial/reports/quotes-conversion`) com volume emitido, convertido, expirado, taxa de conversão (%) e ticket médio; relatório de Aging Schedule (`GET /financial/reports/aging`) com classificação de títulos a pagar e receber em 5 buckets de maturidade (`current`, `overdue1to30`, `overdue31to60`, `overdue61to90`, `overdueOver90`).
+  - Parcelamento financeiro nativo (`POST /financial/entries`): lançamentos parcelados com número de parcelas, intervalo em dias ou datas customizadas, rateio exato de centavos (resto alocado na 1ª parcela), agrupamento (`installmentGroup`) e auditoria individual por parcela.
 - Auditoria transacional para operações de negócio e autenticação, incluindo
   identidade do operador autenticado em novos registros.
 - Seed DEMO local idempotente, com dados fictícios para os módulos e guardas
@@ -40,6 +41,7 @@ implantada da API.
 - BFF same-origin para login, sessão, renovação e logout; os tokens ficam em
   cookies `HttpOnly`, `SameSite=Lax`, com `Secure` em produção.
 - Desafio de segundo fator MFA no login (`POST /api/auth/login/mfa`) com suporte a TOTP (6 dígitos) e código de emergência.
+- Recuperação de senha ("esqueci minha senha"): solicitação e confirmação com token, rotas BFF same-origin (`POST /api/auth/password-reset/request` e `/confirm`), suporte a link direto por query param (`?token=`/`?reset_token=`) e validação de senha nova (mínimo 12 caracteres) alinhada ao DTO do backend.
 - Estoque/WMS conectado a produtos, lotes (com alteração de situação/quarentena e desmembramento),
   paióis (com controle de ativação/inativação), movimentações e Mapa Mensal SFPC (R-105) interativo.
 - Cadastros regulamentares:
@@ -64,12 +66,13 @@ implantada da API.
   - Modal de quitação / pagamentos parciais com seleção de método (PIX, Dinheiro, Boleto, Cartão, Transferência).
   - Demonstrativo de Fluxo de Caixa Realizado diário.
   - Relatório analítico de Aging Schedule com os 5 buckets de maturidade e cálculo de exposição líquida.
+  - Lançamentos parcelados nativos (número de parcelas, intervalo ou datas customizadas, agrupamento visual por `installmentGroup`).
 - Controles de apresentação por perfil: itens de navegação sem permissão ficam
   visualmente desabilitados e o acesso direto por URL a um módulo sem o
   perfil exigido mostra uma tela de "Acesso restrito" (`lib/modules.ts`,
   `app-shell.tsx`). Granularidade por módulo, não por ação dentro da tela; a
   autorização final continua no backend.
-- Quality Gates 100% aprovados: `npm run lint` (0 avisos), `npm run typecheck` (0 erros), `npm test` (21 testes passando) e `npm run build` (18 rotas otimizadas).
+- Quality Gates 100% aprovados: `npm run lint` (0 avisos), `npm run typecheck` (0 erros), `npm test` (45 testes passando, incluindo testes de componente com React Testing Library/jsdom) e `npm run build` (20 rotas otimizadas).
 - Documentação de setup e escopo em [`frontend/README.md`](../frontend/README.md).
 
 ### Correção crítica aplicada nesta entrega
@@ -87,17 +90,9 @@ acima já refletem o comportamento corrigido.
 
 ## Trabalho pendente no frontend
 
-- **Tela de recuperação de senha:** o backend expõe
-  `POST /auth/password-reset/request` e `/confirm` (Fase 1 do backend), mas
-  não há rota BFF nem componente correspondente no frontend ainda.
 - **RBAC por ação:** o controle de perfil implementado é por módulo/tela, não
   por botão ou operação individual dentro de uma tela compartilhada por mais
   de um perfil.
-- **Cobertura de teste de componente:** não há React Testing Library (ou
-  equivalente) instalada; os testes atuais cobrem só lógica pura (clientes
-  HTTP, proxy BFF, mapeamento de módulos). Nenhuma tela é renderizada em
-  teste automatizado — essa lacuna foi o que permitiu o bug crítico acima
-  passar sem detecção.
 - Validar as jornadas completas (incluindo os módulos novos desta entrega)
   com usuários/perfis não administradores, erros de autorização, sessão
   expirada e refresh em navegadores suportados.
@@ -118,16 +113,10 @@ acima já refletem o comportamento corrigido.
 - Definir integração bancária, importação de extratos (OFX/CNAB), conciliação e tratamento
   de divergências financeiras.
 - Fases 0 (diagnóstico de ambiente), 1 (segurança e produção) e 2 (evolução comercial e financeira)
-  estão concluídas, testadas e auditadas no backend. A auditoria encontrou e
-  corrigiu nesta entrega: segredo TOTP persistido em texto plano (agora
-  criptografado), campo "ticket médio" documentado mas ausente no relatório
-  de conversão de orçamentos (agora implementado), e o parâmetro documentado
-  do relatório de Aging estava errado (`asOf` em vez de `referenceDate`,
-  corrigido na documentação). Limitações conhecidas e aceitas por ora:
-  rate limiter em memória do processo (não sobrevive restart/múltiplas
-  instâncias) e permissões de banco/backup documentadas como runbook de
-  implantação, não como infraestrutura já provisionada — ver
-  `backend/README.md`.
+  estão concluídas, testadas e auditadas no backend. Nesta rodada de refinamentos técnicos:
+  - O rate limiter de login foi migrado para operações atômicas em Redis (`ioredis`) com expiração em milissegundos e fallback gracioso em memória caso o Redis esteja indisponível.
+  - Implementado suporte nativo a parcelamento financeiro (`FinancialEntry`), com divisão exata de centavos (resto alocado na 1ª parcela), vencimentos escalonados, agrupamento (`installmentGroup`), auditoria individual por parcela e suporte visual no frontend.
+  - Permissões de banco e rotinas de backup documentadas como runbook de implantação em `backend/README.md`.
 
 ### Compatibilidade da instância local
 
@@ -147,9 +136,9 @@ Diagnóstico concluído (Fase 0): O controlador declara `GET /inventory/reports/
 
 ## Verificação executada nesta entrega
 
-- Backend: `npm run lint` (oxlint, 0 erros), `npm test` (68 testes), `npm run test:e2e` (45 testes) e `npm run build` passaram.
-- Frontend: `npm run lint` (0 avisos), `npm run typecheck` (0 erros), `npm test` (21 testes) e `npm run build` (18 rotas) passaram.
-- Auditoria independente (dois agentes, backend e frontend) revisou a entrega completa desta sessão antes do commit; achados e correções estão descritos nas seções acima e em `Plano_Backend.md`/`Plano_Front.md`.
+- Backend: `npm run lint` (oxlint, 0 erros), `npm test` (72 testes), `npm run test:e2e` (46 testes) e `npm run build` passaram.
+- Frontend: `npm run lint` (0 avisos), `npm run typecheck` (0 erros), `npm test` (45 testes) e `npm run build` (20 rotas SSG/SSR) passaram.
+- Auditoria e refinamentos técnicos (Rate Limiter Redis e Parcelamento Financeiro) concluídos e validados em testes unitários e ponta a ponta em ambas as camadas. A auditoria desta rodada encontrou e corrigiu, antes da validação final: reconexão permanente abandonada do cliente Redis do rate limiter após instabilidade transitória (`retryStrategy` corrigido para nunca desistir) e uma janela de corrida real entre checar e contabilizar tentativas de login (corrigida com checagem + incremento atômicos em uma única operação).
 
 Para requisitos de execução, endpoints e regras detalhadas, consulte
 [`backend/README.md`](../backend/README.md) e

@@ -5,24 +5,26 @@ interface web Next.js em `frontend/`.
 
 ## Estado atual e roadmap
 
-A API oferece autenticação com MFA e recuperação de senha, perfis de acesso,
-estoque/WMS, cadastros operacionais e fluxos de compras, vendas, ordens de
-serviço e financeiro. A interface integra autenticação (incluindo desafio
-MFA), estoque/WMS (produtos, lotes, quarentena/bloqueio, split entre paióis,
-Mapa SFPC), clientes, blasters, compras/fornecedores, comercial (tabelas de
-preço, promoções, orçamentos, PDV, devoluções), ordens de serviço (orçamento
-até aprovação, montagem e encerramento, incluindo edição de orçamento) e
-financeiro (contas a pagar/receber, fluxo de caixa, Aging Schedule). Os
-controles de apresentação por perfil ocultam/desabilitam módulos sem
-permissão na navegação.
+A API oferece autenticação com MFA e recuperação de senha, rate limiting de
+login distribuído em Redis, perfis de acesso, estoque/WMS, cadastros
+operacionais e fluxos de compras, vendas, ordens de serviço e financeiro
+(incluindo parcelamento nativo de lançamentos). A interface integra
+autenticação (incluindo desafio MFA e recuperação de senha), estoque/WMS
+(produtos, lotes, quarentena/bloqueio, split entre paióis, Mapa SFPC),
+clientes, blasters, compras/fornecedores, comercial (tabelas de preço,
+promoções, orçamentos, PDV, devoluções), ordens de serviço (orçamento até
+aprovação, montagem e encerramento, incluindo edição de orçamento) e
+financeiro (contas a pagar/receber, fluxo de caixa, Aging Schedule,
+parcelamento). Os controles de apresentação por perfil ocultam/desabilitam
+módulos sem permissão na navegação.
 
-Ainda faltam: tela de recuperação de senha no frontend (API já disponível),
-RBAC por ação dentro de uma tela (hoje é por módulo), e testes de componente
-automatizados. Emissão fiscal, Guias de Tráfego, integração bancária/
-conciliação e permissões de banco/backup de produção são lacunas conhecidas
-e, no caso fiscal/GT/bancário, bloqueadas até aprovação explícita. O
-documento [Status da implementação](./docs/STATUS-IMPLEMENTACAO.md) lista o que
-foi entregue e as próximas etapas por backend e frontend.
+Ainda faltam: RBAC por ação dentro de uma tela (hoje é por módulo) e
+validação visual completa em ambiente de staging. Emissão fiscal, Guias de
+Tráfego, integração bancária/conciliação e permissões de banco/backup de
+produção são lacunas conhecidas e, no caso fiscal/GT/bancário, bloqueadas até
+aprovação explícita. O documento
+[Status da implementação](./docs/STATUS-IMPLEMENTACAO.md) lista o que foi
+entregue e as próximas etapas por backend e frontend.
 
 ## Frontend
 

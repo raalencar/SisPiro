@@ -29,9 +29,10 @@ do backend. Entre com `demo.admin@local.test` e com a senha configurada em
 
 ## Módulos e Integrações Disponíveis (V1.0)
 
-1. **Autenticação & MFA:**
+1. **Autenticação, MFA & Recuperação de Senha:**
    - Login, consulta de sessão ativa (`/api/auth/session`), renovação automática transparente e logout via rotas same-origin do Next.js.
    - Desafio de segundo fator MFA (TOTP de 6 dígitos ou código de recuperação de emergência).
+   - Fluxo completo de recuperação de senha ("Esqueci minha senha" e redefinição com token de uso único de 15 minutos via rotas same-origin `/api/auth/password-reset/request` e `/api/auth/password-reset/confirm`), integrado ao painel de acesso com validação de força de senha.
    - Sessão protegida em cookies `HttpOnly`, `SameSite=Lax`, com zero tokens JWT em `localStorage` ou `sessionStorage`.
 
 2. **Estoque e WMS:**
@@ -89,21 +90,14 @@ do backend. Entre com `demo.admin@local.test` e com a senha configurada em
 ```bash
 npm run lint       # ESLint estrito (zero warnings)
 npm run typecheck  # Checagem estrita de tipos com tsc
-npm test           # Testes unitários com Vitest
+npm test           # Testes unitários e de componentes com Vitest e Testing Library (jsdom)
 npm run build      # Build de produção otimizado Next.js
 ```
 
 ## Limitações conhecidas
 
-- Não há tela de recuperação de senha ("esqueci minha senha"). O backend já
-  expõe `POST /auth/password-reset/request` e `/confirm`; falta a rota BFF e
-  o componente correspondente.
 - Os controles de apresentação por perfil atuam no nível de módulo/tela, não
   de ação individual dentro de uma tela compartilhada por perfis diferentes.
-- Não há testes de componente (React Testing Library ou equivalente) — a
-  suíte Vitest atual cobre apenas lógica pura (clientes HTTP, proxy BFF,
-  mapeamento de módulos). Ver [`docs/STATUS-IMPLEMENTACAO.md`](../docs/STATUS-IMPLEMENTACAO.md)
-  para o histórico de um bug crítico de proxy que essa lacuna deixou passar.
 - Smoke test visual autenticado das jornadas completas (OS, estoque,
   cadastros novos) contra o seed local ainda não foi realizado nesta
   entrega.
