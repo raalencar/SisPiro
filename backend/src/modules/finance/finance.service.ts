@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import {
   BadRequestException,
   ConflictException,
@@ -42,6 +43,9 @@ export class FinanceService {
               ...(query.dueUntil ? { lte: this.dateOnly(query.dueUntil) } : {}),
             },
           }
+        : {}),
+      ...(query.installmentGroup
+        ? { installmentGroup: query.installmentGroup }
         : {}),
       ...(query.search
         ? {
@@ -133,69 +137,134 @@ export class FinanceService {
         );
       }
     }
-    const entry = await this.prisma.$transaction(async (tx) => {
-      const created = await tx.financialEntry.create({
-        data: {
-          direction: dto.direction,
-          description: dto.description.trim(),
-          category: dto.category.trim(),
-          counterparty: dto.counterparty.trim(),
-          customerId: dto.customerId ?? null,
-          amount: new Prisma.Decimal(dto.amount),
-          dueDate: this.dateOnly(dto.dueDate),
-          reference: dto.reference?.trim() || null,
-        },
-        include: {
-          customer: true,
-          supplier: true,
-          receiptBatch: {
-            include: {
-              purchase: {
-                select: { id: true, code: true, reference: true },
+
+    const installmentsCount = dto.installmentsCount ?? 1;
+    if (installmentsCount > 1) {
+      if (dto.amount < 0.01 * installmentsCount) {
+        throw new BadRequestException(
+          `O valor total deve ser de pelo menos R$ ${(0.01 * installmentsCount).toFixed(2)} para ${installmentsCount} parcelas.`,
+        );
+      }
+    }
+
+    let dueDates: string[] = [];
+    if (dto.customDueDates && dto.customDueDates.length > 0) {
+      if (dto.customDueDates.length !== installmentsCount) {
+        throw new BadRequestException(
+          `O número de datas customizadas (${dto.customDueDates.length}) deve corresponder ao número de parcelas (${installmentsCount}).`,
+        );
+      }
+      for (let i = 0; i < dto.customDueDates.length - 1; i++) {
+        if (dto.customDueDates[i] >= dto.customDueDates[i + 1]) {
+          throw new BadRequestException(
+            'As datas de vencimento das parcelas devem estar em ordem cronológica estritamente crescente.',
+          );
+        }
+      }
+      dueDates = dto.customDueDates;
+    } else {
+      const interval = dto.intervalDays ?? 30;
+      dueDates = Array.from({ length: installmentsCount }, (_, i) =>
+        i === 0 ? dto.dueDate : this.addDays(dto.dueDate, i * interval),
+      );
+    }
+
+    const totalCents = Math.round(dto.amount * 100);
+    const baseCents = Math.floor(totalCents / installmentsCount);
+    const remainderCents = totalCents - baseCents * installmentsCount;
+    const installmentGroup = installmentsCount > 1 ? randomUUID() : null;
+
+    const entries = await this.prisma.$transaction(async (tx) => {
+      const createdList = [];
+      for (let i = 0; i < installmentsCount; i++) {
+        const k = i + 1;
+        const parcelCents = i === 0 ? baseCents + remainderCents : baseCents;
+        const parcelAmount = new Prisma.Decimal((parcelCents / 100).toFixed(2));
+        const parcelDesc =
+          installmentsCount > 1
+            ? `${dto.description.trim()} (${k}/${installmentsCount})`
+            : dto.description.trim();
+
+        const created = await tx.financialEntry.create({
+          data: {
+            direction: dto.direction,
+            description: parcelDesc,
+            category: dto.category.trim(),
+            counterparty: dto.counterparty.trim(),
+            customerId: dto.customerId ?? null,
+            amount: parcelAmount,
+            dueDate: this.dateOnly(dueDates[i]),
+            reference: dto.reference?.trim() || null,
+            installmentNumber: installmentsCount > 1 ? k : null,
+            installmentCount: installmentsCount > 1 ? installmentsCount : null,
+            installmentGroup,
+          },
+          include: {
+            customer: true,
+            supplier: true,
+            receiptBatch: {
+              include: {
+                purchase: {
+                  select: { id: true, code: true, reference: true },
+                },
               },
             },
+            serviceOrder: {
+              select: {
+                id: true,
+                code: true,
+                eventAt: true,
+                eventLocation: true,
+              },
+            },
+            sale: {
+              select: { id: true, code: true, quoteId: true, createdAt: true },
+            },
+            saleReturn: {
+              select: {
+                id: true,
+                code: true,
+                saleId: true,
+                creditApplied: true,
+                refundAmount: true,
+              },
+            },
+            payments: true,
           },
-          serviceOrder: {
-            select: {
-              id: true,
-              code: true,
-              eventAt: true,
-              eventLocation: true,
+        });
+
+        await createAuditLog(tx, {
+          data: {
+            action: 'finance.entry.created',
+            aggregateType: 'FinancialEntry',
+            aggregateId: created.id,
+            after: {
+              code: created.code,
+              direction: created.direction,
+              amount: created.amount.toString(),
+              dueDate: dueDates[i],
+              category: created.category,
+              customerId: created.customerId,
+              installmentNumber: created.installmentNumber,
+              installmentCount: created.installmentCount,
+              installmentGroup: created.installmentGroup,
             },
           },
-          sale: {
-            select: { id: true, code: true, quoteId: true, createdAt: true },
-          },
-          saleReturn: {
-            select: {
-              id: true,
-              code: true,
-              saleId: true,
-              creditApplied: true,
-              refundAmount: true,
-            },
-          },
-          payments: true,
-        },
-      });
-      await createAuditLog(tx, {
-        data: {
-          action: 'finance.entry.created',
-          aggregateType: 'FinancialEntry',
-          aggregateId: created.id,
-          after: {
-            code: created.code,
-            direction: created.direction,
-            amount: created.amount.toString(),
-            dueDate: dto.dueDate,
-            category: created.category,
-            customerId: created.customerId,
-          },
-        },
-      });
-      return created;
+        });
+
+        createdList.push(created);
+      }
+      return createdList;
     });
-    return this.serialize(entry);
+
+    if (installmentsCount === 1) {
+      return this.serialize(entries[0]);
+    }
+
+    return {
+      ...this.serialize(entries[0]),
+      installments: entries.map((e) => this.serialize(e)),
+    };
   }
 
   async get(id: string) {

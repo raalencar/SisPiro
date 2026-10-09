@@ -560,22 +560,26 @@ model FinancialEntry {
   serviceOrderId String?               @unique @map("ordem_servico_id") @db.Uuid
   saleId         String?               @unique @map("venda_id") @db.Uuid
   saleReturnId   String?               @unique @map("devolucao_venda_id") @db.Uuid
-  amount         Decimal               @db.Decimal(12, 2)
-  creditedAmount Decimal               @default(0) @map("credito_aplicado") @db.Decimal(12, 2)
-  dueDate        DateTime              @map("data_vencimento") @db.Date
-  status         FinancialEntryStatus  @default(ABERTO)
-  reference      String?               @db.VarChar(100)
-  createdAt      DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
-  customer       Customer?             @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  supplier       Supplier?             @relation(fields: [supplierId], references: [id], onDelete: Restrict)
-  receiptBatch   PurchaseReceiptBatch? @relation(fields: [receiptBatchId], references: [id], onDelete: Restrict)
-  serviceOrder   ServiceOrder?         @relation(fields: [serviceOrderId], references: [id], onDelete: Restrict)
-  sale           Sale?                 @relation(fields: [saleId], references: [id], onDelete: Restrict)
-  saleReturn     SaleReturn?           @relation(fields: [saleReturnId], references: [id], onDelete: Restrict)
-  payments       FinancialPayment[]
+  amount            Decimal               @db.Decimal(12, 2)
+  creditedAmount    Decimal               @default(0) @map("credito_aplicado") @db.Decimal(12, 2)
+  dueDate           DateTime              @map("data_vencimento") @db.Date
+  status            FinancialEntryStatus  @default(ABERTO)
+  reference         String?               @db.VarChar(100)
+  installmentNumber Int?                  @map("numero_parcela")
+  installmentCount  Int?                  @map("total_parcelas")
+  installmentGroup  String?               @map("grupo_parcelamento") @db.VarChar(50)
+  createdAt         DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  customer          Customer?             @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  supplier          Supplier?             @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  receiptBatch      PurchaseReceiptBatch? @relation(fields: [receiptBatchId], references: [id], onDelete: Restrict)
+  serviceOrder      ServiceOrder?         @relation(fields: [serviceOrderId], references: [id], onDelete: Restrict)
+  sale              Sale?                 @relation(fields: [saleId], references: [id], onDelete: Restrict)
+  saleReturn        SaleReturn?           @relation(fields: [saleReturnId], references: [id], onDelete: Restrict)
+  payments          FinancialPayment[]
 
   @@index([direction, status, dueDate])
   @@index([customerId, dueDate])
+  @@index([installmentGroup])
   @@map("lancamentos_financeiros")
 }
 

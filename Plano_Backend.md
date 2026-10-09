@@ -170,12 +170,20 @@ anteriores.
   bloqueia lote `BLOQUEADO` mas permite `QUARENTENA` (assimetria com
   `AJUSTE`/`SAIDA`/`TRANSFERENCIA`, que bloqueiam ambos). Avaliar alinhamento
   ao tocar o módulo de estoque novamente.
-- Lacuna de produção identificada em auditoria da Fase 1 e documentada (não
-  corrigida nesta rodada): `LoginRateLimiterService` guarda contadores em
-  memória do processo, não em Redis. Zera a cada restart/deploy e, com mais
-  de uma instância da API atrás de um load balancer, o limite efetivo
-  multiplica pelo número de instâncias. Migrar para Redis (já usado pelo
-  BullMQ) antes de rodar mais de uma instância em produção.
+- [x] **Rate Limiter Redis (Resolvido):** `LoginRateLimiterService` migrado para Redis
+  (`ioredis`) com expiração em milissegundos, suporte a escalonamento horizontal de
+  instâncias de API e fallback gracioso em memória caso o Redis esteja inacessível
+  (com reconexão indefinida — `retryStrategy` nunca desiste, ver
+  `src/infrastructure/redis.provider.ts` — evitando que o fallback em memória se torne
+  permanente após uma instabilidade transitória). A checagem e o incremento da tentativa
+  são feitos atomicamente em uma única chamada (script Lua no Redis, bloco síncrono no
+  fallback em memória): isso elimina a janela de corrida que existiria entre "checar o
+  limite" e "contabilizar a tentativa" se fossem duas operações separadas por I/O
+  assíncrono (consulta ao banco, verificação de senha), como era a estrutura original.
+  Cobertura de teste inclui um caso de chamadas concorrentes para a mesma chave.
+- [x] **Parcelamento Financeiro (Resolvido):** Adicionado suporte a lançamentos parcelados
+  nativos em `FinancialEntry`, com agrupamento (`installmentGroup`), escalonamento de datas,
+  cálculo e rateio de centavos exatos no backend, auditoria individual e suporte visual na UI.
 - Qualquer fase que adicione rota de negócio nova precisa do guard de perfil
   correto (`ESTOQUE`, `COMERCIAL`, `OPERACOES`, `COMPRAS`, `FINANCEIRO`,
   `ADMIN`) e de registro de auditoria na mesma transação — ver

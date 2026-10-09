@@ -381,6 +381,60 @@ describe('Finance API (e2e)', () => {
       .get(`/api/v1/financial/reports/aging?asOf=${explicitReferenceDate}`)
       .expect(400);
   });
+
+  it('creates installment entries with exact penny distribution, scheduled due dates, and group filtering', async () => {
+    const totalAmount = 100.0;
+    const installmentsCount = 3;
+    const initialDue = dateOffset(10);
+
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/finance/entries')
+      .send({
+        direction: 'PAGAR',
+        description: 'Aquisição de equipamentos parcelada',
+        category: 'Equipamentos',
+        counterparty: 'Fornecedor de Maquinário',
+        amount: totalAmount,
+        dueDate: initialDue,
+        installmentsCount,
+        intervalDays: 30,
+      })
+      .expect(201);
+
+    expect(created.body.installments).toBeDefined();
+    expect(created.body.installments).toHaveLength(3);
+
+    const [p1, p2, p3] = created.body.installments;
+    entryIds.push(p1.id as string, p2.id as string, p3.id as string);
+
+    expect(p1.installmentNumber).toBe(1);
+    expect(p1.installmentCount).toBe(3);
+    expect(p1.amount).toBe('33.34');
+    expect(p1.dueDate.slice(0, 10)).toBe(initialDue);
+
+    expect(p2.installmentNumber).toBe(2);
+    expect(p2.installmentCount).toBe(3);
+    expect(p2.amount).toBe('33.33');
+
+    expect(p3.installmentNumber).toBe(3);
+    expect(p3.installmentCount).toBe(3);
+    expect(p3.amount).toBe('33.33');
+
+    // Valida soma exata dos centavos
+    const sum = Number(p1.amount) + Number(p2.amount) + Number(p3.amount);
+    expect(sum).toBe(100.0);
+
+    expect(p1.installmentGroup).toBeDefined();
+    expect(p2.installmentGroup).toBe(p1.installmentGroup);
+    expect(p3.installmentGroup).toBe(p1.installmentGroup);
+
+    // Valida filtro por installmentGroup
+    const groupList = await request(app.getHttpServer())
+      .get(`/api/v1/finance/entries?installmentGroup=${p1.installmentGroup}`)
+      .expect(200);
+
+    expect(groupList.body.data).toHaveLength(3);
+  });
 });
 
 function dateOffset(days: number): string {

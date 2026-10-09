@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PrismaModule } from '../../database/prisma.module.js';
 import { QueueModule } from '../../infrastructure/queue.module.js';
+import { redisClientProvider, REDIS_CLIENT } from '../../infrastructure/redis.provider.js';
 import { AccessGuard } from './access.guard.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
@@ -26,6 +27,7 @@ import { UsersController } from './users.controller.js';
   ],
   controllers: [AuthController, UsersController],
   providers: [
+    redisClientProvider,
     AuthService,
     PasswordHasher,
     LoginRateLimiterService,
@@ -33,6 +35,6 @@ import { UsersController } from './users.controller.js';
     AccessGuard,
     { provide: APP_GUARD, useExisting: AccessGuard },
   ],
-  exports: [AuthService, LoginRateLimiterService, TotpService],
+  exports: [AuthService, LoginRateLimiterService, TotpService, REDIS_CLIENT],
 })
 export class AuthModule {}

@@ -260,7 +260,7 @@ describe('Authentication and users API (e2e)', () => {
       .expect(429);
 
     expect(rateLimited.body.message).toContain('Muitas tentativas');
-    app.get(LoginRateLimiterService).clearAll();
+    await app.get(LoginRateLimiterService).clearAll();
   });
 
   it('handles password recovery request and confirmation with session revocation', async () => {

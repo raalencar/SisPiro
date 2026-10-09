@@ -1,5 +1,6 @@
 import { Transform, Type } from 'class-transformer';
 import {
+  IsArray,
   IsDateString,
   IsEnum,
   IsNumber,
@@ -42,6 +43,12 @@ export class FinanceEntriesQueryDto extends PaginationQueryDto {
   @IsDateString({ strict: true })
   @Matches(/^\d{4}-\d{2}-\d{2}$/)
   dueUntil?: string;
+
+  @ApiPropertyOptional({ maxLength: 50, example: 'grp-12345' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  installmentGroup?: string;
 }
 
 export class CashFlowQueryDto {
@@ -122,6 +129,31 @@ export class CreateFinancialEntryDto {
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @MaxLength(100)
   reference?: string;
+
+  @ApiPropertyOptional({ minimum: 1, maximum: 60, example: 3 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 0 })
+  @Min(1)
+  @Max(60)
+  installmentsCount?: number;
+
+  @ApiPropertyOptional({ minimum: 1, maximum: 365, example: 30 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 0 })
+  @Min(1)
+  @Max(365)
+  intervalDays?: number;
+
+  @ApiPropertyOptional({
+    type: [String],
+    example: ['2026-10-31', '2026-11-30', '2026-12-31'],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsDateString({ strict: true }, { each: true })
+  customDueDates?: string[];
 }
 
 export class CreateFinancialPaymentDto {

@@ -71,7 +71,7 @@ export class AuthService {
       'auth:bootstrap',
     ].filter(Boolean);
 
-    this.rateLimiter.assertNotRateLimited(rateLimitKeys);
+    await this.rateLimiter.assertNotRateLimited(rateLimitKeys);
 
     try {
       const result = await this.prisma.$transaction(async (tx) => {
@@ -104,11 +104,14 @@ export class AuthService {
         const { sessionId: _sessionId, ...publicTokens } = tokens;
         return { ...publicTokens, user };
       });
-      this.rateLimiter.recordSuccess(rateLimitKeys);
+      await this.rateLimiter.recordSuccess(rateLimitKeys);
       return result;
     } catch (error) {
-      if (!(error instanceof ConflictException)) {
-        this.rateLimiter.recordFailure(rateLimitKeys);
+      if (error instanceof ConflictException) {
+        // Administrador já existe: não é uma tentativa de força bruta,
+        // então não deve contar contra o limite (desfaz o incremento
+        // otimista feito em assertNotRateLimited acima).
+        await this.rateLimiter.recordSuccess(rateLimitKeys);
       }
       throw error;
     }
@@ -122,7 +125,7 @@ export class AuthService {
       `email:${normalizedEmail}`,
     ].filter(Boolean);
 
-    this.rateLimiter.assertNotRateLimited(rateLimitKeys);
+    await this.rateLimiter.assertNotRateLimited(rateLimitKeys);
 
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
@@ -141,7 +144,6 @@ export class AuthService {
 
     if (!user) {
       await this.passwordHasher.hash(dto.password);
-      this.rateLimiter.recordFailure(rateLimitKeys);
       throw new UnauthorizedException('E-mail ou senha inválidos.');
     }
 
@@ -151,7 +153,6 @@ export class AuthService {
     );
 
     if (!passwordValid || !user.active) {
-      this.rateLimiter.recordFailure(rateLimitKeys);
       throw new UnauthorizedException('E-mail ou senha inválidos.');
     }
 
@@ -191,7 +192,6 @@ export class AuthService {
       }
 
       if (!validMfa) {
-        this.rateLimiter.recordFailure(rateLimitKeys);
         throw new UnauthorizedException(
           'Código de autenticação em dois fatores inválido.',
         );
@@ -215,7 +215,7 @@ export class AuthService {
       }
     }
 
-    this.rateLimiter.recordSuccess(rateLimitKeys);
+    await this.rateLimiter.recordSuccess(rateLimitKeys);
     const summary = this.userSummary(user);
     return this.prisma.$transaction(async (tx) => {
       const tokens = await this.createSession(tx, summary);
@@ -620,7 +620,7 @@ export class AuthService {
       `mfa:${payload.sub}`,
     ].filter(Boolean);
 
-    this.rateLimiter.assertNotRateLimited(rateLimitKeys);
+    await this.rateLimiter.assertNotRateLimited(rateLimitKeys);
 
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
@@ -659,13 +659,12 @@ export class AuthService {
     }
 
     if (!validMfa) {
-      this.rateLimiter.recordFailure(rateLimitKeys);
       throw new UnauthorizedException(
         'Código de autenticação em dois fatores inválido.',
       );
     }
 
-    this.rateLimiter.recordSuccess(rateLimitKeys);
+    await this.rateLimiter.recordSuccess(rateLimitKeys);
 
     if (usedBackupIndex !== -1) {
       const remainingBackupCodes = [...user.mfaBackupCodes];
@@ -827,7 +826,7 @@ export class AuthService {
       `reset:${dto.email.trim().toLowerCase()}`,
     ].filter(Boolean);
 
-    this.rateLimiter.assertNotRateLimited(rateLimitKeys);
+    await this.rateLimiter.assertNotRateLimited(rateLimitKeys);
 
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email.trim().toLowerCase() },

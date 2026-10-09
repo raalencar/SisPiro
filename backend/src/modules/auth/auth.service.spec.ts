@@ -115,17 +115,17 @@ describe('AuthService (Unit & Domain Logic)', () => {
       });
 
       // 2 tentativas falhas
-      rateLimiter.recordFailure(['email:user@test.local']);
-      rateLimiter.recordFailure(['email:user@test.local']);
+      await rateLimiter.assertNotRateLimited(['email:user@test.local']);
+      await rateLimiter.assertNotRateLimited(['email:user@test.local']);
 
       // Login com sucesso
       const result = await authService.login({ email: 'user@test.local', password });
       expect(result.accessToken).toBeDefined();
 
       // Contador deve estar limpo
-      expect(() =>
+      await expect(
         rateLimiter.assertNotRateLimited(['email:user@test.local']),
-      ).not.toThrow();
+      ).resolves.toBeUndefined();
     });
   });
 
