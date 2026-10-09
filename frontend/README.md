@@ -68,6 +68,7 @@ do backend. Entre com `demo.admin@local.test` e com a senha configurada em
    - Modal de quitação / pagamentos parciais com seleção de método (PIX, Dinheiro, Boleto, Cartão, Transferência).
    - Demonstrativo de Fluxo de Caixa Realizado diário com totais de entradas, saídas e saldo operacional líquido.
    - Relatório analítico de Aging Schedule (cronograma de vencimento e risco de inadimplência em 5 faixas: A Vencer, 1-30d, 31-60d, 61-90d, >90d).
+   - Lançamentos parcelados (número de parcelas, intervalo em dias ou datas customizadas), com identificação visual de cada parcela por grupo.
 
 8. **Controles de apresentação por perfil:**
    - Itens de navegação para módulos fora do perfil do usuário (`ESTOQUE`, `COMERCIAL`, `OPERACOES`, `COMPRAS`, `FINANCEIRO`; `ADMIN` sempre tem acesso) aparecem visualmente desabilitados, e o acesso direto por URL mostra uma tela de "Acesso restrito" (`src/lib/modules.ts`, `src/components/app-shell.tsx`).

@@ -88,19 +88,31 @@ qualquer método exceto `GET`/`DELETE`, com teste de regressão cobrindo `PUT`,
 `PATCH` e `GET` em `frontend/src/lib/server-auth.test.ts`. As telas listadas
 acima já refletem o comportamento corrigido.
 
+### Smoke test manual aplicado nesta entrega (achado e corrigido)
+
+Com o backend e o frontend rodando localmente, foram criados 5 usuários de
+teste (um por perfil) e validadas manualmente no navegador as jornadas de
+RBAC, recuperação de senha ponta a ponta e edição de OS — ver detalhes em
+`Plano_Front.md` (Fases 3, 5 e 6). Esse teste encontrou um bug real que
+nenhum teste automatizado cobria: a tela Financeiro (`finance-workspace.tsx`)
+lia campos (`paidAmount`/`remainingAmount`/`counterpart`) que a API nunca
+retorna — o real é `paid`/`outstanding`/`counterparty` — e exibia "R$ NaN"
+em "Amortizado" e "Saldo Devedor" para todo lançamento, além de abrir o modal
+de pagamento com valor/limite inválidos. Corrigido, com teste de regressão
+de componente (`finance-workspace.test.tsx`) que falha deliberadamente se o
+bug for reintroduzido.
+
 ## Trabalho pendente no frontend
 
-- **RBAC por ação:** o controle de perfil implementado é por módulo/tela, não
-  por botão ou operação individual dentro de uma tela compartilhada por mais
-  de um perfil.
-- Validar as jornadas completas (incluindo os módulos novos desta entrega)
-  com usuários/perfis não administradores, erros de autorização, sessão
-  expirada e refresh em navegadores suportados.
-- Fazer smoke test visual autenticado das jornadas de OS, estoque
-  (quarentena/split/paióis) e dos módulos novos (clientes, blasters, compras,
-  comercial, financeiro) contra o seed local — ainda não realizado nesta
-  entrega.
-- Validar responsividade e acessibilidade das telas integradas.
+- **RBAC por ação:** avaliado nesta entrega (ver `Plano_Front.md` Fase 3) —
+  hoje não há nenhuma tela real compartilhada por mais de um perfil com
+  permissões diferentes por ação, então não é uma lacuna ativa. Reavaliar se
+  isso mudar.
+- Validar sessão expirada e renovação (refresh) nos navegadores suportados —
+  não coberto nesta rodada.
+- Validar acessibilidade (contraste, navegação por teclado, labels de
+  formulário) — não coberto nesta rodada; responsividade teve apenas um
+  smoke test pontual (estoque, viewport mobile), não é cobertura exaustiva.
 - Implementar telas de faturamento e regulatório somente após endpoints e
   regras oficiais estarem disponíveis e aprovados (Fase 3 do backend).
 
@@ -137,8 +149,8 @@ Diagnóstico concluído (Fase 0): O controlador declara `GET /inventory/reports/
 ## Verificação executada nesta entrega
 
 - Backend: `npm run lint` (oxlint, 0 erros), `npm test` (72 testes), `npm run test:e2e` (46 testes) e `npm run build` passaram.
-- Frontend: `npm run lint` (0 avisos), `npm run typecheck` (0 erros), `npm test` (45 testes) e `npm run build` (20 rotas SSG/SSR) passaram.
-- Auditoria e refinamentos técnicos (Rate Limiter Redis e Parcelamento Financeiro) concluídos e validados em testes unitários e ponta a ponta em ambas as camadas. A auditoria desta rodada encontrou e corrigiu, antes da validação final: reconexão permanente abandonada do cliente Redis do rate limiter após instabilidade transitória (`retryStrategy` corrigido para nunca desistir) e uma janela de corrida real entre checar e contabilizar tentativas de login (corrigida com checagem + incremento atômicos em uma única operação).
+- Frontend: `npm run lint` (0 avisos), `npm run typecheck` (0 erros), `npm test` (46 testes) e `npm run build` (20 rotas SSG/SSR) passaram.
+- Auditoria e refinamentos técnicos (Rate Limiter Redis e Parcelamento Financeiro) concluídos e validados em testes unitários e ponta a ponta em ambas as camadas. A auditoria desta rodada encontrou e corrigiu, antes da validação final: reconexão permanente abandonada do cliente Redis do rate limiter após instabilidade transitória (`retryStrategy` corrigido para nunca desistir) e uma janela de corrida real entre checar e contabilizar tentativas de login (corrigida com checagem + incremento atômicos em uma única operação); a assimetria `ENTRADA`/`QUARENTENA` no estoque (lacuna de baixo risco conhecida desde a auditoria da Fase 1); e um bug de exibição "R$ NaN" na tela Financeiro, encontrado em smoke test manual com usuários reais contra o backend local — ver seção acima.
 
 Para requisitos de execução, endpoints e regras detalhadas, consulte
 [`backend/README.md`](../backend/README.md) e
