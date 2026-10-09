@@ -72,7 +72,7 @@ implantada da API.
   perfil exigido mostra uma tela de "Acesso restrito" (`lib/modules.ts`,
   `app-shell.tsx`). Granularidade por módulo, não por ação dentro da tela; a
   autorização final continua no backend.
-- Quality Gates 100% aprovados: `npm run lint` (0 avisos), `npm run typecheck` (0 erros), `npm test` (45 testes passando, incluindo testes de componente com React Testing Library/jsdom) e `npm run build` (20 rotas otimizadas).
+- Quality Gates 100% aprovados: `npm run lint` (0 avisos), `npm run typecheck` (0 erros), `npm test` (46 testes passando, incluindo testes de componente com React Testing Library/jsdom) e `npm run build` (20 rotas otimizadas).
 - Documentação de setup e escopo em [`frontend/README.md`](../frontend/README.md).
 
 ### Correção crítica aplicada nesta entrega
