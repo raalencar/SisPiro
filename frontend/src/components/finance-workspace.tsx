@@ -64,6 +64,9 @@ export function FinanceWorkspace() {
   const [newAmount, setNewAmount] = useState<number>(0);
   const [newDueDate, setNewDueDate] = useState(currentDate);
   const [newCustomerId, setNewCustomerId] = useState("");
+  const [newIsInstallment, setNewIsInstallment] = useState(false);
+  const [newInstallmentsCount, setNewInstallmentsCount] = useState<number>(2);
+  const [newIntervalDays, setNewIntervalDays] = useState<number>(30);
   const [newEntrySubmitting, setNewEntrySubmitting] = useState(false);
   const [newEntryError, setNewEntryError] = useState<string | null>(null);
 
@@ -171,6 +174,9 @@ export function FinanceWorkspace() {
     setNewAmount(0);
     setNewDueDate(currentDate);
     setNewCustomerId("");
+    setNewIsInstallment(false);
+    setNewInstallmentsCount(2);
+    setNewIntervalDays(30);
     setNewEntryError(null);
     setIsNewEntryOpen(true);
   }
@@ -188,9 +194,15 @@ export function FinanceWorkspace() {
         amount: newAmount,
         dueDate: newDueDate,
         customerId: newCustomerId || undefined,
+        installmentsCount: newIsInstallment ? newInstallmentsCount : undefined,
+        intervalDays: newIsInstallment ? newIntervalDays : undefined,
       });
       setIsNewEntryOpen(false);
-      setActionSuccess("Lançamento financeiro cadastrado com sucesso.");
+      setActionSuccess(
+        newIsInstallment
+          ? `Lançamento parcelado em ${newInstallmentsCount}x cadastrado com sucesso.`
+          : "Lançamento financeiro cadastrado com sucesso.",
+      );
       setReloadTrigger((prev) => prev + 1);
     } catch (err) {
       setNewEntryError(errorMessage(err));
@@ -381,7 +393,17 @@ export function FinanceWorkspace() {
                             </span>
                           </td>
                           <td className="p-3">
-                            <div className="font-semibold text-neutral-100">{en.counterpart}</div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-neutral-100">{en.counterpart || en.counterparty}</span>
+                              {en.installmentCount && en.installmentCount > 1 && (
+                                <span
+                                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-neutral-800 text-primary-400 border border-primary-500/30"
+                                  title={`Grupo de Parcelas: ${en.installmentGroup ?? ""}`}
+                                >
+                                  Parcela {en.installmentNumber}/{en.installmentCount}
+                                </span>
+                              )}
+                            </div>
                             <div className="text-xs text-neutral-400 flex items-center gap-2">
                               <span>Categoria: {en.category}</span>
                               {en.saleId && <span className="text-neutral-500">• Venda vinculada</span>}
@@ -751,6 +773,62 @@ export function FinanceWorkspace() {
                   </select>
                 </label>
               )}
+
+              {/* Opções de Parcelamento */}
+              <div className="p-3 bg-neutral-900/80 border border-neutral-800 rounded-lg space-y-3">
+                <label className="flex items-center gap-2 cursor-pointer text-sm font-medium text-neutral-200">
+                  <input
+                    type="checkbox"
+                    checked={newIsInstallment}
+                    onChange={(e) => setNewIsInstallment(e.target.checked)}
+                    className="rounded border-neutral-700 bg-neutral-800 text-primary-500 focus:ring-primary-500"
+                  />
+                  <span>Parcelar este lançamento (gerar múltiplos títulos)</span>
+                </label>
+
+                {newIsInstallment && (
+                  <div className="space-y-3 pt-2 border-t border-neutral-800">
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className="field">
+                        <span>Quantidade de Parcelas *</span>
+                        <input
+                          type="number"
+                          min="2"
+                          max="60"
+                          required
+                          value={newInstallmentsCount}
+                          onChange={(e) =>
+                            setNewInstallmentsCount(Math.max(2, Math.min(60, Number(e.target.value) || 2)))
+                          }
+                        />
+                      </label>
+                      <label className="field">
+                        <span>Intervalo (dias) *</span>
+                        <input
+                          type="number"
+                          min="1"
+                          max="365"
+                          required
+                          value={newIntervalDays}
+                          onChange={(e) =>
+                            setNewIntervalDays(Math.max(1, Math.min(365, Number(e.target.value) || 30)))
+                          }
+                        />
+                      </label>
+                    </div>
+
+                    {newAmount > 0 && (
+                      <p className="text-xs text-neutral-400">
+                        Serão gerados <span className="font-semibold text-neutral-200">{newInstallmentsCount}</span> títulos de aproximadamente{" "}
+                        <span className="font-semibold text-emerald-400">
+                          {formatCurrency(newAmount / newInstallmentsCount)}
+                        </span>{" "}
+                        a cada <span className="font-semibold text-neutral-200">{newIntervalDays} dias</span>.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
 
               {newEntryError && <p className="form-error text-xs" role="alert">{newEntryError}</p>}
 

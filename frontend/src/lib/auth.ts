@@ -29,6 +29,10 @@ export function isMfaChallenge(result: unknown): result is MfaChallenge {
   );
 }
 
+export type PasswordResetResponse = {
+  message: string;
+};
+
 export const authApi = {
   login: async (email: string, password: string, mfaCode?: string) => {
     const result = await requestJson<LoginResult>("/api/auth/login", {
@@ -48,6 +52,24 @@ export const authApi = {
     markSessionFresh();
     return user;
   },
+  requestPasswordReset: async (email: string) => {
+    return await requestJson<PasswordResetResponse>(
+      "/api/auth/password-reset/request",
+      {
+        method: "POST",
+        body: JSON.stringify({ email }),
+      },
+    );
+  },
+  confirmPasswordReset: async (token: string, newPassword: string) => {
+    return await requestJson<PasswordResetResponse>(
+      "/api/auth/password-reset/confirm",
+      {
+        method: "POST",
+        body: JSON.stringify({ token, newPassword }),
+      },
+    );
+  },
   session: async () => {
     const user = await requestJson<AuthUser>("/api/auth/session");
     markSessionFresh();
@@ -61,3 +83,4 @@ export const authApi = {
     }
   },
 };
+

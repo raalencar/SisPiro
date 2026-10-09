@@ -1240,10 +1240,13 @@ export type FinancialEntry = {
   direction: FinancialDirection;
   status: FinancialStatus;
   category: string;
-  counterpart: string;
+  counterpart?: string;
+  counterparty?: string;
   amount: string;
-  paidAmount: string;
-  remainingAmount: string;
+  paidAmount?: string;
+  paid?: string;
+  remainingAmount?: string;
+  outstanding?: string;
   dueDate: string;
   overdue: boolean;
   customerId?: string | null;
@@ -1251,6 +1254,9 @@ export type FinancialEntry = {
   saleId?: string | null;
   serviceOrderId?: string | null;
   purchaseId?: string | null;
+  installmentNumber?: number | null;
+  installmentCount?: number | null;
+  installmentGroup?: string | null;
   payments: FinancialPayment[];
   createdAt: string;
 };
@@ -1289,12 +1295,14 @@ export const financeApi = {
     status?: FinancialStatus,
     from?: string,
     to?: string,
+    installmentGroup?: string,
   ) => {
     const query = new URLSearchParams({ page: String(page), limit: "100" });
     if (direction) query.set("direction", direction);
     if (status) query.set("status", status);
     if (from) query.set("from", from);
     if (to) query.set("to", to);
+    if (installmentGroup) query.set("installmentGroup", installmentGroup);
     return requestJson<PageResult<FinancialEntry>>(
       `/api/finance/entries?${query.toString()}`,
     );
@@ -1304,15 +1312,31 @@ export const financeApi = {
   createEntry: (body: {
     direction: FinancialDirection;
     category: string;
-    counterpart: string;
+    counterparty?: string;
+    counterpart?: string;
+    description?: string;
     amount: number;
     dueDate: string;
     customerId?: string;
-  }) =>
-    requestJson<FinancialEntry>("/api/finance/entries", {
-      method: "POST",
-      body: JSON.stringify(body),
-    }),
+    installmentsCount?: number;
+    intervalDays?: number;
+  }) => {
+    const counterparty = body.counterparty || body.counterpart || "";
+    const description =
+      body.description ||
+      `Lançamento ${body.direction === "PAGAR" ? "a pagar" : "a receber"} - ${counterparty || body.category}`;
+    return requestJson<FinancialEntry & { installments?: FinancialEntry[] }>(
+      "/api/finance/entries",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          ...body,
+          counterparty,
+          description,
+        }),
+      },
+    );
+  },
   createPayment: (
     id: string,
     body: {

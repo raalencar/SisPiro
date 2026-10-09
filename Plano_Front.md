@@ -37,9 +37,8 @@ e todas as outras edições da Fase 2. Corrigido para ler o corpo em qualquer
 método exceto `GET`/`DELETE`, com teste de regressão em
 `src/lib/server-auth.test.ts` cobrindo `PUT`, `PATCH` e `GET`.
 
-**Pendente:** teste Vitest de componente cobrindo a jornada de edição de OS
-fim a fim (hoje a cobertura é só no nível do proxy BFF — ver nota sobre
-testes de componente nas Notas de acompanhamento).
+**Concluído:** teste Vitest de componente cobrindo a jornada de edição de OS
+fim a fim (`src/components/operations-workspace.test.tsx`).
 
 **Critério de aceite:** `npm run lint`, `npm run typecheck`, `npm test`,
 `npm run build` passam (confirmado). Jornada testada manualmente no navegador
@@ -144,9 +143,12 @@ esconder/desabilitar antes de a tela existir).
 **Bloqueado até:** `Plano_Backend.md` Fase 1 (rate limiting, recuperação de
 senha, MFA) estar implementada no backend — já está.
 
-- [ ] Tela de "esqueci minha senha" (solicitação + confirmação com token).
-      **Ainda não existe** — o backend expõe `POST /auth/password-reset/request`
-      e `/confirm`, mas não há rota BFF nem componente para isso no frontend.
+- [x] Tela de "esqueci minha senha" (solicitação + confirmação com token).
+      Implementada com rotas BFF same-origin (`POST /api/auth/password-reset/request`
+      e `/confirm`), métodos em `lib/auth.ts` (`authApi.requestPasswordReset`,
+      `confirmPasswordReset`) e integrada ao painel de acesso (`login-panel.tsx`),
+      com suporte a links diretos via query params (`?token=` ou `?reset_token=`) e
+      validação de tamanho mínimo de 12 caracteres para a nova senha.
 - [x] Enrolamento e verificação de MFA no fluxo de login (`login-panel.tsx`
       trata `mfaRequired: true`, aceita código TOTP de 6 dígitos ou código de
       backup de 8 caracteres, finaliza via `POST /api/auth/login/mfa`; nunca
@@ -194,13 +196,10 @@ definido é retrabalho garantido.
   ver `agentes/front.md` para a lista completa de regras de produto.
 - Toda nova rota BFF (`frontend/src/app/api/**`) mantém o padrão de cookies
   `HttpOnly`/`SameSite=Lax`/`Secure` em produção; tokens nunca saem do BFF.
-- **Lacuna de infraestrutura de teste identificada em auditoria:** o projeto
-  não tem React Testing Library (ou equivalente) instalada; `src/lib/*.test.ts`
-  testa só lógica pura (clientes HTTP, `server-auth`, `modules`). Nenhum
-  componente/tela é renderizado em teste automatizado. Isso foi exatamente o
-  que permitiu o bug crítico do proxy BFF (Fase 1) passar sem detecção por
-  tanto tempo. Adicionar testes de componente é um investimento de
-  infraestrutura ainda pendente, fora do escopo desta rodada de correções.
+- **Infraestrutura de testes de componentes entregue:** adicionados
+  `@testing-library/react` e `jsdom` integrados ao Vitest, com cobertura inicial
+  cobrindo autenticação/recuperação (`src/components/login-panel.test.tsx`) e a
+  jornada de edição de OS em `src/components/operations-workspace.test.tsx`.
 - Este arquivo consolida e substitui `Plano_Frontend.md` (criado em paralelo
   durante a implementação da Fase 2 com fases numeradas de forma diferente;
   removido para não manter duas fontes de verdade).

@@ -10,4 +10,10 @@ export default defineConfig({
       "@": path.resolve(rootDir, "./src"),
     },
   },
+  test: {
+    environmentMatchGlobs: [
+      ["**/*.test.tsx", "jsdom"],
+      ["src/components/**", "jsdom"],
+    ],
+  },
 });

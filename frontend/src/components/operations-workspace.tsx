@@ -781,7 +781,7 @@ export function OperationsWorkspace() {
                   : "Não cadastrado"}
               </dd>
             </div>
-            {selected.customer.authorizedPceClasses.length > 0 && (
+            {(selected.customer.authorizedPceClasses?.length ?? 0) > 0 && (
               <div>
                 <dt>Classes PCE autorizadas</dt>
                 <dd>{selected.customer.authorizedPceClasses.join(", ")}</dd>
