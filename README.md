@@ -5,16 +5,22 @@ interface web Next.js em `frontend/`.
 
 ## Estado atual e roadmap
 
-A API oferece autenticação e perfis de acesso, estoque/WMS, cadastros
-operacionais e fluxos de compras, vendas, ordens de serviço e financeiro. A
-interface já integra autenticação e estoque: consultas de produtos, lotes,
-paióis, movimentações e resumos disponíveis na API, além dos cadastros e
-operações de estoque suportados. Também integra ordens de serviço, desde a
-criação do orçamento até a aprovação, montagem e encerramento da execução.
+A API oferece autenticação com MFA e recuperação de senha, perfis de acesso,
+estoque/WMS, cadastros operacionais e fluxos de compras, vendas, ordens de
+serviço e financeiro. A interface integra autenticação (incluindo desafio
+MFA), estoque/WMS (produtos, lotes, quarentena/bloqueio, split entre paióis,
+Mapa SFPC), clientes, blasters, compras/fornecedores, comercial (tabelas de
+preço, promoções, orçamentos, PDV, devoluções), ordens de serviço (orçamento
+até aprovação, montagem e encerramento, incluindo edição de orçamento) e
+financeiro (contas a pagar/receber, fluxo de caixa, Aging Schedule). Os
+controles de apresentação por perfil ocultam/desabilitam módulos sem
+permissão na navegação.
 
-Clientes, blasters, compras, comercial e financeiro ainda precisam de telas
-conectadas às APIs existentes. Emissão fiscal, Guias de Tráfego, integração
-bancária/conciliação, recuperação de senha e MFA são lacunas conhecidas. O
+Ainda faltam: tela de recuperação de senha no frontend (API já disponível),
+RBAC por ação dentro de uma tela (hoje é por módulo), e testes de componente
+automatizados. Emissão fiscal, Guias de Tráfego, integração bancária/
+conciliação e permissões de banco/backup de produção são lacunas conhecidas
+e, no caso fiscal/GT/bancário, bloqueadas até aprovação explícita. O
 documento [Status da implementação](./docs/STATUS-IMPLEMENTACAO.md) lista o que
 foi entregue e as próximas etapas por backend e frontend.
 
