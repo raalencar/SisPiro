@@ -127,7 +127,7 @@ export function FinanceWorkspace() {
   // Ações
   function handleOpenPayment(entry: FinancialEntry) {
     setPayingEntry(entry);
-    setPaymentAmount(Number(entry.remainingAmount));
+    setPaymentAmount(Number(entry.outstanding));
     setPaymentMethod("PIX");
     setPaymentDate(currentDate);
     setPaymentNotes("");
@@ -425,10 +425,10 @@ export function FinanceWorkspace() {
                             {formatCurrency(Number(en.amount))}
                           </td>
                           <td className="p-3 text-right font-mono text-emerald-400">
-                            {formatCurrency(Number(en.paidAmount))}
+                            {formatCurrency(Number(en.paid))}
                           </td>
                           <td className="p-3 text-right font-mono font-bold text-neutral-100">
-                            {formatCurrency(Number(en.remainingAmount))}
+                            {formatCurrency(Number(en.outstanding))}
                           </td>
                           <td className="p-3 text-center">
                             <span
@@ -860,12 +860,12 @@ export function FinanceWorkspace() {
             <div className="p-3 bg-neutral-900 border border-neutral-800 rounded text-xs space-y-1">
               <div>
                 <span className="text-neutral-400">Título:</span>{" "}
-                <span className="font-semibold text-neutral-100">{payingEntry.counterpart}</span>
+                <span className="font-semibold text-neutral-100">{payingEntry.counterpart || payingEntry.counterparty}</span>
               </div>
               <div>
                 <span className="text-neutral-400">Saldo Restante:</span>{" "}
                 <span className="font-mono font-bold text-amber-400">
-                  {formatCurrency(Number(payingEntry.remainingAmount))}
+                  {formatCurrency(Number(payingEntry.outstanding))}
                 </span>
               </div>
             </div>
@@ -878,7 +878,7 @@ export function FinanceWorkspace() {
                     type="number"
                     step="0.01"
                     min="0.01"
-                    max={Number(payingEntry.remainingAmount)}
+                    max={Number(payingEntry.outstanding)}
                     required
                     value={paymentAmount || ""}
                     onChange={(e) => setPaymentAmount(Number(e.target.value))}

@@ -1243,9 +1243,7 @@ export type FinancialEntry = {
   counterpart?: string;
   counterparty?: string;
   amount: string;
-  paidAmount?: string;
   paid?: string;
-  remainingAmount?: string;
   outstanding?: string;
   dueDate: string;
   overdue: boolean;

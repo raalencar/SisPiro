@@ -127,14 +127,30 @@ esconder/desabilitar antes de a tela existir).
       módulos sem permissão, e um gate de conteúdo (`ModuleAccessGate`) que
       mostra "Acesso restrito" se o usuário acessar a URL do módulo direto.
       Autorização final continua no backend.
-- [ ] Testar manualmente com usuários de perfil único e perfil múltiplo no
-      seed local — cobertura automatizada hoje é só unitária
-      (`lib/modules.test.ts`).
-- **Granularidade:** o controle é por módulo (rota/tela), não por botão/ação
-  individual dentro de uma tela. Ocultar ações específicas (ex.: botão
-  "editar" vs. botão "ver") não foi implementado — avaliar se é necessário
-  quando houver perfis compartilhando uma tela com permissões distintas por
-  operação.
+- [x] Testado manualmente contra backend real: criados 5 usuários locais de
+      teste, um por perfil (`ESTOQUE`/`COMERCIAL`/`OPERACOES`/`COMPRAS`/`FINANCEIRO`),
+      logados individualmente no navegador. Confirmado para cada um: nav mostra
+      apenas o(s) módulo(s) do seu perfil habilitado(s), os demais aparecem
+      desabilitados; acesso direto por URL a um módulo fora do perfil mostra
+      "Acesso restrito"; o módulo liberado carrega dados reais da API. Usuários
+      de teste desativados (`active: false`) ao final — não ficaram permanentes
+      no seed. Perfil múltiplo (`ADMIN`) já estava coberto pela conta demo.
+- [x] **Granularidade (avaliado, não aplicável hoje):** investigado se existe
+  algum caso real de tela compartilhada por mais de um perfil com permissões
+  diferentes por ação, auditando todos os `@Roles()` do backend
+  (`grep -rn "@Roles(" src/modules/*/*.controller.ts`). Resultado: cada
+  controller tem um único perfil dominante por módulo e mapeia 1:1 para um
+  único módulo do frontend (`ESTOQUE`→estoque, `COMERCIAL`→clientes/comercial,
+  `OPERACOES`→operações/blasters, `COMPRAS`→compras, `FINANCEIRO`→financeiro).
+  As únicas duas rotas com `@Roles()` de override (`GET /customers/operational-options`
+  e `GET /inventory/operational-lots`, ambas `OPERACOES`) são endpoints de
+  lookup consumidos exclusivamente pela tela de Operações através do seu
+  próprio namespace de BFF (`/api/operations/references/*`), nunca pelas
+  telas de Clientes/Estoque — ou seja, já estão isoladas corretamente, sem
+  expor nada a um usuário `COMERCIAL`/`ESTOQUE` que não devesse ver. Implementar
+  RBAC por botão/ação agora seria infraestrutura sem caso de uso real no
+  produto atual; reavaliar apenas se um papel futuro passar a compartilhar
+  uma tela existente com permissões diferentes por operação.
 
 ---
 
@@ -161,23 +177,45 @@ senha, MFA) estar implementada no backend — já está.
 
 ## Fase 5 — Validação de jornadas completas
 
-- [ ] Validar as jornadas integradas (Fases 1–2) com usuários/perfis não
-      administradores, incluindo erros de autorização retornados pelo backend.
+- [x] Validadas as jornadas integradas com usuários não administradores reais
+      (um por perfil, ver Fase 3) contra o backend local rodando: recuperação
+      de senha ponta a ponta (solicitação → token real retirado da fila BullMQ
+      em Redis → confirmação → login com a nova senha), edição de orçamento de
+      OS via `PUT` (alteração persistida e refletida na listagem), e navegação
+      por módulo restrito/liberado por perfil.
 - [ ] Validar sessão expirada e renovação (refresh) nos navegadores
-      suportados.
-- [ ] Smoke test visual autenticado da jornada completa de OS contra o seed
-      local (pendência já registrada em `docs/STATUS-IMPLEMENTACAO.md`).
-- [ ] Smoke test visual das jornadas novas de estoque (quarentena/bloqueio de
-      lote, split entre paióis, ativação/inativação de paiol, Mapa SFPC).
+      suportados — não coberto nesta rodada.
+- [x] Smoke test visual autenticado da jornada completa de OS contra o seed
+      local: listagem, detalhe, edição de orçamento (`PUT`) com persistência
+      confirmada.
+- [x] Smoke test visual da jornada de estoque: posição de estoque, lotes,
+      mudança de status para quarentena e tentativa de `ENTRADA` bloqueada
+      corretamente (ver correção da assimetria ENTRADA/QUARENTENA em
+      `Plano_Backend.md`).
+- [x] **Achado corrigido nesta rodada:** a tela Financeiro renderizava
+      "Amortizado" e "Saldo Devedor" como "R$ NaN" para todo lançamento, e o
+      modal de pagamento abria com valor/limite inválidos e título em branco.
+      Causa: `finance-workspace.tsx` lia `entry.paidAmount`/`entry.remainingAmount`/
+      `entry.counterpart`, campos que a API nunca retorna (os reais são
+      `paid`/`outstanding`/`counterparty`). Corrigido em todos os pontos de
+      leitura; campos mortos removidos do tipo `FinancialEntry` em `lib/api.ts`;
+      regressão coberta por `finance-workspace.test.tsx` (falha
+      deliberadamente confirmada com o bug reintroduzido, antes de reverter).
+      Só foi encontrado porque a tela chegou a ser aberta de verdade no
+      navegador — reforça o valor de smoke test visual além de testes
+      unitários/e2e de API.
 
 ---
 
 ## Fase 6 — Responsividade e acessibilidade
 
-- [ ] Validar responsividade das telas integradas (Fases 1–2) em resoluções
-      menores (tablet/mobile, se aplicável ao uso real do produto).
+- [x] Smoke test de responsividade em viewport mobile (390×844, iPhone-sized)
+      nas telas de Estoque (resumo e lista de lotes): sidebar colapsa para
+      menu hamburguer, grid reflui para coluna única, sem overflow horizontal.
+      Não é cobertura exaustiva de todas as telas/breakpoints.
 - [ ] Validar acessibilidade básica (contraste, navegação por teclado, labels
-      de formulário) nas telas novas e nas já existentes de estoque/operações.
+      de formulário) nas telas novas e nas já existentes de estoque/operações
+      — não coberto nesta rodada.
 
 ---
 
