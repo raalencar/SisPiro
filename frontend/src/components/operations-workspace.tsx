@@ -2,8 +2,14 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Icon } from "@/components/icon";
+import { PixModal } from "@/components/pix-modal";
 import {
+  complianceApi,
+  fiscalApi,
+  financeApi,
   operationsApi,
+  type FiscalDocument,
+  type GeneratedPix,
   type OperationalBlaster,
   type OperationalCustomer,
   type OperationalLot,
@@ -18,6 +24,8 @@ import {
   formatDateTime,
   formatNumber,
 } from "@/lib/format";
+import { useEscapeToClose } from "@/lib/use-escape-to-close";
+import { useModalFocusTrap } from "@/lib/use-modal-focus-trap";
 
 type OrderAction = "create" | "edit" | "approve" | "start" | "cancel" | "close";
 type OrderDraftItem = { lotId: string; quantity: string };
@@ -162,6 +170,134 @@ export function OperationsWorkspace() {
   const [firedQuantities, setFiredQuantities] = useState<
     Record<string, string>
   >({});
+
+  // --- FRENTE E2E: ELO 1 - GUIA DE TRÁFEGO ---
+  const [isGtModalOpen, setIsGtModalOpen] = useState(false);
+  const [gtPlate, setGtPlate] = useState("ABC-1234");
+  const [gtPlateState, setGtPlateState] = useState("SP");
+  const [gtDriverName, setGtDriverName] = useState("José da Silva");
+  const [gtDriverCpf, setGtDriverCpf] = useState("123.456.789-00");
+  const [gtDriverLicense, setGtDriverLicense] = useState("98765432100");
+  const [gtOriginCity, setGtOriginCity] = useState("São Paulo");
+  const [gtOriginState, setGtOriginState] = useState("SP");
+  const [gtDestCity, setGtDestCity] = useState("Campinas");
+  const [gtDestState, setGtDestState] = useState("SP");
+  const [gtRoute, setGtRoute] = useState("Rodovia dos Bandeirantes km 50");
+  const [gtSubmitting, setGtSubmitting] = useState(false);
+  const [gtError, setGtError] = useState<string | null>(null);
+
+  // --- FRENTE E2E: ELO 2 - EMISSÃO NFS-e ---
+  const [isNfseModalOpen, setIsNfseModalOpen] = useState(false);
+  const [nfseSubmitting, setNfseSubmitting] = useState(false);
+  const [nfseError, setNfseError] = useState<string | null>(null);
+  const [nfseSuccess, setNfseSuccess] = useState<FiscalDocument | null>(null);
+
+  // --- FRENTE E2E: ELO 3 - COBRANÇA PIX DINÂMICO ---
+  const [isPixModalOpen, setIsPixModalOpen] = useState(false);
+  const [pixData, setPixData] = useState<GeneratedPix | null>(null);
+  const [pixLoading, setPixLoading] = useState(false);
+
+  function handleOpenGtModal() {
+    if (!selected) return;
+    setGtError(null);
+    setGtRoute(`Transporte de PCE para espetáculo em ${selected.eventLocation}`);
+    setIsGtModalOpen(true);
+  }
+
+  async function handleSubmitGt(e: FormEvent) {
+    e.preventDefault();
+    if (!selected || selected.items.length === 0) return;
+    setGtSubmitting(true);
+    setGtError(null);
+    try {
+      const firstMagazineId = selected.items[0]?.productLot.magazineId;
+      if (!firstMagazineId) {
+        throw new Error("Lote sem paiol vinculado.");
+      }
+      const gt = await complianceApi.createTrafficGuide({
+        serviceOrderId: selected.id,
+        sourceMagazineId: firstMagazineId,
+        validFrom: new Date().toISOString(),
+        validUntil: new Date(Date.now() + 7 * 86400000).toISOString(),
+        originCity: gtOriginCity,
+        originState: gtOriginState,
+        destinationCity: gtDestCity,
+        destinationState: gtDestState,
+        routeDescription: gtRoute,
+        vehiclePlate: gtPlate,
+        vehiclePlateState: gtPlateState,
+        driverName: gtDriverName,
+        driverCpf: gtDriverCpf,
+        driverLicense: gtDriverLicense,
+        hasMopp: true,
+        blasterId: selected.responsibleBlasterId ?? undefined,
+        items: selected.items.map((i) => ({
+          productId: i.productId,
+          productLotId: i.productLotId,
+          quantity: Number(i.plannedQuantity),
+        })),
+      });
+
+      setIsGtModalOpen(false);
+      setNotice(`Guia de Tráfego #${gt.number} emitida com sucesso para o transporte militar!`);
+    } catch (err) {
+      setGtError(errorMessage(err));
+    } finally {
+      setGtSubmitting(false);
+    }
+  }
+
+  function handleOpenNfseModal() {
+    if (!selected) return;
+    setNfseError(null);
+    setNfseSuccess(null);
+    setIsNfseModalOpen(true);
+  }
+
+  async function handleSubmitNfse(e: FormEvent) {
+    e.preventDefault();
+    if (!selected) return;
+    setNfseSubmitting(true);
+    setNfseError(null);
+    try {
+      const doc = await fiscalApi.emitNFSe({
+        serviceOrderId: selected.id,
+        serviceDescription: `Espetáculo Pirotécnico em ${selected.eventLocation}. Blaster: ${selected.responsibleBlaster?.name ?? "Técnico"} - ART: ${selected.artNumber ?? "S/N"}.`,
+      });
+      setNfseSuccess(doc);
+      setNotice(`NFS-e #${doc.number} autorizada com sucesso! Chave: ${doc.accessKey ?? doc.protocol}`);
+      setTimeout(() => setIsNfseModalOpen(false), 2000);
+    } catch (err) {
+      setNfseError(errorMessage(err));
+    } finally {
+      setNfseSubmitting(false);
+    }
+  }
+
+  async function handleOpenPix() {
+    if (!selected) return;
+    setPixLoading(true);
+    try {
+      const entriesRes = await financeApi.getEntries(1, "RECEBER");
+      const entry = entriesRes.data.find((e) => e.serviceOrderId === selected.id);
+      if (!entry) {
+        throw new Error("Título a receber ainda não localizado para esta OS. Verifique no Financeiro.");
+      }
+      const generated = await financeApi.generatePix(entry.id);
+      setPixData(generated);
+      setIsPixModalOpen(true);
+    } catch (err) {
+      setNotice(`Aviso financeiro: ${errorMessage(err)}`);
+    } finally {
+      setPixLoading(false);
+    }
+  }
+
+  useEscapeToClose(isGtModalOpen, () => !gtSubmitting && setIsGtModalOpen(false));
+  useModalFocusTrap(isGtModalOpen);
+
+  useEscapeToClose(isNfseModalOpen, () => !nfseSubmitting && setIsNfseModalOpen(false));
+  useModalFocusTrap(isNfseModalOpen);
 
   const reload = useCallback(() => {
     setLoading(true);
@@ -744,6 +880,40 @@ export function OperationsWorkspace() {
                   Concluir ordem
                 </button>
               )}
+              {/* Elo 1: Emitir GT a partir de OS Aprovada ou em Montagem */}
+              {(selected.status === "APROVADO" ||
+                selected.status === "EM_MONTAGEM") && (
+                <button
+                  className="button button--secondary border-blue-500/40 text-blue-300 hover:bg-blue-500/10 flex items-center gap-1.5"
+                  type="button"
+                  onClick={handleOpenGtModal}
+                  title="Emitir Guia de Tráfego do Exército Brasileiro para transporte dos PCEs desta OS"
+                >
+                  <span>🚚</span> Emitir Guia de Tráfego (GT)
+                </button>
+              )}
+              {/* Elo 2 e 3: Faturamento e Liquidação de OS Concluída */}
+              {selected.status === "CONCLUIDO" && (
+                <>
+                  <button
+                    className="button button--secondary border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10 flex items-center gap-1.5"
+                    type="button"
+                    onClick={handleOpenNfseModal}
+                    title="Emitir Nota Fiscal de Serviços Pirotécnicos (NFS-e)"
+                  >
+                    <span>📄</span> Emitir NFS-e
+                  </button>
+                  <button
+                    className="button button--secondary border-teal-500/40 text-teal-300 hover:bg-teal-500/10 flex items-center gap-1.5"
+                    type="button"
+                    onClick={() => void handleOpenPix()}
+                    disabled={pixLoading}
+                    title="Cobrança Instantânea via QR Code PIX"
+                  >
+                    <span>📱</span> Receber via PIX
+                  </button>
+                </>
+              )}
             </div>
           </div>
           <dl className="operations-detail__facts">
@@ -1268,6 +1438,279 @@ export function OperationsWorkspace() {
           )}
         </section>
       )}
+
+      {/* MODAL ELO 1: EMISSÃO DE GUIA DE TRÁFEGO MILITAR DIRETA DA OS */}
+      {isGtModalOpen && selected && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="gt-modal-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto"
+        >
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl p-6 shadow-2xl text-slate-100 max-h-[90vh] flex flex-col">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 rounded-lg bg-blue-500/10 text-blue-400 font-bold text-xs tracking-wider border border-blue-500/20">
+                  R-105 / DFPC
+                </span>
+                <h2 id="gt-modal-title" className="text-lg font-bold text-slate-100">
+                  Emitir Guia de Tráfego para Ordem #{selected.code}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsGtModalOpen(false)}
+                className="text-slate-400 hover:text-slate-200 text-lg font-bold p-1 rounded-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            {gtError && (
+              <div className="mt-3 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300">
+                {gtError}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmitGt} className="mt-4 flex flex-col gap-3 overflow-y-auto pr-1">
+              <div className="p-3 bg-slate-800/60 rounded-xl border border-slate-700/60 text-xs">
+                <p className="font-semibold text-slate-200">
+                  Destino: {selected.eventLocation} · Cliente: {selected.customer.legalName}
+                </p>
+                <p className="text-slate-400 mt-1">
+                  Blaster: {selected.responsibleBlaster?.name ?? "Definido na aprovação"} · Itens: {selected.items.length} produto(s) PCE
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label className="block text-slate-400 mb-1">Cidade de Origem (Paiol)</label>
+                  <input
+                    type="text"
+                    required
+                    value={gtOriginCity}
+                    onChange={(e) => setGtOriginCity(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 mb-1">UF Origem</label>
+                  <input
+                    type="text"
+                    maxLength={2}
+                    required
+                    value={gtOriginState}
+                    onChange={(e) => setGtOriginState(e.target.value.toUpperCase())}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200 uppercase"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label className="block text-slate-400 mb-1">Cidade Destino (Show)</label>
+                  <input
+                    type="text"
+                    required
+                    value={gtDestCity}
+                    onChange={(e) => setGtDestCity(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 mb-1">UF Destino</label>
+                  <input
+                    type="text"
+                    maxLength={2}
+                    required
+                    value={gtDestState}
+                    onChange={(e) => setGtDestState(e.target.value.toUpperCase())}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200 uppercase"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                <div>
+                  <label className="block text-slate-400 mb-1">Placa Veículo</label>
+                  <input
+                    type="text"
+                    required
+                    value={gtPlate}
+                    onChange={(e) => setGtPlate(e.target.value.toUpperCase())}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200 uppercase"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 mb-1">UF Placa</label>
+                  <input
+                    type="text"
+                    maxLength={2}
+                    required
+                    value={gtPlateState}
+                    onChange={(e) => setGtPlateState(e.target.value.toUpperCase())}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200 uppercase"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 mb-1">CPF Motorista</label>
+                  <input
+                    type="text"
+                    required
+                    value={gtDriverCpf}
+                    onChange={(e) => setGtDriverCpf(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 mb-1">CNH Motorista (MOPP)</label>
+                  <input
+                    type="text"
+                    required
+                    value={gtDriverLicense}
+                    onChange={(e) => setGtDriverLicense(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200"
+                  />
+                </div>
+              </div>
+
+              <div className="text-xs">
+                <label className="block text-slate-400 mb-1">Nome Completo do Condutor MOPP</label>
+                <input
+                  type="text"
+                  required
+                  value={gtDriverName}
+                  onChange={(e) => setGtDriverName(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200"
+                />
+              </div>
+
+              <div className="text-xs">
+                <label className="block text-slate-400 mb-1">Itinerário Rodoviário Detalhado</label>
+                <textarea
+                  required
+                  rows={2}
+                  value={gtRoute}
+                  onChange={(e) => setGtRoute(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsGtModalOpen(false)}
+                  className="button button--quiet"
+                  disabled={gtSubmitting}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="button button--primary"
+                  disabled={gtSubmitting}
+                >
+                  {gtSubmitting ? "Emitindo..." : "Autorizar Guia de Tráfego (GT)"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL ELO 2: EMISSÃO DIRETA DE NFS-e */}
+      {isNfseModalOpen && selected && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="nfse-modal-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto"
+        >
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg p-6 shadow-2xl text-slate-100 flex flex-col">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 font-bold text-xs tracking-wider border border-emerald-500/20">
+                  NFS-e PREFEITURA
+                </span>
+                <h2 id="nfse-modal-title" className="text-lg font-bold text-slate-100">
+                  Emitir Nota Fiscal de Serviços
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsNfseModalOpen(false)}
+                className="text-slate-400 hover:text-slate-200 text-lg font-bold p-1 rounded-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            {nfseError && (
+              <div className="mt-3 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300">
+                {nfseError}
+              </div>
+            )}
+
+            {nfseSuccess ? (
+              <div className="mt-4 p-4 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-center">
+                <p className="text-sm font-bold text-emerald-300">✓ NFS-e Emitida com Sucesso!</p>
+                <p className="text-xs text-slate-300 mt-1">Número: #{nfseSuccess.number}</p>
+                <p className="text-xs font-mono text-slate-400 mt-1">Chave: {nfseSuccess.accessKey ?? nfseSuccess.protocol}</p>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmitNfse} className="mt-4 flex flex-col gap-3 text-xs">
+                <div className="p-3 bg-slate-800/60 rounded-xl border border-slate-700/60 space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Tomador:</span>
+                    <span className="font-semibold text-slate-200">{selected.customer.legalName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Local do Show:</span>
+                    <span className="text-slate-200">{selected.eventLocation}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Blaster / ART:</span>
+                    <span className="text-slate-200">{selected.responsibleBlaster?.name ?? "Técnico"} · ART {selected.artNumber ?? "S/N"}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-slate-700/50 pt-1 font-bold">
+                    <span className="text-slate-300">Valor Total:</span>
+                    <span className="text-emerald-400">{formatCurrency(Number(selected.contractedAmount))}</span>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setIsNfseModalOpen(false)}
+                    className="button button--quiet"
+                    disabled={nfseSubmitting}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="button button--primary"
+                    disabled={nfseSubmitting}
+                  >
+                    {nfseSubmitting ? "Autorizando..." : "Autorizar NFS-e na Prefeitura"}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* MODAL ELO 3: COBRANÇA PIX DINÂMICO */}
+      <PixModal
+        isOpen={isPixModalOpen}
+        pixData={pixData}
+        onClose={() => setIsPixModalOpen(false)}
+        onPaymentConfirmed={() => {
+          setNotice("Pagamento PIX confirmado e liquidado com sucesso!");
+          reload();
+        }}
+      />
     </div>
   );
 }
