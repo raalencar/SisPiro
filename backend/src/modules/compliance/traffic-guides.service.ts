@@ -116,7 +116,7 @@ export class TrafficGuidesService {
       }
       if (Number(lot.quantity) < item.quantity) {
         throw new BadRequestException(
-          `Saldo insuficiente no lote "${lot.lotNumber}". Disponível: ${lot.quantity}, Solicitado: ${item.quantity}.`,
+          `Saldo insuficiente no lote "${lot.lotNumber}". Disponível: ${lot.quantity.toString()}, Solicitado: ${item.quantity.toString()}.`,
         );
       }
 

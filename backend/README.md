@@ -441,8 +441,16 @@ O módulo de compliance gerencia as obrigações regulatórias do Exército Bras
 - `GET /compliance/traffic-guides/:id`: Detalhes completos para renderização do **Espelho Oficial Militar DFPC/COLOG** com classes de risco ONU (1.1G, 1.3G, 1.4G) e termos de responsabilidade técnica.
 - `PATCH /compliance/traffic-guides/:id/status`: Atualização do status de deslocamento da carga controlada (`EM_TRANSITO`, `CONCLUIDA`, `CANCELADA` com justificativa mínima de 10 caracteres). Perfis: `ADMIN`, `OPERACOES`.
 
+### Cobrança PIX Dinâmico & Conciliação Bancária OFX (Frente 3)
+
+O módulo financeiro dispõe de liquidação instantânea e conciliação bancária:
+- `POST /finance/pix/qrcode/:id`: Gera cobrança PIX dinâmico para contas a receber (`RECEBER`), calculando o payload BR Code no padrão BACEN/EMVCo com CRC16 CCITT oficial e gerando imagem de QR Code em Base64 Data URL. Perfis: `ADMIN`, `FINANCEIRO`, `COMERCIAL`.
+- `POST /finance/pix/webhook`: Endpoint público para recepção de webhooks bancários de liquidação (Mercado Pago, Asaas, Itaú, BACEN) com bloqueio pessimista (`FOR UPDATE`), baixa automática para `PAGO` e criação atômica do pagamento PIX conciliado.
+- `POST /finance/reconcile/ofx-preview`: Leitura de arquivos de extrato bancário `.ofx` (SGML/XML) com cruzamento automático contra títulos financeiros em aberto por valor e data (+/- 5 dias), classificando o grau de correspondência (`EXACT`, `APPROXIMATE`, `NONE`, `ALREADY_RECONCILED`). Perfis: `ADMIN`, `FINANCEIRO`.
+- `POST /finance/reconcile/ofx-apply`: Aplicação atômica da conciliação bancária em lote, liquidando títulos selecionados com gravação de `bankFitId` e auditoria no model `BankReconciliation`. Perfis: `ADMIN`, `FINANCEIRO`.
+
 Todas as rotas de negócio exigem access token e perfil compatível; liveness,
-readiness e os endpoints de bootstrap/login/refresh/logout/password-reset/login-mfa são públicos.
+readiness e os endpoints de bootstrap/login/refresh/logout/password-reset/login-mfa/pix-webhook são públicos.
 
 ### Revisão de Segurança, Concorrência e Operação (Fase 1)
 
@@ -497,9 +505,9 @@ iniciar cada novo escopo.
 | Preços promocionais | Campanhas de preço fixo e desconto percentual (`PromotionDiscountType`), vigência inclusiva, aplicação automática estrita pelo menor preço efetivo e bloqueio de sobreposição por produto implementados | Nenhum no backend (concluído na Fase 2) |
 | Fiscal (NF-e, NFC-e, NFS-e) | Arquitetura Adapter/Strategy (`FiscalSandboxAdapter` e `FocusNfeAdapter`), emissão de NF-e (Modelo 55 com NCM pirotécnico), NFC-e (Modelo 65), NFS-e (Serviços com ART e Blaster), cálculo de chave SEFAZ de 44 dígitos com DV módulo 11 e cancelamento com justificativa legal implementados | Nenhum no backend (concluído na Frente 1) |
 | Compliance militar (Guia de Tráfego) | Modelagem `TrafficGuide` e `TrafficGuideItem`, numeração anual `GT-YYYY/NNNN`, conferência de saldo de paiol, cálculo automático de carga líquida de explosivos (NEQ em kg), controle de condutores MOPP e espelho oficial DFPC/SFPC implementados | Nenhum no backend (concluído na Frente 2) |
-| Bancos e PIX | Sem integração bancária ou conciliação ativa | Cobrança PIX com QR Code dinâmico, webhook de liquidação e importação de extratos OFX (Frente 3) |
-| Relatórios | Resumos de vendas por produto/cliente, conversão de orçamentos, OS por status, painéis financeiros por vencimento/categoria/método, Aging schedule, posição de estoque com alertas de validade, Mapa SFPC militar e espelho oficial de GT disponíveis | Conciliação bancária OFX na Frente 3 |
-| Frontend de negócio | Login/BFF, estoque (quarentena/split/paióis/SFPC), ordens de serviço, clientes, blasters, compras, comercial, financeiro (incluindo parcelamento), Faturamento/Fiscal (`/modules/billing`) e Compliance/GT (`/modules/compliance`) integrados à API | Frente 3 (PIX dinâmico e conciliação OFX) |
+| Bancos, PIX e OFX | Cobrança PIX com QR Code dinâmico e BR Code EMVCo, webhook de liquidação bancária instantânea, leitor SGML/XML de arquivos OFX e conciliação bancária atômica com auditoria (`BankReconciliation`) implementados | Nenhum no backend (concluído na Frente 3) |
+| Relatórios | Resumos de vendas por produto/cliente, conversão de orçamentos, OS por status, painéis financeiros por vencimento/categoria/método, Aging schedule, posição de estoque com alertas de validade, Mapa SFPC militar, espelho de GT e conciliação bancária OFX disponíveis | Relatórios avançados de BI na Fase 4 |
+| Frontend de negócio | Login/BFF, estoque (quarentena/split/paióis/SFPC), ordens de serviço, clientes, blasters, compras, comercial, financeiro (com PIX dinâmico e modal OFX), Faturamento/Fiscal (`/modules/billing`) e Compliance/GT (`/modules/compliance`) integrados à API | Frente 4 (SRE e Automação de Produção) |
 
 Esta lista registra lacunas conhecidas, não constitui contrato final de API nem
 garante que todos os itens pertençam ao escopo aprovado do produto. Antes de

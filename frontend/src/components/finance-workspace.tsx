@@ -2,6 +2,8 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { Icon } from "@/components/icon";
+import { PixModal } from "@/components/pix-modal";
+import { OfxReconcileModal } from "@/components/ofx-reconcile-modal";
 import {
   financeApi,
   customersApi,
@@ -11,6 +13,7 @@ import {
   type FinancialDirection,
   type FinancialEntry,
   type FinancialStatus,
+  type GeneratedPix,
   type PageResult,
 } from "@/lib/api";
 import { formatCurrency, formatDateOnly } from "@/lib/format";
@@ -80,6 +83,28 @@ export function FinanceWorkspace() {
   const [paymentNotes, setPaymentNotes] = useState("");
   const [paymentSubmitting, setPaymentSubmitting] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
+
+  // Modal de PIX Dinâmico (Frente 3)
+  const [isPixOpen, setIsPixOpen] = useState(false);
+  const [pixData, setPixData] = useState<GeneratedPix | null>(null);
+  const [pixLoading, setPixLoading] = useState(false);
+
+  // Modal de Conciliação Bancária OFX (Frente 3)
+  const [isOfxOpen, setIsOfxOpen] = useState(false);
+
+  async function handleGeneratePix(entryId: string) {
+    setPixLoading(true);
+    setError(null);
+    try {
+      const generated = await financeApi.generatePix(entryId);
+      setPixData(generated);
+      setIsPixOpen(true);
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setPixLoading(false);
+    }
+  }
 
   // Carga inicial e reloads
   useEffect(() => {
@@ -234,6 +259,15 @@ export function FinanceWorkspace() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="button button--secondary flex items-center gap-1.5 border-blue-500/30 text-blue-300 hover:bg-blue-500/10"
+            onClick={() => setIsOfxOpen(true)}
+            title="Importar e conciliar extrato bancário padrão OFX"
+          >
+            <span>🏦</span>
+            Conciliação OFX
+          </button>
           {tab === "entries" && (
             <button className="button button--primary" onClick={handleOpenNewEntry}>
               + Novo Lançamento Manual
@@ -456,6 +490,17 @@ export function FinanceWorkspace() {
                           </td>
                           <td className="p-3 text-right">
                             <div className="flex items-center justify-end gap-1.5">
+                              {(en.status === "ABERTO" || en.status === "PARCIAL") && !isPayable && (
+                                <button
+                                  type="button"
+                                  className="button button--secondary text-xs py-1 px-2 border-teal-500/40 text-teal-300 hover:bg-teal-500/20"
+                                  onClick={() => handleGeneratePix(en.id)}
+                                  disabled={pixLoading}
+                                  title="Gerar cobrança PIX com QR Code dinâmico"
+                                >
+                                  PIX
+                                </button>
+                              )}
                               {(en.status === "ABERTO" || en.status === "PARCIAL") && (
                                 <button
                                   className="button button--primary text-xs py-1 px-2"
@@ -945,6 +990,27 @@ export function FinanceWorkspace() {
           </div>
         </div>
       )}
+
+      {/* Modal de Cobrança PIX com QR Code Dinâmico (Frente 3) */}
+      <PixModal
+        isOpen={isPixOpen}
+        pixData={pixData}
+        onClose={() => setIsPixOpen(false)}
+        onPaymentConfirmed={() => {
+          setActionSuccess("Cobrança PIX liquidada com sucesso!");
+          setReloadTrigger((prev) => prev + 1);
+        }}
+      />
+
+      {/* Modal de Conciliação Bancária OFX (Frente 3) */}
+      <OfxReconcileModal
+        isOpen={isOfxOpen}
+        onClose={() => setIsOfxOpen(false)}
+        onSuccess={() => {
+          setActionSuccess("Extrato OFX conciliado e auditado com sucesso!");
+          setReloadTrigger((prev) => prev + 1);
+        }}
+      />
     </div>
   );
 }

@@ -54,6 +54,27 @@ function backendPath(
     }
   }
 
+  // Frente 3: PIX Dinâmico
+  if (
+    path[0] === "pix" &&
+    path[1] === "qrcode" &&
+    path.length === 3 &&
+    UUID_PATTERN.test(path[2]) &&
+    method === "POST"
+  ) {
+    return `finance/pix/qrcode/${path[2]}`;
+  }
+
+  // Frente 3: Conciliação Bancária OFX
+  if (path[0] === "reconcile" && method === "POST") {
+    if (path[1] === "ofx-preview" && path.length === 2) {
+      return "finance/reconcile/ofx-preview";
+    }
+    if (path[1] === "ofx-apply" && path.length === 2) {
+      return "finance/reconcile/ofx-apply";
+    }
+  }
+
   return null;
 }
 

@@ -15,7 +15,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
-import { Roles } from '../auth/auth.decorators.js';
+import { Public, Roles } from '../auth/auth.decorators.js';
 import {
   CashFlowQueryDto,
   CreateFinancialEntryDto,
@@ -24,15 +24,25 @@ import {
   FinanceDashboardQueryDto,
   FinanceEntriesQueryDto,
   FinancePaymentReportQueryDto,
+  GeneratePixDto,
+  PixWebhookDto,
+  ReconcileOfxPreviewDto,
+  ApplyReconciliationDto,
 } from './finance.dto.js';
 import { FinanceService } from './finance.service.js';
+import { PixService } from './pix.service.js';
+import { OfxService } from './ofx.service.js';
 
 @ApiTags('Financeiro')
 @ApiBearerAuth()
 @Roles(UserRole.FINANCEIRO)
 @Controller(['finance', 'financial'])
 export class FinanceController {
-  constructor(private readonly finance: FinanceService) {}
+  constructor(
+    private readonly finance: FinanceService,
+    private readonly pix: PixService,
+    private readonly ofx: OfxService,
+  ) {}
 
   @Get('entries')
   @ApiOperation({
@@ -115,4 +125,49 @@ export class FinanceController {
   agingReport(@Query() query: AgingReportQueryDto) {
     return this.finance.agingReport(query);
   }
+
+  // --- FRENTE 3: PIX DINÂMICO & WEBHOOK ---
+
+  @Post('pix/qrcode/:id')
+  @Roles(UserRole.FINANCEIRO, UserRole.COMERCIAL)
+  @ApiOperation({
+    summary: 'Gera cobrança PIX dinâmico com payload BR Code EMVCo e QR Code em imagem Data URL.',
+  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  generatePix(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: GeneratePixDto,
+  ) {
+    return this.pix.generatePixForEntry(id, dto);
+  }
+
+  @Public()
+  @Post('pix/webhook')
+  @ApiOperation({
+    summary: 'Webhook para confirmação e liquidação bancária automática de cobranças PIX.',
+  })
+  processPixWebhook(@Body() dto: PixWebhookDto) {
+    return this.pix.processWebhook(dto);
+  }
+
+  // --- FRENTE 3: CONCILIAÇÃO BANCÁRIA OFX ---
+
+  @Post('reconcile/ofx-preview')
+  @Roles(UserRole.FINANCEIRO)
+  @ApiOperation({
+    summary: 'Lê arquivo OFX e cruza transações com contas abertas para conferência.',
+  })
+  previewOfx(@Body() dto: ReconcileOfxPreviewDto) {
+    return this.ofx.previewReconciliation(dto.ofxContent);
+  }
+
+  @Post('reconcile/ofx-apply')
+  @Roles(UserRole.FINANCEIRO)
+  @ApiOperation({
+    summary: 'Aplica a liquidação atômica das transações bancárias conciliadas.',
+  })
+  applyOfx(@Body() dto: ApplyReconciliationDto) {
+    return this.ofx.applyReconciliation(dto.items);
+  }
 }
+

@@ -71,6 +71,8 @@ do backend. Entre com `demo.admin@local.test` e com a senha configurada em
    - Demonstrativo de Fluxo de Caixa Realizado diário com totais de entradas, saídas e saldo operacional líquido.
    - Relatório analítico de Aging Schedule (cronograma de vencimento e risco de inadimplência em 5 faixas: A Vencer, 1-30d, 31-60d, 61-90d, >90d).
    - Lançamentos parcelados (número de parcelas, intervalo em dias ou datas customizadas), com identificação visual de cada parcela por grupo.
+   - **Cobrança PIX Dinâmico**: Modal com QR Code de alta resolução em Base64 Data URL, código Copia e Cola EMVCo, chave PIX e botão de simulação de confirmação bancária imediata.
+   - **Conciliação Bancária OFX**: Modal de importação de extratos bancários `.ofx` com cards de métricas (créditos, débitos, matches), tabela interativa de conferência com badges de confiança (`EXATO`, `APROXIMADO`, `JÁ CONCILIADO`) e liquidação atômica em lote.
 
 8. **Módulo Fiscal (NF-e, NFC-e, NFS-e) e Faturamento (`/modules/billing`):**
    - Emissão de NF-e (Modelo 55 com chave SEFAZ de 44 dígitos) e NFC-e (Modelo 65) a partir de pedidos de venda fechados.

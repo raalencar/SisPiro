@@ -101,11 +101,30 @@ fases já concluídas, veja [`Plano_Backend.md`](../Plano_Backend.md) e
   - Modal acessível de emissão de nova GT com seleção de produtos/lotes e indicador visual de carga NEQ.
   - **Espelho Oficial Militar de Impressão**: Layout idêntico ao modelo DFPC/COLOG com cabeçalho oficial da República Federativa do Brasil, discriminação dos PCEs com classe ONU e campos de assinatura de responsabilidade técnica.
 
+### Cobrança PIX Dinâmico & Conciliação Bancária OFX (Frente 3 - Concluída)
+- **PIX Dinâmico com QR Code e Copia-e-Cola (BACEN / EMVCo)**:
+  - Serviço `PixService` com cálculo oficial de CRC16 CCITT (polinômio 0x1021) e montagem de payload BR Code TLV (Tag-Length-Value).
+  - Emissão de QR Code dinâmico com valor pré-definido, txid único gerado no formato `SPP{code}{timestamp}{hash}` e expiração temporal.
+  - Armazenamento de `pixTxId`, `pixQrCode` e `pixExpiresAt` no `FinancialEntry`.
+  - Endpoint `POST /finance/pix/qrcode/:id` integrado ao Financeiro.
+- **Webhook de Liquidação Bancária Instantânea**:
+  - Endpoint público `POST /finance/pix/webhook` para recepção de confirmação de pagamento de bancos e gateways (ex: Mercado Pago, Asaas, Itaú, BACEN).
+  - Lock pessimista da linha (`FOR UPDATE`), baixa automática do lançamento e criação atômica do pagamento PIX conciliado.
+  - Resposta idempotente quando o título já estiver liquidado.
+- **Conciliação Bancária de Extratos OFX**:
+  - Serviço `OfxService` com parser SGML/XML para extratos de qualquer banco brasileiro (Itaú, Bradesco, Santander, Banco do Brasil, Inter, Sicoob, etc.).
+  - Pré-visualização inteligente (`POST /finance/reconcile/ofx-preview`) que cruza créditos/débitos bancários contra títulos abertos por valor exato e data próxima (+/- 5 dias), classificando por nível de confiança (`EXATO (100%)`, `APROXIMADO`, `JÁ CONCILIADO`, `NÃO ENCONTRADO`).
+  - Aplicação atômica da conciliação (`POST /finance/reconcile/ofx-apply`) com liquidação dos títulos selecionados, vínculo do `bankFitId` e auditoria no model `BankReconciliation`.
+- **Interface e Modais no Frontend**:
+  - `PixModal` com QR Code de alta resolução, botão de cópia do payload, valor formatado e botão de simulação bancária imediata.
+  - `OfxReconcileModal` com upload de extrato `.ofx`, cards de métricas (total transações, créditos, débitos, matches), tabela interativa de conferência com badges visuais e seleção por checkbox.
+  - Botão "PIX" integrado em cada linha de contas a receber e botão "Conciliação OFX" no cabeçalho do módulo financeiro.
+
 ### Qualidade e infraestrutura de teste
-- Backend: 36 testes unitários (incluindo testes de validações militares, regras de Blaster e cálculo de NEQ) + 46 e2e, lint e build limpos.
-- Frontend: 72 testes unitários e de componentes (incluindo testes dedicados do ComplianceWorkspace com React Testing Library + jsdom), lint, typecheck e build limpos (20 rotas).
-- Smoke tests E2E executados com sucesso real para o Módulo Fiscal (Frente 1) e Guia de Tráfego (Frente 2).
-- Total geral: 108 testes automatizados passando com 100% de sucesso.
+- Backend: 48 testes unitários (incluindo testes dedicados de PIX EMVCo, Webhook de liquidação e leitor/reconciliador OFX) + 46 e2e, lint e build limpos.
+- Frontend: 78 testes unitários e de componentes (incluindo `PixModal.test.tsx` e `OfxReconcileModal.test.tsx`), lint, typecheck e build limpos (20 rotas).
+- Smoke tests E2E executados com sucesso real contra o banco PostgreSQL para o Módulo Fiscal (Frente 1), Guia de Tráfego (Frente 2) e PIX/OFX (Frente 3).
+- Total geral: 126 testes automatizados passando com 100% de sucesso.
 
 ---
 
@@ -113,15 +132,14 @@ fases já concluídas, veja [`Plano_Backend.md`](../Plano_Backend.md) e
 
 | Item | Observação | No sprint atual? |
 | --- | --- | --- |
-| **Frente 3: PIX Dinâmico & Conciliação Bancária** | Cobrança PIX com QR Code dinâmico no PDV/Orçamento, webhook de confirmação automática no Financeiro e importação de extratos OFX. | **Próxima frente sequencial** |
-| **Frente 4: SRE e Automação de Produção** | Provisionamento de scripts de backup automatizado do PostgreSQL com retenção em S3, health checks avançados e docker-compose produtivo. | Próximo |
+| **Frente 4: SRE, Automação de Produção & Disaster Recovery** | Scripts de backup automatizado do PostgreSQL com dump consistente, compressão e upload em S3/MinIO, rotação e teste de restauração, health check avançado e docker-compose produtivo. | **Próxima frente sequencial** |
 | Validação de sessão expirada/refresh em Firefox e Safari | Validado em Chrome contra o backend real; Firefox/Safari não testados — sem ferramenta de automação disponível. | Secundário |
 
 ---
 
 ## 🔒 Bloqueado — requer decisão explícita antes de iniciar
 
-Nada bloqueia as próximas frentes técnicas (Frente 3: PIX Dinâmico e Frente 4: SRE). Módulo Fiscal (Frente 1) e Guia de Tráfego do Exército (Frente 2) foram concluídos com êxito.
+Nada bloqueia as próximas frentes técnicas. Frentes 1, 2 e 3 foram concluídas com êxito e validadas de ponta a ponta.
 
 ---
 

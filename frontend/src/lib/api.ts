@@ -1375,6 +1375,100 @@ export const financeApi = {
     requestJson<CashFlowSummary>(`/api/finance/cash-flow?from=${from}&to=${to}`),
   getAgingReport: (asOf: string) =>
     requestJson<AgingReport>(`/api/finance/reports/aging?asOf=${asOf}`),
+  generatePix: (
+    entryId: string,
+    body?: {
+      pixKey?: string;
+      merchantName?: string;
+      merchantCity?: string;
+      expiresInHours?: number;
+    },
+  ) =>
+    requestJson<GeneratedPix>(`/api/finance/pix/qrcode/${entryId}`, {
+      method: "POST",
+      body: JSON.stringify(body ?? {}),
+    }),
+  previewOfx: (ofxContent: string) =>
+    requestJson<ReconcilePreviewResult>("/api/finance/reconcile/ofx-preview", {
+      method: "POST",
+      body: JSON.stringify({ ofxContent }),
+    }),
+  applyOfx: (
+    items: Array<{
+      fitId: string;
+      entryId: string;
+      amount: number;
+      occurredAt: string;
+      memo?: string;
+    }>,
+  ) =>
+    requestJson<ApplyReconciliationResult>("/api/finance/reconcile/ofx-apply", {
+      method: "POST",
+      body: JSON.stringify({ items }),
+    }),
+};
+
+export type GeneratedPix = {
+  entryId: string;
+  txid: string;
+  amount: number;
+  copyPasteCode: string;
+  qrCodeDataUrl: string;
+  expiresAt: string;
+};
+
+export type OfxTransaction = {
+  fitId: string;
+  type: "CREDIT" | "DEBIT" | "OTHER";
+  amount: number;
+  date: string;
+  memo: string;
+  checkNumber?: string;
+};
+
+export type ReconciliationSuggestion = {
+  transaction: OfxTransaction;
+  alreadyReconciled: boolean;
+  matchConfidence: "EXACT" | "APPROXIMATE" | "NONE";
+  suggestedEntry?: {
+    id: string;
+    code: number;
+    direction: FinancialDirection;
+    description: string;
+    counterparty: string;
+    dueDate: string;
+    amount: number;
+    remaining: number;
+    status: FinancialStatus;
+  };
+};
+
+export type ReconcilePreviewResult = {
+  bankId?: string;
+  accountId?: string;
+  summary: {
+    totalTransactions: number;
+    totalCredits: number;
+    totalDebits: number;
+    creditsAmount: number;
+    debitsAmount: number;
+    matchedCount: number;
+    unmatchedCount: number;
+    alreadyReconciledCount: number;
+  };
+  items: ReconciliationSuggestion[];
+};
+
+export type ApplyReconciliationResult = {
+  batchId: string;
+  reconciledCount: number;
+  results: Array<{
+    paymentId: string;
+    fitId: string;
+    entryId: string;
+    amount: number;
+    newStatus: string;
+  }>;
 };
 
 export type FiscalDocumentType = "NFE" | "NFCE" | "NFSE";

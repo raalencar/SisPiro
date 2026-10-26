@@ -588,6 +588,9 @@ model FinancialEntry {
   installmentNumber Int?                  @map("numero_parcela")
   installmentCount  Int?                  @map("total_parcelas")
   installmentGroup  String?               @map("grupo_parcelamento") @db.VarChar(50)
+  pixTxId           String?               @unique @map("pix_txid") @db.VarChar(50)
+  pixQrCode         String?               @map("pix_qrcode") @db.Text
+  pixExpiresAt      DateTime?             @map("pix_expira_em") @db.Timestamptz(3)
   createdAt         DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
   customer          Customer?             @relation(fields: [customerId], references: [id], onDelete: Restrict)
   supplier          Supplier?             @relation(fields: [supplierId], references: [id], onDelete: Restrict)
@@ -600,22 +603,43 @@ model FinancialEntry {
   @@index([direction, status, dueDate])
   @@index([customerId, dueDate])
   @@index([installmentGroup])
+  @@index([pixTxId])
   @@map("lancamentos_financeiros")
 }
 
 model FinancialPayment {
-  id         String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  entryId    String                 @map("lancamento_id") @db.Uuid
-  amount     Decimal                @db.Decimal(12, 2)
-  method     FinancialPaymentMethod
-  occurredAt DateTime               @default(now()) @map("ocorrido_em") @db.Timestamptz(3)
-  reference  String?                @db.VarChar(100)
-  notes      String?                @db.VarChar(500)
-  entry      FinancialEntry         @relation(fields: [entryId], references: [id], onDelete: Restrict)
+  id           String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entryId      String                 @map("lancamento_id") @db.Uuid
+  amount       Decimal                @db.Decimal(12, 2)
+  method       FinancialPaymentMethod
+  occurredAt   DateTime               @default(now()) @map("ocorrido_em") @db.Timestamptz(3)
+  reference    String?                @db.VarChar(100)
+  bankFitId    String?                @map("banco_fitid") @db.VarChar(100)
+  reconciled   Boolean                @default(false) @map("conciliado")
+  reconciledAt DateTime?              @map("conciliado_em") @db.Timestamptz(3)
+  notes        String?                @db.VarChar(500)
+  entry        FinancialEntry         @relation(fields: [entryId], references: [id], onDelete: Restrict)
 
   @@index([entryId, occurredAt])
   @@index([occurredAt])
+  @@index([bankFitId])
   @@map("pagamentos_financeiros")
+}
+
+model BankReconciliation {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bankName          String?  @map("banco_nome") @db.VarChar(100)
+  accountNumber     String?  @map("conta_numero") @db.VarChar(50)
+  statementDate     DateTime @map("data_extrato") @db.Date
+  totalCredits      Decimal  @default(0) @map("total_creditos") @db.Decimal(12, 2)
+  totalDebits       Decimal  @default(0) @map("total_debitos") @db.Decimal(12, 2)
+  transactionsCount Int      @default(0) @map("quantidade_transacoes")
+  reconciledCount   Int      @default(0) @map("quantidade_conciliadas")
+  importedAt        DateTime @default(now()) @map("importado_em") @db.Timestamptz(3)
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([importedAt])
+  @@map("conciliacoes_bancarias")
 }
 
 model FiscalDocument {

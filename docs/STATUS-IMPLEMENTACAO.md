@@ -206,8 +206,8 @@ Diagnóstico concluído (Fase 0): O controlador declara `GET /inventory/reports/
 - A API permanece responsável pela autorização final, capacidade NEQ, validade,
   reservas, consistência transacional e auditoria.
 
-- Backend: `npm run lint` (oxlint, 0 erros), `npm test` (36 testes unitários), `npm run test:e2e` (46 testes) e `npm run build` passaram com código 0.
-- Frontend: `npm run lint` (0 avisos), `npm run typecheck` (0 erros), `npm test` (72 testes em 17 suítes) e `npm run build` (20 rotas SSG/SSR) passaram com sucesso total.
+- Backend: `npm run lint` (oxlint, 0 erros), `npm test` (48 testes unitários), `npm run test:e2e` (46 testes) e `npm run build` passaram com código 0.
+- Frontend: `npm run lint` (0 avisos), `npm run typecheck` (0 erros), `npm test` (78 testes em 19 suítes) e `npm run build` (20 rotas SSG/SSR) passaram com sucesso total.
 - Módulo Fiscal & Faturamento (Frente 1):
   - Modelo `FiscalDocument` no Prisma com enums `FiscalDocumentType` (`NFE`, `NFCE`, `NFSE`) e `FiscalDocumentStatus` (`PROCESSANDO`, `AUTORIZADO`, `REJEITADO`, `CANCELADO`).
   - Arquitetura Adapter/Strategy no NestJS com gateway agnóstico e provedores `FiscalSandboxAdapter` e `FocusNfeAdapter`.
@@ -219,6 +219,13 @@ Diagnóstico concluído (Fase 0): O controlador declara `GET /inventory/reports/
   - Controle estrito de saldo de lote PCE no paiol de origem, validação de validade da carteira do Blaster e cálculo em tempo real de Massa Líquida Total de Explosivo (NEQ).
   - Emissão de GT no padrão sequencial anual do Exército (`GT-YYYY/NNNN`).
   - BFF seguro e Workspace `/modules/compliance` com emissão, atualização de status de trânsito e **Espelho Oficial Militar de Impressão** formatado perante o DFPC/COLOG com classes de risco ONU e campos de assinatura técnica.
+- Cobrança PIX Dinâmico & Conciliação Bancária OFX (Frente 3):
+  - Campos `pixTxId`, `pixQrCode` e `pixExpiresAt` em `FinancialEntry`, campos `bankFitId`, `reconciled` e `reconciledAt` em `FinancialPayment`, e modelo `BankReconciliation` no Prisma.
+  - Serviço `PixService` com cálculo oficial de CRC16 CCITT e formatação BR Code TLV (EMVCo) + geração de QR Code Data URL Base64 com pacote `qrcode`.
+  - Webhook bancário `POST /finance/pix/webhook` com lock pessimista (`FOR UPDATE`) para liquidação automática e instantânea.
+  - Serviço `OfxService` com leitura SGML/XML de extratos bancários, motor de conciliação por correspondência exata de valor e data próxima, e liquidação em lote com auditoria (`BankReconciliation`).
+  - Frontend: `PixModal` acessível com exibição de QR Code, botão de cópia de código e simulação de webhook; `OfxReconcileModal` com upload de extrato `.ofx`, cards de métricas e tabela de conciliação com seleção por checkbox e badges de confiança; botão "PIX" na listagem de contas a receber e "Conciliação OFX" no cabeçalho do Financeiro.
+  - Smoke test E2E real autenticado no banco PostgreSQL validando geração de PIX, webhook e conciliação OFX com 100% de aprovação.
 
 Para requisitos de execução, endpoints e regras detalhadas, consulte
 [`backend/README.md`](../backend/README.md) e

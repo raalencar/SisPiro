@@ -187,3 +187,85 @@ export class CreateFinancialPaymentDto {
   @MaxLength(500)
   notes?: string;
 }
+
+export class GeneratePixDto {
+  @ApiPropertyOptional({ example: '12345678000190' })
+  @IsOptional()
+  @IsString()
+  pixKey?: string;
+
+  @ApiPropertyOptional({ example: 'CASA DE FOGOS ESPERANCA' })
+  @IsOptional()
+  @IsString()
+  merchantName?: string;
+
+  @ApiPropertyOptional({ example: 'SAO PAULO' })
+  @IsOptional()
+  @IsString()
+  merchantCity?: string;
+
+  @ApiPropertyOptional({ example: 24 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  expiresInHours?: number;
+}
+
+export class PixWebhookDto {
+  @ApiProperty({ example: 'SPP00000120261026XYZ' })
+  @IsString()
+  txid!: string;
+
+  @ApiProperty({ example: 150.0 })
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.01)
+  amount!: number;
+
+  @ApiPropertyOptional({ format: 'date-time' })
+  @IsOptional()
+  @IsDateString()
+  paidAt?: string;
+
+  @ApiPropertyOptional({ example: 'E12345678202610261200abc' })
+  @IsOptional()
+  @IsString()
+  e2eId?: string;
+}
+
+export class ReconcileOfxPreviewDto {
+  @ApiProperty({ description: 'Conteúdo bruto do arquivo OFX (SGML/XML)' })
+  @IsString()
+  ofxContent!: string;
+}
+
+export class ApplyReconciliationItemDto {
+  @ApiProperty({ example: '20261026001827' })
+  @IsString()
+  fitId!: string;
+
+  @ApiProperty({ format: 'uuid' })
+  @IsUUID()
+  entryId!: string;
+
+  @ApiProperty({ example: 250.0 })
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.01)
+  amount!: number;
+
+  @ApiProperty({ format: 'date', example: '2026-10-26' })
+  @IsDateString()
+  occurredAt!: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  memo?: string;
+}
+
+export class ApplyReconciliationDto {
+  @ApiProperty({ type: [ApplyReconciliationItemDto] })
+  @IsArray()
+  items!: ApplyReconciliationItemDto[];
+}
