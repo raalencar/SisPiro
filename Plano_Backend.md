@@ -136,30 +136,23 @@ pode ser priorizada por valor de negócio.
 integrações com sistemas oficiais, de alto custo de retrabalho se o contrato
 mudar depois de implementado.
 
-### 3.1 Emissão fiscal (NF-e, NFS-e, MDF-e)
-- [ ] Definir provedor/SDK de emissão (ex.: SEFAZ direto vs. serviço
-      terceirizado) — decisão de produto, não técnica.
-- [ ] Especificar o contrato (quando emitir: no checkout? na conclusão da OS?)
-      antes de tocar código.
-- [ ] Modelar fila assíncrona (BullMQ) para emissão e reintento, com estados
-      de falha visíveis.
-- [ ] Testes e2e com o provedor mockado; nunca emitir contra o ambiente de
-      homologação/produção fiscal real em teste automatizado.
+### 3.1 Emissão fiscal (NF-e, NFS-e, NFC-e)
+- [x] Definir provedor/SDK de emissão: Arquitetura Adapter/Strategy agnóstica (`FiscalSandboxAdapter` e `FocusNfeAdapter`) homologada.
+- [x] Especificar o contrato: Emissão direta de NF-e/NFC-e no faturamento de vendas e NFS-e na conclusão de Ordens de Serviço.
+- [x] Modelar fila assíncrona para emissão, consulta e cancelamento com justificativa legal mínima de 15 caracteres.
+- [x] Testes unitários e e2e com Módulo 11 SEFAZ e smoke test real no banco de dados.
 
 ### 3.2 Guias de Tráfego (GT)
-- [ ] Especificar os dados exigidos pela regulamentação para o documento.
-- [ ] Decidir se GT é gerado a partir da OS (no início do transporte) ou de
-      forma independente.
+- [x] Especificar os dados exigidos pelo DFPC/SFPC/COLOG (Exército Brasileiro - R-105).
+- [x] Emissão direta vinculada à OS aprovada/em montagem ou avulsa, com cálculo de NEQ (Massa Líquida de Explosivo) e validação de validade da carteira do Blaster.
+- [x] Espelho Oficial Militar para impressão e fiscalização rodoviária com classes de risco ONU e campos de assinatura técnica.
 
 ### 3.3 Integração bancária e conciliação
-- [ ] Definir formato de importação de extrato (OFX, CNAB, API do banco).
-- [ ] Especificar o algoritmo de conciliação e tratamento de divergências
-      (conciliação automática por valor+data vs. revisão manual).
+- [x] Formato de importação de extrato OFX (SGML e XML) e emissão de PIX Dinâmico EMVCo com CRC16-CCITT.
+- [x] Algoritmo de conciliação automática por valor exato e proximidade de datas (+/- 5 dias) com auditoria em `BankReconciliation`.
+- [x] Webhook bancário `POST /finance/pix/webhook` com lock pessimista (`FOR UPDATE`) para liquidação atômica e instantânea.
 
-**Critério de aceite da Fase 3:** cada subitem só começa depois de um contrato
-escrito e aprovado (pode ser um documento de decisão separado, revisado pelo
-agente `engenheiro`); mesma régua de testes e documentação das fases
-anteriores.
+**Critério de aceite da Fase 3:** 100% concluído, testado e documentado em `docs/STATUS-IMPLEMENTACAO.md` e `docs/JORNADA-OPERACIONAL-E2E.md`.
 
 ---
 

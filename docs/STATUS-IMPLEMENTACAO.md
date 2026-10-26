@@ -226,7 +226,17 @@ Diagnóstico concluído (Fase 0): O controlador declara `GET /inventory/reports/
   - Serviço `OfxService` com leitura SGML/XML de extratos bancários, motor de conciliação por correspondência exata de valor e data próxima, e liquidação em lote com auditoria (`BankReconciliation`).
   - Frontend: `PixModal` acessível com exibição de QR Code, botão de cópia de código e simulação de webhook; `OfxReconcileModal` com upload de extrato `.ofx`, cards de métricas e tabela de conciliação com seleção por checkbox e badges de confiança; botão "PIX" na listagem de contas a receber e "Conciliação OFX" no cabeçalho do Financeiro.
   - Smoke test E2E real autenticado no banco PostgreSQL validando geração de PIX, webhook e conciliação OFX com 100% de aprovação.
+- Engenharia de Implantação, SRE & Disaster Recovery (Frente 4):
+  - Orquestração de produção com `docker-compose.prod.yml` integrando PostgreSQL 16 Alpine, Redis 7 Alpine, Backend NestJS Node 22, Frontend Next.js 16 Standalone e Nginx Reverse Proxy com compressão e headers de segurança.
+  - Automação de migrações com `docker-entrypoint.sh` executando `prisma migrate deploy` de forma atômica no startup do container.
+  - Script de deploy automatizado (`scripts/deploy.sh`) com validação de ambiente, build multi-stage, backup preventivo e verificação de saúde HTTP.
+  - Script de backup consistente (`scripts/backup.sh`) com compressão `gzip`, retenção configurável de 30 dias e geração de checksum SHA256 para auditoria de integridade (testado e aprovado ao vivo).
+  - Script de restauração de desastre (`scripts/restore.sh`) com confirmação de segurança obrigatória para proteção contra sobrescrita acidental.
+  - Script de diagnóstico e observabilidade (`scripts/healthcheck.sh`) cobrindo liveness, readiness, portas e recursos do host.
+  - Runbook de operação e implantação documentado em [`docs/RUNBOOK-IMPLANTACAO-PRODUCAO.md`](RUNBOOK-IMPLANTACAO-PRODUCAO.md).
+  - Jornada Operacional E2E formalizada em [`docs/JORNADA-OPERACIONAL-E2E.md`](JORNADA-OPERACIONAL-E2E.md) com elos diretos na tela de Operações para Guia de Tráfego, NFS-e e Cobrança PIX.
 
 Para requisitos de execução, endpoints e regras detalhadas, consulte
-[`backend/README.md`](../backend/README.md) e
-[`frontend/README.md`](../frontend/README.md).
+[`backend/README.md`](../backend/README.md),
+[`frontend/README.md`](../frontend/README.md) e
+[`docs/RUNBOOK-IMPLANTACAO-PRODUCAO.md`](RUNBOOK-IMPLANTACAO-PRODUCAO.md).
