@@ -145,18 +145,32 @@ async function getJson(path: string): Promise<unknown> {
   );
 }
 
+const BUSINESS_API_MODULES = [
+  "inventory",
+  "operations",
+  "customers",
+  "blasters",
+  "procurement",
+  "commercial",
+  "finance",
+];
+
+function isBusinessApiPath(path: string): boolean {
+  return BUSINESS_API_MODULES.some((module) => {
+    const prefix = `/api/${module}`;
+    return (
+      path === prefix ||
+      path.startsWith(`${prefix}/`) ||
+      path.startsWith(`${prefix}?`)
+    );
+  });
+}
+
 export async function requestJson<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
-  const isBusinessRequest =
-    path.startsWith("/api/inventory/") ||
-    path.startsWith("/api/operations/") ||
-    path.startsWith("/api/customers/") ||
-    path.startsWith("/api/blasters/") ||
-    path.startsWith("/api/procurement/") ||
-    path.startsWith("/api/commercial/") ||
-    path.startsWith("/api/finance/");
+  const isBusinessRequest = isBusinessApiPath(path);
   if (isBusinessRequest) await ensureSessionAndNotify();
 
   let payload: unknown;

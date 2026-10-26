@@ -138,6 +138,29 @@ describe("API client", () => {
     ]);
   });
 
+  it("validates the session before a root-level business list request (regression)", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ id: "user-id", name: "User", email: "user@example.test", roles: ["ADMIN"] }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ data: [], meta: { page: 1, limit: 100, total: 0, totalPages: 0 } }), {
+          status: 200,
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await requestJson("/api/customers?page=1&limit=100");
+
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      "/api/auth/session",
+      "/api/customers?page=1&limit=100",
+    ]);
+  });
+
   it("renews an expired session once and retries the inventory request", async () => {
     markSessionFresh();
     const fetchMock = vi.fn()
