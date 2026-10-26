@@ -106,8 +106,9 @@ bug for reintroduzido.
 
 - **RBAC por ação:** avaliado nesta entrega (ver `Plano_Front.md` Fase 3) —
   hoje não há nenhuma tela real compartilhada por mais de um perfil com
-  permissões diferentes por ação, então não é uma lacuna ativa. Reavaliar se
-  isso mudar.
+  permissões diferentes por ação, então não é uma lacuna ativa. Reavaliar
+  somente se um módulo existente passar a ser usado por mais de um perfil com
+  regras distintas por operação dentro da mesma tela.
 - Validar sessão expirada e renovação (refresh) nos navegadores suportados —
   não coberto nesta rodada.
 - Validar acessibilidade (contraste, navegação por teclado, labels de
@@ -148,7 +149,7 @@ Diagnóstico concluído (Fase 0): O controlador declara `GET /inventory/reports/
 
 ## Verificação executada nesta entrega
 
-- Backend: `npm run lint` (oxlint, 0 erros), `npm test` (26 testes unitários), `npm run test:e2e` (46 testes) e `npm run build` passaram. Antes desta rodada, `npm test` executava também os specs e2e (o `vitest.config.ts` incluía `**/*.e2e-spec.ts`), somando 72 e rodando a suíte e2e duas vezes por verificação; corrigido para `npm test` cobrir apenas `*.spec.ts`.
+- Backend: `npm run lint` (oxlint, 0 erros), `npm test` (26 testes unitários), `npm run test:e2e` (46 testes) e `npm run build` passaram. Antes desta rodada, `npm test` executava também os specs e2e (o `vitest.config.ts` incluía `**/*.e2e-spec.ts`), somando 72 e rodando a suíte e2e duas vezes por verificação; corrigido para `npm test` cobrir apenas `*.spec.ts`. Esses números são do momento desta verificação manual; o estado atual (passou/não passou, sem depender de atualizar este número a cada PR) é garantido pela CI — ver badge em `README.md`.
 - Frontend: `npm run lint` (0 avisos), `npm run typecheck` (0 erros), `npm test` (46 testes) e `npm run build` (20 rotas SSG/SSR) passaram.
 - Auditoria e refinamentos técnicos (Rate Limiter Redis e Parcelamento Financeiro) concluídos e validados em testes unitários e ponta a ponta em ambas as camadas. A auditoria desta rodada encontrou e corrigiu, antes da validação final: reconexão permanente abandonada do cliente Redis do rate limiter após instabilidade transitória (`retryStrategy` corrigido para nunca desistir) e uma janela de corrida real entre checar e contabilizar tentativas de login (corrigida com checagem + incremento atômicos em uma única operação); a assimetria `ENTRADA`/`QUARENTENA` no estoque (lacuna de baixo risco conhecida desde a auditoria da Fase 1); e um bug de exibição "R$ NaN" na tela Financeiro, encontrado em smoke test manual com usuários reais contra o backend local — ver seção acima.
 

@@ -1,5 +1,7 @@
 # SisPiro ERP
 
+[![CI](https://github.com/raalencar/SisPiro/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/raalencar/SisPiro/actions/workflows/ci.yml)
+
 Monorepositório da plataforma SisPiro ERP, com API NestJS em `backend/` e
 interface web Next.js em `frontend/`.
 
@@ -18,8 +20,10 @@ financeiro (contas a pagar/receber, fluxo de caixa, Aging Schedule,
 parcelamento). Os controles de apresentação por perfil ocultam/desabilitam
 módulos sem permissão na navegação.
 
-Ainda faltam: RBAC por ação dentro de uma tela (hoje é por módulo) e
-validação visual completa em ambiente de staging. Emissão fiscal, Guias de
+Ainda falta validação visual completa em ambiente de staging. RBAC por ação
+dentro de uma tela foi avaliado e fechado (não há hoje tela real compartilhada
+por mais de um perfil com permissões diferentes por ação); reavaliar apenas se
+isso passar a existir. Emissão fiscal, Guias de
 Tráfego, integração bancária/conciliação e permissões de banco/backup de
 produção são lacunas conhecidas e, no caso fiscal/GT/bancário, bloqueadas até
 aprovação explícita. O documento

@@ -180,7 +180,7 @@ CREATE TABLE ordem_servico_itens (
 Para assegurar consistência transacional, facilidade de auditoria e escalabilidade:
 
 * **Estilo Arquitetural:** **Monólito Modular** (fácil de implantar e manter no estágio inicial, com clara separação entre módulos em subpastas ou pacotes bem delimitados).
-* **Backend:** **TypeScript com NestJS** ou **C# (.NET 8)**.
+* **Backend:** **TypeScript com NestJS** — decisão já tomada e implementada; a alternativa em C# (.NET) considerada neste documento original não foi adotada.
 * **Banco de Dados:** **PostgreSQL 16+** (uso de transações puras ACID para evitar saídas indevidas de estoque pirotécnico).
 * **Frontend Web:** **React.js** / **Next.js** com biblioteca TailwindCSS e componentes de UI baseados em Radix / Shadcn UI.
 * **Fila / Processamento Assíncrono:** **Redis com BullMQ** ou **RabbitMQ** para tarefas demoradas (emissão de NF-e/NFS-e, geração de PDF de relatórios para o Exército, envio de alertas de vencimento de licenças).
@@ -190,23 +190,11 @@ Para assegurar consistência transacional, facilidade de auditoria e escalabilid
 
 ## 7. Roadmap de Implementação
 
-### Fase 1: Núcleo Operacional & WMS (Mês 1 e 2)
-* Cadastros base (Produtos, Lotes, Paióis, Clientes).
-* Motor de cálculo de NEQ e validações de capacidade do paiol.
-* Módulo básico de Estoque e Compras.
-
-### Fase 2: Gestão Comercial e Faturamento (Mês 3)
-* Módulo de Vendas B2B/B2C e PDV.
-* Trava automática de vendas por licença vencida do cliente.
-* Integração para emissão de NF-e com tags de rastreamento de explosivos.
-
-### Fase 3: Módulo Operacional de Shows (Mês 4 e 5)
-* Gestão de Ordens de Serviço (OS) para espetáculos pirotécnicos.
-* Cadastro e vinculação de Blasters e validações de validade de carteira.
-* Módulo pós-evento (Relatório de Queima e baixa de material utilizado).
-* Emissão de NFS-e e emissão de MDF-e para transporte.
-
-### Fase 4: Compliance Avançado e Financeiro (Mês 6)
-* Emissão de Guias de Tráfego (GT) e Mapas de Estocagem.
-* Gestão financeira completa (Contas a pagar/receber, DRE gerencial por evento).
-* Dashboard gerencial e alertas automatizados por e-mail/WhatsApp.
+Este roadmap original, com fases por mês-calendário, foi substituído na prática
+por fases com critério de aceite (sem data fixa), detalhadas em
+[`Plano_Backend.md`](../Plano_Backend.md) e [`Plano_Front.md`](../Plano_Front.md).
+Núcleo operacional/WMS, gestão comercial e o módulo de Ordens de Serviço já
+estão implementados — ver [`docs/STATUS-IMPLEMENTACAO.md`](./STATUS-IMPLEMENTACAO.md)
+para o estado atual. O que permanece do escopo abaixo é compliance avançado e
+fiscal (Guias de Tráfego, NF-e/NFS-e/MDF-e, DRE gerencial por evento), bloqueado
+por decisão explícita de negócio antes de iniciar — ver `Plano_Backend.md` Fase 3.

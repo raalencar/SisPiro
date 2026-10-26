@@ -1,5 +1,7 @@
 # Frontend SisPiro ERP
 
+[![CI](https://github.com/raalencar/SisPiro/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/raalencar/SisPiro/actions/workflows/ci.yml)
+
 Interface web em Next.js 16 e React 19, em português do Brasil. A integração
 usa a API NestJS do diretório `../backend` através de um Backend-for-Frontend (BFF)
 completamente seguro baseado em cookies `HttpOnly` e proteção `Same-Origin`.

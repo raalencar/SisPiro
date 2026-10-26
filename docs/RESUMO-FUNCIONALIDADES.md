@@ -83,6 +83,9 @@ fases já concluídas, veja [`Plano_Backend.md`](../Plano_Backend.md) e
 - Frontend: 46 testes (incluindo componentes com React Testing Library +
   jsdom, infraestrutura que não existia até esta rodada), lint, typecheck e
   build limpos (20 rotas).
+- Essas contagens são do momento da última verificação manual; o estado atual
+  passa a ser garantido pela CI (`.github/workflows/ci.yml`, badge no
+  `README.md`), não por este número ficar atualizado a cada PR.
 
 ---
 
@@ -93,7 +96,7 @@ validação/refinamento, não de funcionalidade ausente.
 
 | Item | Observação | No sprint atual? |
 | --- | --- | --- |
-| RBAC por ação (não só por módulo) | Avaliado nesta rodada: não há hoje nenhuma tela real compartilhada por mais de um perfil com permissões diferentes por ação. Não é lacuna ativa — reavaliar se isso mudar. | Não — fechado por avaliação |
+| RBAC por ação (não só por módulo) | Avaliado nesta rodada: não há hoje nenhuma tela real compartilhada por mais de um perfil com permissões diferentes por ação. Não é lacuna ativa — reavaliar somente se um módulo existente passar a ser usado por mais de um perfil com regras distintas por operação dentro da mesma tela. | Não — fechado por avaliação |
 | Validação de sessão expirada/refresh em múltiplos navegadores | Escopo: Chrome/Firefox/Safari desktop, versões estáveis mais recentes. Ver `Plano_Front.md` Fase 5. | **Sim** |
 | Acessibilidade (contraste, navegação por teclado, labels de formulário) | Ver `Plano_Front.md` Fase 6. | **Sim** |
 | Responsividade completa | Só houve smoke test pontual (estoque, viewport mobile); próximo sprint cobre as 9 telas integradas em 3 breakpoints. Ver `Plano_Front.md` Fase 6. | **Sim** |
