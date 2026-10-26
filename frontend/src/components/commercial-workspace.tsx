@@ -19,6 +19,7 @@ import {
   type SalesReportSummary,
 } from "@/lib/api";
 import { formatCurrency, formatDateOnly, formatNumber } from "@/lib/format";
+import { useEscapeToClose } from "@/lib/use-escape-to-close";
 
 function errorMessage(error: unknown): string {
   return error instanceof Error
@@ -435,6 +436,13 @@ export function CommercialWorkspace() {
       setError(errorMessage(err));
     }
   }
+
+  useEscapeToClose(isQuoteModalOpen, () => setIsQuoteModalOpen(false));
+  useEscapeToClose(Boolean(convertingQuote), () => setConvertingQuote(null));
+  useEscapeToClose(isSaleModalOpen, () => setIsSaleModalOpen(false));
+  useEscapeToClose(Boolean(returningSale), () => setReturningSale(null));
+  useEscapeToClose(isPricingModalOpen, () => setIsPricingModalOpen(false));
+  useEscapeToClose(isPromoModalOpen, () => setIsPromoModalOpen(false));
 
   return (
     <div className="workspace space-y-6">

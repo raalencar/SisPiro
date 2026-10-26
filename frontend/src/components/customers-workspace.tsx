@@ -9,6 +9,7 @@ import {
   type PageResult,
 } from "@/lib/api";
 import { formatDateOnly } from "@/lib/format";
+import { useEscapeToClose } from "@/lib/use-escape-to-close";
 
 const PCE_CLASSES = ["1.1", "1.2", "1.3", "1.4", "1.5", "1.6"];
 
@@ -161,6 +162,9 @@ export function CustomersWorkspace() {
         : [...prev, pceClass],
     );
   }
+
+  useEscapeToClose(isModalOpen, () => setIsModalOpen(false));
+  useEscapeToClose(Boolean(eligibilityCustomer), () => setEligibilityCustomer(null));
 
   return (
     <div className="workspace space-y-6">

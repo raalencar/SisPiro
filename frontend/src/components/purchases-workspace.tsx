@@ -13,6 +13,7 @@ import {
   type Supplier,
 } from "@/lib/api";
 import { formatCurrency, formatDateOnly, formatNumber } from "@/lib/format";
+import { useEscapeToClose } from "@/lib/use-escape-to-close";
 
 const PCE_CLASSES = ["1.1", "1.2", "1.3", "1.4", "1.5", "1.6"];
 
@@ -262,6 +263,10 @@ export function PurchasesWorkspace() {
       setError(errorMessage(err));
     }
   }
+
+  useEscapeToClose(isSupplierModalOpen, () => setIsSupplierModalOpen(false));
+  useEscapeToClose(isOrderModalOpen, () => setIsOrderModalOpen(false));
+  useEscapeToClose(Boolean(receivingPurchase), () => setReceivingPurchase(null));
 
   return (
     <div className="workspace space-y-6">

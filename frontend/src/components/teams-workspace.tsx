@@ -9,6 +9,7 @@ import {
   type PageResult,
 } from "@/lib/api";
 import { formatDateOnly } from "@/lib/format";
+import { useEscapeToClose } from "@/lib/use-escape-to-close";
 
 function errorMessage(error: unknown): string {
   return error instanceof Error
@@ -123,6 +124,9 @@ export function TeamsWorkspace() {
       setCheckingEligibility(false);
     }
   }
+
+  useEscapeToClose(isModalOpen, () => setIsModalOpen(false));
+  useEscapeToClose(Boolean(eligibilityBlaster), () => setEligibilityBlaster(null));
 
   return (
     <div className="workspace space-y-6">

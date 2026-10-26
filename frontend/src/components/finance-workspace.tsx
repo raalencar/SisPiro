@@ -14,6 +14,7 @@ import {
   type PageResult,
 } from "@/lib/api";
 import { formatCurrency, formatDateOnly } from "@/lib/format";
+import { useEscapeToClose } from "@/lib/use-escape-to-close";
 
 function errorMessage(error: unknown): string {
   return error instanceof Error
@@ -210,6 +211,9 @@ export function FinanceWorkspace() {
       setNewEntrySubmitting(false);
     }
   }
+
+  useEscapeToClose(isNewEntryOpen, () => setIsNewEntryOpen(false));
+  useEscapeToClose(Boolean(payingEntry), () => setPayingEntry(null));
 
   return (
     <div className="space-y-6">
