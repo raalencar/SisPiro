@@ -148,7 +148,7 @@ Diagnóstico concluído (Fase 0): O controlador declara `GET /inventory/reports/
 
 ## Verificação executada nesta entrega
 
-- Backend: `npm run lint` (oxlint, 0 erros), `npm test` (72 testes), `npm run test:e2e` (46 testes) e `npm run build` passaram.
+- Backend: `npm run lint` (oxlint, 0 erros), `npm test` (26 testes unitários), `npm run test:e2e` (46 testes) e `npm run build` passaram. Antes desta rodada, `npm test` executava também os specs e2e (o `vitest.config.ts` incluía `**/*.e2e-spec.ts`), somando 72 e rodando a suíte e2e duas vezes por verificação; corrigido para `npm test` cobrir apenas `*.spec.ts`.
 - Frontend: `npm run lint` (0 avisos), `npm run typecheck` (0 erros), `npm test` (46 testes) e `npm run build` (20 rotas SSG/SSR) passaram.
 - Auditoria e refinamentos técnicos (Rate Limiter Redis e Parcelamento Financeiro) concluídos e validados em testes unitários e ponta a ponta em ambas as camadas. A auditoria desta rodada encontrou e corrigiu, antes da validação final: reconexão permanente abandonada do cliente Redis do rate limiter após instabilidade transitória (`retryStrategy` corrigido para nunca desistir) e uma janela de corrida real entre checar e contabilizar tentativas de login (corrigida com checagem + incremento atômicos em uma única operação); a assimetria `ENTRADA`/`QUARENTENA` no estoque (lacuna de baixo risco conhecida desde a auditoria da Fase 1); e um bug de exibição "R$ NaN" na tela Financeiro, encontrado em smoke test manual com usuários reais contra o backend local — ver seção acima.
 

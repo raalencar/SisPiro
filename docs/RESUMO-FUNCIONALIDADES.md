@@ -79,7 +79,7 @@ fases já concluídas, veja [`Plano_Backend.md`](../Plano_Backend.md) e
 - Aging Schedule (5 faixas de vencimento) com exposição líquida.
 
 ### Qualidade e infraestrutura de teste
-- Backend: 72 testes unitários + 46 e2e, lint e build limpos.
+- Backend: 26 testes unitários + 46 e2e, lint e build limpos.
 - Frontend: 46 testes (incluindo componentes com React Testing Library +
   jsdom, infraestrutura que não existia até esta rodada), lint, typecheck e
   build limpos (20 rotas).
