@@ -121,7 +121,7 @@ pode ser priorizada por valor de negócio.
 ### 2.4 Relatórios adicionais
 - [x] Relatório de conversão de orçamentos comerciais (`GET /commercial/reports/quotes-conversion?from=...&to=...`)
       com total emitido, convertido, expirado, taxa de conversão e ticket médio.
-- [x] Relatório de Aging Schedule (`GET /financial/reports/aging?referenceDate=...`) com distribuição de títulos a pagar e a receber
+- [x] Relatório de Aging Schedule (`GET /finance/reports/aging?referenceDate=...`) com distribuição de títulos a pagar e a receber
       em buckets de maturidade (`current`, `overdue1to30`, `overdue31to60`, `overdue61to90`, `overdueOver90`).
 
 **Critério de aceite da Fase 2:** `backend/README.md` (tabela de lacunas e novos endpoints) e

@@ -41,10 +41,13 @@ artifício, shows pirotécnicos, transporte especializado. Isso implica:
   autenticado. Registros históricos antigos podem ter ator nulo — isso é
   esperado, não corrigir retroativamente.
 - **Fora de escopo até aprovação explícita:** emissão fiscal (NF-e, NFS-e,
-  MDF-e), Guias de Tráfego, integração bancária/conciliação, MFA e
-  recuperação de senha. Não implementar nada nessas áreas sem decisão
-  explícita do usuário — são lacunas conhecidas e documentadas, não convites
-  para iniciativa própria.
+  MDF-e), Guias de Tráfego, integração bancária/conciliação. Não implementar
+  nada nessas áreas sem decisão explícita do usuário — são lacunas conhecidas
+  e documentadas, não convites para iniciativa própria.
+- **MFA, recuperação de senha, rate limiting de login e parcelamento
+  financeiro já estão implementados** (Fases 1 e 2, ver `backend/README.md`
+  e `docs/STATUS-IMPLEMENTACAO.md`) — não tratar como fora de escopo nem
+  como lacuna a reimplementar.
 
 ## Bounded contexts (DDD)
 

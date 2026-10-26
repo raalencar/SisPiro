@@ -62,11 +62,16 @@ Estas regras vêm de `backend/README.md` e não são opcionais em código novo:
 
 ## Fora de escopo (não implementar sem aprovação explícita)
 
-Emissão fiscal (NF-e, NFS-e, MDF-e), Guias de Tráfego, integração bancária
-e conciliação, parcelamento/estorno de pagamentos, MFA, recuperação de
-senha, rate limiting de login. Essas são lacunas documentadas em
-`docs/STATUS-IMPLEMENTACAO.md` — se uma tarefa parecer exigir uma delas,
-parar e perguntar antes de avançar.
+Emissão fiscal (NF-e, NFS-e, MDF-e), Guias de Tráfego e integração
+bancária/conciliação. Essas são lacunas documentadas em
+`docs/STATUS-IMPLEMENTACAO.md` (Fase 3, bloqueada) — se uma tarefa parecer
+exigir uma delas, parar e perguntar antes de avançar.
+
+MFA, recuperação de senha, rate limiting de login e parcelamento de
+lançamentos financeiros **já estão implementados** (Fases 1 e 2, ver
+`backend/README.md`) — não são mais fora de escopo. Evoluções nesses fluxos
+seguem o workflow normal, não exigem aprovação especial além do contrato do
+[[engenheiro]].
 
 Também não implementar edição/exclusão de produtos, paióis, lotes e
 movimentos de estoque — a API deliberadamente não oferece essas operações

@@ -104,7 +104,7 @@ referenciados pelos módulos seguintes):
       (`/finance/dashboard`).
 - [x] Detalhamento de pagamentos por categoria/método e Aging Schedule com os
       5 buckets de vencimento (`/finance/reports/payment-breakdown`,
-      `/financial/reports/aging`).
+      `/finance/reports/aging`).
 
 **Correção aplicada:** todas as edições acima (`PATCH`/`PUT`) estavam
 quebradas pelo mesmo bug crítico do proxy BFF corrigido na Fase 1 — ver nota

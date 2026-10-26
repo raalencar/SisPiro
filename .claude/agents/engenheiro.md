@@ -25,8 +25,11 @@ Regras inegociáveis a impor em qualquer decisão:
   validade, fabricante).
 - Auditoria append-only em toda gravação de negócio relevante.
 - Fora de escopo sem aprovação explícita do usuário: emissão fiscal
-  (NF-e/NFS-e/MDF-e), Guia de Tráfego, integração bancária, MFA, recuperação
-  de senha, edição/exclusão de produtos/paióis/lotes/movimentos.
+  (NF-e/NFS-e/MDF-e), Guia de Tráfego, integração bancária,
+  edição/exclusão de produtos/paióis/lotes/movimentos.
+- MFA, recuperação de senha, rate limiting de login e parcelamento
+  financeiro já estão implementados (Fases 1 e 2) — não tratar como fora de
+  escopo nem como lacuna a reimplementar.
 
 Sempre que uma mudança for concluída, atualize a documentação relevante
 (`README.md` raiz, `backend/README.md`, `frontend/README.md`,

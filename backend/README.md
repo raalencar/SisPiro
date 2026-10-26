@@ -391,7 +391,7 @@ legadas sem valor contratado permanecem na contagem e são sinalizadas em
 | `GET` | `/finance/cash-flow?from=AAAA-MM-DD&to=AAAA-MM-DD` | Resume entradas e saídas efetivamente pagas por dia |
 | `GET` | `/finance/dashboard?from=AAAA-MM-DD&to=AAAA-MM-DD` | Resume fluxo realizado e saldos atuais a pagar/receber por vencimento |
 | `GET` | `/finance/reports/payment-breakdown?from=AAAA-MM-DD&to=AAAA-MM-DD` | Detalha pagamentos por categoria, método e direção |
-| `GET` | `/financial/reports/aging?referenceDate=AAAA-MM-DD` | Relatório de Aging Schedule agrupando títulos a pagar/receber por faixas de vencimento |
+| `GET` | `/finance/reports/aging?referenceDate=AAAA-MM-DD` | Relatório de Aging Schedule agrupando títulos a pagar/receber por faixas de vencimento |
 
 Lançamentos armazenam direção, categoria, contraparte, valor e vencimento; o
 cliente é opcional para contas a receber. Pagamentos são imutáveis neste fluxo,
@@ -409,7 +409,7 @@ O detalhamento por categoria e método considera somente pagamentos e
 recebimentos registrados no intervalo, pela data de ocorrência; agrupa por
 categoria, método e combinação dos dois, e separa entradas de saídas. Contas
 sem pagamento não são incluídas nesse relatório.
-O relatório de Aging Schedule (`/financial/reports/aging`) calcula a maturidade de
+O relatório de Aging Schedule (`/finance/reports/aging`) calcula a maturidade de
 todas as contas ativas a pagar e a receber com base na data de referência informada
 (`referenceDate`, padrão: data atual se omitida), com filtro opcional por `direction`
 (`PAGAR`/`RECEBER`), distribuindo os saldos pendentes em cinco faixas etárias estritas: `current` (a vencer),
