@@ -36,6 +36,17 @@ function errorMessage(error: unknown): string {
     : "Não foi possível concluir a operação.";
 }
 
+function receivedQuantity(item: Purchase["items"][number]): number {
+  return item.receipts.reduce((sum, receipt) => sum + Number(receipt.quantity), 0);
+}
+
+function purchaseTotal(purchase: Purchase): number {
+  return purchase.items.reduce(
+    (sum, item) => sum + Number(item.orderedQuantity) * Number(item.unitCost),
+    0,
+  );
+}
+
 export function PurchasesWorkspace() {
   const [tab, setTab] = useState<"purchases" | "suppliers">("purchases");
 
@@ -79,6 +90,7 @@ export function PurchasesWorkspace() {
   const [receiveInvoiceRef, setReceiveInvoiceRef] = useState("");
   const [receiveBatches, setReceiveBatches] = useState<
     Array<{
+      purchaseItemId: string;
       productId: string;
       magazineId: string;
       lotNumber: string;
@@ -175,10 +187,10 @@ export function PurchasesWorkspace() {
     try {
       await procurementApi.createPurchase({
         supplierId: selectedSupplierId,
-        notes: orderNotes.trim() || undefined,
+        reference: orderNotes.trim() || undefined,
         items: orderItems.map((item) => ({
           productId: item.productId,
-          quantity: Number(item.quantity),
+          orderedQuantity: Number(item.quantity),
           unitCost: Number(item.unitCost),
         })),
       });
@@ -198,12 +210,13 @@ export function PurchasesWorkspace() {
     setReceiveInvoiceRef("");
     // Sugere recebimento para os itens que faltam receber
     const defaultBatches = p.items
-      .filter((item) => Number(item.quantity) > Number(item.receivedQuantity))
+      .filter((item) => Number(item.orderedQuantity) > receivedQuantity(item))
       .map((item) => ({
+        purchaseItemId: item.id,
         productId: item.productId,
         magazineId: magazines[0]?.id || "",
         lotNumber: `LOTE-${Date.now().toString().slice(-6)}`,
-        quantity: Number(item.quantity) - Number(item.receivedQuantity),
+        quantity: Number(item.orderedQuantity) - receivedQuantity(item),
         manufacturedAt: today,
         expiresAt: today,
         manufacturerOrImporter: p.supplier?.legalName || "Fabricante",
@@ -220,8 +233,16 @@ export function PurchasesWorkspace() {
     try {
       await procurementApi.receivePurchase(receivingPurchase.id, {
         dueDate: receiveDueDate,
-        invoiceReference: receiveInvoiceRef.trim() || undefined,
-        batches: receiveBatches,
+        invoiceReference: receiveInvoiceRef.trim(),
+        items: receiveBatches.map((batch) => ({
+          purchaseItemId: batch.purchaseItemId,
+          magazineId: batch.magazineId,
+          lotNumber: batch.lotNumber,
+          quantity: batch.quantity,
+          manufacturedAt: batch.manufacturedAt,
+          expiresAt: batch.expiresAt,
+          manufacturerOrImporter: batch.manufacturerOrImporter,
+        })),
       });
       setReceivingPurchase(null);
       setReloadTrigger((prev) => prev + 1);
@@ -350,13 +371,13 @@ export function PurchasesWorkspace() {
                         <td className="p-3 text-xs">
                           {p.items.map((it, i) => (
                             <div key={i} className="text-neutral-300">
-                              {it.product?.name || "Produto"}: {formatNumber(Number(it.receivedQuantity))}/
-                              {formatNumber(Number(it.quantity))} {it.product?.unit}
+                              {it.product?.name || "Produto"}: {formatNumber(receivedQuantity(it))}/
+                              {formatNumber(Number(it.orderedQuantity))} {it.product?.unit}
                             </div>
                           ))}
                         </td>
                         <td className="p-3 font-mono font-bold text-neutral-100">
-                          {formatCurrency(Number(p.totalAmount))}
+                          {formatCurrency(purchaseTotal(p))}
                         </td>
                         <td className="p-3">
                           <span className={`status-pill status-pill--${STATUS_TONES[p.status]}`}>
@@ -766,9 +787,10 @@ export function PurchasesWorkspace() {
                   />
                 </label>
                 <label className="field">
-                  <span>Nota Fiscal / Chave de Acesso</span>
+                  <span>Nota Fiscal / Chave de Acesso *</span>
                   <input
                     type="text"
+                    required
                     placeholder="Ex: NF-e 001.234"
                     value={receiveInvoiceRef}
                     onChange={(e) => setReceiveInvoiceRef(e.target.value)}

@@ -894,14 +894,23 @@ export type Supplier = {
   updatedAt: string;
 };
 
+export type PurchaseReceipt = {
+  id: string;
+  quantity: string;
+  lotNumber: string;
+  manufacturedAt: string;
+  expiresAt: string;
+  manufacturerOrImporter: string;
+  magazineId: string;
+};
+
 export type PurchaseItem = {
   id: string;
   productId: string;
   product?: Product;
-  quantity: string;
+  orderedQuantity: string;
   unitCost: string;
-  totalCost: string;
-  receivedQuantity: string;
+  receipts: PurchaseReceipt[];
 };
 
 export type PurchaseStatus = "PENDENTE" | "PARCIAL" | "RECEBIDO" | "CANCELADO";
@@ -911,10 +920,9 @@ export type Purchase = {
   supplierId: string;
   supplier?: Supplier;
   status: PurchaseStatus;
-  totalAmount: string;
-  notes?: string | null;
+  reference?: string | null;
   createdAt: string;
-  updatedAt: string;
+  receivedAt?: string | null;
   items: PurchaseItem[];
 };
 
@@ -948,8 +956,8 @@ export const procurementApi = {
     requestJson<Purchase>(`/api/procurement/purchases/${id}`),
   createPurchase: (body: {
     supplierId: string;
-    notes?: string;
-    items: Array<{ productId: string; quantity: number; unitCost: number }>;
+    reference?: string;
+    items: Array<{ productId: string; orderedQuantity: number; unitCost: number }>;
   }) =>
     requestJson<Purchase>("/api/procurement/purchases", {
       method: "POST",
@@ -959,9 +967,9 @@ export const procurementApi = {
     id: string,
     body: {
       dueDate: string;
-      invoiceReference?: string;
-      batches: Array<{
-        productId: string;
+      invoiceReference: string;
+      items: Array<{
+        purchaseItemId: string;
         magazineId: string;
         lotNumber: string;
         quantity: number;
