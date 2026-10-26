@@ -837,6 +837,7 @@ export function CommercialWorkspace() {
                   >
                     <div className="col-span-5">
                       <select
+                        aria-label="Produto"
                         value={item.productId}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -857,6 +858,7 @@ export function CommercialWorkspace() {
                     </div>
                     <div className="col-span-4">
                       <select
+                        aria-label="Lote"
                         value={item.productLotId}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -882,6 +884,7 @@ export function CommercialWorkspace() {
                         type="number"
                         min="1"
                         placeholder="Qtd"
+                        aria-label="Quantidade"
                         value={item.quantity}
                         onChange={(e) => {
                           const val = Number(e.target.value);
@@ -1084,6 +1087,7 @@ export function CommercialWorkspace() {
                   >
                     <div className="col-span-5">
                       <select
+                        aria-label="Produto"
                         value={item.productId}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -1104,6 +1108,7 @@ export function CommercialWorkspace() {
                     </div>
                     <div className="col-span-4">
                       <select
+                        aria-label="Lote"
                         value={item.productLotId}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -1129,6 +1134,7 @@ export function CommercialWorkspace() {
                         type="number"
                         min="1"
                         placeholder="Qtd"
+                        aria-label="Quantidade"
                         value={item.quantity}
                         onChange={(e) => {
                           const val = Number(e.target.value);
@@ -1215,6 +1221,7 @@ export function CommercialWorkspace() {
                           type="number"
                           min="1"
                           max={Number(saleItem?.quantity || 1)}
+                          aria-label={`Quantidade a devolver de ${saleItem?.product?.name || "item"}`}
                           value={item.quantity}
                           onChange={(e) => {
                             const val = Number(e.target.value);
@@ -1286,6 +1293,7 @@ export function CommercialWorkspace() {
                             type="number"
                             step="0.01"
                             min="0"
+                            aria-label={`Preço de ${product?.name || "produto"}`}
                             value={item.unitPrice}
                             onChange={(e) => {
                               const val = Number(e.target.value);
@@ -1373,6 +1381,7 @@ export function CommercialWorkspace() {
                         <span className="font-semibold truncate max-w-[140px]">{product?.name || "Produto"}</span>
                         <div className="flex items-center gap-2">
                           <select
+                            aria-label={`Tipo de desconto de ${product?.name || "produto"}`}
                             value={item.discountType}
                             onChange={(e) => {
                               const t = e.target.value as PromotionDiscountType;
@@ -1390,6 +1399,7 @@ export function CommercialWorkspace() {
                             step={item.discountType === "PERCENTUAL" ? "1" : "0.01"}
                             min="0"
                             max={item.discountType === "PERCENTUAL" ? "100" : undefined}
+                            aria-label={`Valor do desconto de ${product?.name || "produto"}`}
                             value={item.discountType === "PERCENTUAL" ? (item.discountPercent ?? 0) : (item.promotionalPrice ?? 0)}
                             onChange={(e) => {
                               const val = Number(e.target.value);

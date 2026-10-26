@@ -186,16 +186,19 @@ export function CustomersWorkspace() {
       {/* Barra de busca e filtros */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex-1 min-w-[240px]">
-          <input
-            type="search"
-            placeholder="Buscar por razão social, fantasia ou CPF/CNPJ..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            className="input w-full"
-          />
+          <label className="field">
+            <span className="sr-only">Buscar clientes</span>
+            <input
+              type="search"
+              placeholder="Buscar por razão social, fantasia ou CPF/CNPJ..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              className="input w-full"
+            />
+          </label>
         </div>
       </div>
 

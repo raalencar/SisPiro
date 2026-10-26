@@ -148,16 +148,19 @@ export function TeamsWorkspace() {
       {/* Busca */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex-1 min-w-[240px]">
-          <input
-            type="search"
-            placeholder="Buscar por nome, CPF ou número da carteira..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            className="input w-full"
-          />
+          <label className="field">
+            <span className="sr-only">Buscar blasters</span>
+            <input
+              type="search"
+              placeholder="Buscar por nome, CPF ou número da carteira..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              className="input w-full"
+            />
+          </label>
         </div>
       </div>
 

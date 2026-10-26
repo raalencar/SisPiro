@@ -418,13 +418,16 @@ export function PurchasesWorkspace() {
         /* Aba Fornecedores */
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
-            <input
-              type="search"
-              placeholder="Buscar fornecedores por razão social ou CNPJ..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="input w-full max-w-md"
-            />
+            <label className="field w-full max-w-md">
+              <span className="sr-only">Buscar fornecedores</span>
+              <input
+                type="search"
+                placeholder="Buscar fornecedores por razão social ou CNPJ..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="input w-full"
+              />
+            </label>
           </div>
 
           <div className="panel p-0 overflow-hidden">
@@ -671,6 +674,7 @@ export function PurchasesWorkspace() {
                   >
                     <div className="col-span-6">
                       <select
+                        aria-label="Produto"
                         value={item.productId}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -694,6 +698,7 @@ export function PurchasesWorkspace() {
                         type="number"
                         min="1"
                         placeholder="Qtd"
+                        aria-label="Quantidade"
                         value={item.quantity}
                         onChange={(e) => {
                           const val = Number(e.target.value);
@@ -712,6 +717,7 @@ export function PurchasesWorkspace() {
                         step="0.01"
                         min="0"
                         placeholder="Custo"
+                        aria-label="Custo unitário"
                         value={item.unitCost}
                         onChange={(e) => {
                           const val = Number(e.target.value);
