@@ -10,8 +10,6 @@ import {
 } from "@/lib/api";
 import { formatDateOnly } from "@/lib/format";
 
-const BLASTER_CLASSES = ["1.1", "1.2", "1.3", "1.4", "BLASTER_PIROTECNICO"];
-
 function errorMessage(error: unknown): string {
   return error instanceof Error
     ? error.message
@@ -32,7 +30,6 @@ export function TeamsWorkspace() {
   const [taxId, setTaxId] = useState("");
   const [licenseNumber, setLicenseNumber] = useState("");
   const [licenseExpiresAt, setLicenseExpiresAt] = useState("");
-  const [authorizedClasses, setAuthorizedClasses] = useState<string[]>([]);
   const [formSubmitting, setFormSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -69,7 +66,6 @@ export function TeamsWorkspace() {
     setTaxId("");
     setLicenseNumber("");
     setLicenseExpiresAt("");
-    setAuthorizedClasses(["BLASTER_PIROTECNICO"]);
     setFormError(null);
     setIsModalOpen(true);
   }
@@ -80,7 +76,6 @@ export function TeamsWorkspace() {
     setTaxId(b.taxId);
     setLicenseNumber(b.licenseNumber);
     setLicenseExpiresAt(b.licenseExpiresAt.slice(0, 10));
-    setAuthorizedClasses(b.authorizedClasses || []);
     setFormError(null);
     setIsModalOpen(true);
   }
@@ -95,7 +90,6 @@ export function TeamsWorkspace() {
         taxId: taxId.replace(/\D/g, ""),
         licenseNumber: licenseNumber.trim(),
         licenseExpiresAt,
-        authorizedClasses,
       };
 
       if (editingBlaster) {
@@ -128,14 +122,6 @@ export function TeamsWorkspace() {
     } finally {
       setCheckingEligibility(false);
     }
-  }
-
-  function toggleClass(cls: string) {
-    setAuthorizedClasses((prev) =>
-      prev.includes(cls)
-        ? prev.filter((item) => item !== cls)
-        : [...prev, cls],
-    );
   }
 
   return (
@@ -192,7 +178,6 @@ export function TeamsWorkspace() {
                   <th className="p-3">CPF</th>
                   <th className="p-3">Registro / Carteira</th>
                   <th className="p-3">Validade</th>
-                  <th className="p-3">Classes</th>
                   <th className="p-3">Situação</th>
                   <th className="p-3 text-right">Ações</th>
                 </tr>
@@ -220,18 +205,6 @@ export function TeamsWorkspace() {
                           {formatDateOnly(b.licenseExpiresAt)}
                           {isExpired && " (VENCIDA)"}
                         </span>
-                      </td>
-                      <td className="p-3">
-                        <div className="flex flex-wrap gap-1">
-                          {b.authorizedClasses.map((cls) => (
-                            <span
-                              key={cls}
-                              className="px-1.5 py-0.5 text-[11px] rounded bg-neutral-800 border border-neutral-700"
-                            >
-                              {cls}
-                            </span>
-                          ))}
-                        </div>
                       </td>
                       <td className="p-3">
                         <span
@@ -321,31 +294,6 @@ export function TeamsWorkspace() {
                     onChange={(e) => setLicenseExpiresAt(e.target.value)}
                   />
                 </label>
-              </div>
-
-              <div>
-                <span className="text-xs font-medium text-neutral-400 block mb-1">
-                  Classes Autorizadas:
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {BLASTER_CLASSES.map((cls) => {
-                    const selected = authorizedClasses.includes(cls);
-                    return (
-                      <button
-                        type="button"
-                        key={cls}
-                        onClick={() => toggleClass(cls)}
-                        className={`px-2 py-1 text-xs rounded border ${
-                          selected
-                            ? "bg-primary-600 border-primary-500 text-white font-bold"
-                            : "bg-neutral-800 border-neutral-700 text-neutral-300"
-                        }`}
-                      >
-                        {cls}
-                      </button>
-                    );
-                  })}
-                </div>
               </div>
 
               {formError && <p className="form-error text-xs" role="alert">{formError}</p>}

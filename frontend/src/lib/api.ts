@@ -802,7 +802,6 @@ export type Blaster = {
   taxId: string;
   licenseNumber: string;
   licenseExpiresAt: string;
-  authorizedClasses: string[];
   active: boolean;
   createdAt: string;
   updatedAt: string;
