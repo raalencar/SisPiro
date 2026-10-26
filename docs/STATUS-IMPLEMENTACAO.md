@@ -1,6 +1,6 @@
 # Status da implementação SisPiro ERP
 
-Atualizado em 9 de outubro de 2026. Este documento resume as entregas existentes
+Atualizado em 26 de outubro de 2026. Este documento resume as entregas existentes
 no backend e no frontend e registra trabalho ainda necessário. O estado dos
 endpoints de negócio deve ser confirmado também contra a versão efetivamente
 implantada da API.
@@ -109,8 +109,28 @@ bug for reintroduzido.
   permissões diferentes por ação, então não é uma lacuna ativa. Reavaliar
   somente se um módulo existente passar a ser usado por mais de um perfil com
   regras distintas por operação dentro da mesma tela.
-- Validar sessão expirada e renovação (refresh) nos navegadores suportados —
-  não coberto nesta rodada.
+- **Sessão expirada e renovação (refresh):** validado em Chrome contra o
+  backend real (`Plano_Front.md` Fase 5) — renovação transparente enquanto o
+  refresh token é válido; redirecionamento limpo à tela de login com "Sua
+  sessão expirou. Entre novamente." quando a sessão é revogada. Firefox e
+  Safari **não foram testados** nesta rodada (sem ferramenta de automação
+  disponível para esses dois) — permanece pendente.
+  - Este teste encontrou e corrigiu três bugs de integração reais, nenhum
+    específico de navegador: (1) `GET`/`POST /api/customers` e
+    `GET`/`POST /api/blasters` respondiam 404 do roteador do Next.js —
+    pastas de rota BFF usavam catch-all obrigatório (`[...path]`) em vez de
+    opcional (`[[...path]]`), quebrando listagem e cadastro das telas de
+    Clientes e Blasters por completo, apesar de documentadas como
+    integradas e testadas; (2) com o 404 corrigido, a tela de Blasters
+    quebrava com `Cannot read properties of undefined (reading 'map')` ao
+    tentar ler `b.authorizedClasses`, um campo de Cliente/CR que nunca
+    existiu no modelo de Blaster — UI inteira (coluna de tabela, campo de
+    formulário) fabricada sem contrato de API real, removida; (3)
+    `isBusinessRequest` em `lib/api.ts` não reconhecia a própria chamada de
+    listagem raiz de Clientes/Blasters (`startsWith` exigia uma barra que a
+    URL com query string não tem), fazendo essas duas telas pularem o fluxo
+    de renovação/sessão-expirada e mostrar um erro solto em vez do
+    redirecionamento limpo.
 - Validar acessibilidade (contraste, navegação por teclado, labels de
   formulário) — não coberto nesta rodada; responsividade teve apenas um
   smoke test pontual (estoque, viewport mobile), não é cobertura exaustiva.

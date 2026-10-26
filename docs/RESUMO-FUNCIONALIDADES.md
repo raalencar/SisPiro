@@ -1,6 +1,6 @@
 # Resumo de Funcionalidades — SisPiro ERP
 
-Atualizado em 9 de outubro de 2026. Visão consolidada, por área de negócio, do
+Atualizado em 26 de outubro de 2026. Visão consolidada, por área de negócio, do
 que está implementado (backend + frontend) e do que falta, para apoiar o
 planejamento do próximo sprint. Para detalhes técnicos, endpoints e regras,
 consulte [`backend/README.md`](../backend/README.md),
@@ -97,7 +97,7 @@ validação/refinamento, não de funcionalidade ausente.
 | Item | Observação | No sprint atual? |
 | --- | --- | --- |
 | RBAC por ação (não só por módulo) | Avaliado nesta rodada: não há hoje nenhuma tela real compartilhada por mais de um perfil com permissões diferentes por ação. Não é lacuna ativa — reavaliar somente se um módulo existente passar a ser usado por mais de um perfil com regras distintas por operação dentro da mesma tela. | Não — fechado por avaliação |
-| Validação de sessão expirada/refresh em múltiplos navegadores | Escopo: Chrome/Firefox/Safari desktop, versões estáveis mais recentes. Ver `Plano_Front.md` Fase 5. | **Sim** |
+| Validação de sessão expirada/refresh em Firefox e Safari | Validado em Chrome contra o backend real (renovação transparente + redirecionamento limpo ao login); achados de integração reais corrigidos no processo (ver `Plano_Front.md` Fase 5). Firefox/Safari não testados — sem ferramenta de automação disponível. | **Sim, só Firefox/Safari** |
 | Acessibilidade (contraste, navegação por teclado, labels de formulário) | Ver `Plano_Front.md` Fase 6. | **Sim** |
 | Responsividade completa | Só houve smoke test pontual (estoque, viewport mobile); próximo sprint cobre as 9 telas integradas em 3 breakpoints. Ver `Plano_Front.md` Fase 6. | **Sim** |
 | Permissões de banco de dados e rotina de backup | Documentadas como runbook de implantação em `backend/README.md`, mas não provisionadas neste repositório — é decisão de infraestrutura de produção, não de código. | Não |
@@ -136,6 +136,17 @@ Registrados aqui porque influenciam o que ainda merece atenção de QA:
   pagamento com valor/limite inválidos (corrigido; encontrado só porque a
   tela foi aberta de verdade no navegador — nenhum teste automatizado
   cobria essa renderização antes).
+- Listagem e cadastro de Clientes e Blasters respondiam 404 do próprio
+  roteador do Next.js (rota BFF com catch-all obrigatório em vez de
+  opcional) — as duas telas nunca funcionaram de fato, apesar de
+  documentadas como integradas e testadas (corrigido).
+- Tela de Blasters quebrava com erro de runtime ao ler `authorizedClasses`,
+  campo de Cliente/CR que nunca existiu no modelo de Blaster — feature
+  inteira fabricada sem contrato de API real (corrigido: removida).
+- Telas de Clientes/Blasters não disparavam o fluxo de sessão-expirada
+  (checagem de prefixo de rota não reconhecia a própria chamada de listagem
+  raiz) — mostravam erro solto em vez do redirecionamento limpo ao login
+  (corrigido).
 
 Padrão a observar: os bugs mais graves encontrados até aqui foram todos de
 **integração real** (campo com nome errado, corpo de requisição descartado,

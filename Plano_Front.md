@@ -190,23 +190,60 @@ senha, MFA) estar implementada no backend — já está.
       em Redis → confirmação → login com a nova senha), edição de orçamento de
       OS via `PUT` (alteração persistida e refletida na listagem), e navegação
       por módulo restrito/liberado por perfil.
-- [ ] **Sessão expirada e renovação (refresh) — próximo sprint.** Não há hoje
-      uma matriz de navegadores suportados definida; para este trabalho,
-      escopo mínimo: Chrome, Firefox e Safari, versões estáveis mais
-      recentes, desktop (o produto é majoritariamente usado em escritório/
-      operação, não em campo). Tarefas:
-      - [ ] Mapear o comportamento atual de renovação em `lib/auth.ts` e nas
-            rotas BFF (`/api/auth/session`, refresh automático) — confirmar
-            se é transparente (silencioso) ou se o usuário percebe
-            interrupção.
-      - [ ] Testar expiração real: deixar o access token expirar em uso
-            (ou revogar a sessão via admin) e confirmar que o usuário é
-            redirecionado ao login com mensagem clara, sem tela quebrada ou
-            erro silencioso.
-      - [ ] Repetir o teste de expiração nos 3 navegadores do escopo,
-            prestando atenção a comportamento de cookie `HttpOnly`/
-            `SameSite=Lax` (é a base de toda a autenticação do BFF).
-      - [ ] Registrar o resultado em `docs/STATUS-IMPLEMENTACAO.md`.
+- [x] **Sessão expirada e renovação (refresh).** Escopo coberto: Chrome
+      (via automação); Firefox e Safari **não foram testados** — a sessão não
+      teve ferramenta de automação para esses dois, ficou como lacuna
+      explícita, não como "validado". Tarefas:
+      - [x] Mapeado o comportamento em `lib/auth.ts`, `lib/api.ts` e
+            `server-auth.ts`: o BFF (`proxyAuthenticatedRequest`) renova o
+            access token de forma transparente usando o refresh token em
+            cookie `HttpOnly` sempre que recebe 401 do backend, sem o usuário
+            perceber, desde que o refresh token continue válido.
+      - [x] Testado contra o backend real (`AUTH_ACCESS_TOKEN_TTL_SECONDS`
+            reduzido a 60s temporariamente para não esperar 15 min de
+            verdade): com o refresh token ainda válido, a navegação entre
+            módulos após o access token expirar é 100% transparente (`GET
+            /api/auth/session` responde 401 e então 200 na mesma
+            interação, sem o usuário ver nada).
+      - [x] Testado o caminho de refresh token inválido (sessão revogada
+            diretamente em `sessoes_autenticacao`, simulando revogação via
+            admin): a UI inteira passa a mostrar a tela de login com "Sua
+            sessão expirou. Entre novamente.", nav desabilitada, sem tela
+            quebrada — **depois de corrigir dois bugs reais encontrados
+            durante este teste** (ver abaixo).
+      - [ ] Repetir em Firefox e Safari — não feito nesta rodada, requer
+            teste manual (sem ferramenta de automação disponível para esses
+            navegadores nesta sessão).
+
+      **Achados corrigidos durante este teste** (nenhum estava relacionado a
+      navegador — todos eram bugs de integração já presentes antes do teste):
+      1. `GET /api/customers`, `POST /api/customers`, `GET /api/blasters` e
+         `POST /api/blasters` respondiam 404 do próprio roteador do Next.js:
+         as pastas de rota BFF usavam catch-all obrigatório (`[...path]`),
+         que nunca casa com zero segmentos, embora o código do handler já
+         tentasse suportar esse caso. As telas de Clientes e Blasters
+         estavam com listagem e cadastro completamente quebrados em
+         produção/dev, apesar de documentados como integrados e testados.
+         Corrigido: pastas renomeadas para catch-all opcional
+         (`[[...path]]`).
+      2. Com o 404 acima corrigido e a tela de Blasters finalmente
+         recebendo dados reais pela primeira vez, surgiu um crash
+         (`Cannot read properties of undefined (reading 'map')`):
+         `teams-workspace.tsx` lia `b.authorizedClasses`, um campo que
+         nunca existiu no modelo de Blaster do backend (é um conceito de
+         Cliente/CR, não de Blaster) — UI inteira (coluna da tabela,
+         campo de formulário) fabricada sem contrato de API real. Removida.
+      3. `isBusinessRequest` em `lib/api.ts` usava
+         `path.startsWith("/api/customers/")` (com barra), que não casa com
+         a própria chamada de listagem raiz (`/api/customers?page=...`,
+         sem barra antes do `?`). Isso fazia a tela de Clientes/Blasters
+         pular o fluxo de renovação/sessão-expirada e mostrar um erro
+         solto no componente em vez do redirecionamento limpo ao login.
+         Corrigido.
+
+      Nenhum destes era específico de navegador — a Fase 5 encontrou bugs de
+      integração reais só por exercitar as telas com dados de verdade, não
+      por diferença entre Chrome/Firefox/Safari.
 - [x] Smoke test visual autenticado da jornada completa de OS contra o seed
       local: listagem, detalhe, edição de orçamento (`PUT`) com persistência
       confirmada.
