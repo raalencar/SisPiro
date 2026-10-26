@@ -2,7 +2,8 @@
 
 Atualizado em 26 de outubro de 2026. Visão consolidada, por área de negócio, do
 que está implementado (backend + frontend) e do que falta, para apoiar o
-planejamento do próximo sprint. Para detalhes técnicos, endpoints e regras,
+planejamento do próximo sprint. Para o fluxo de negócio completo ponta a ponta,
+consulte [`JORNADA-OPERACIONAL-E2E.md`](./JORNADA-OPERACIONAL-E2E.md). Para detalhes técnicos, endpoints e regras,
 consulte [`backend/README.md`](../backend/README.md),
 [`frontend/README.md`](../frontend/README.md) e
 [`STATUS-IMPLEMENTACAO.md`](./STATUS-IMPLEMENTACAO.md). Para o histórico de
