@@ -10,6 +10,7 @@ import {
 } from "@/lib/api";
 import { formatDateOnly } from "@/lib/format";
 import { useEscapeToClose } from "@/lib/use-escape-to-close";
+import { useModalFocusTrap } from "@/lib/use-modal-focus-trap";
 
 function errorMessage(error: unknown): string {
   return error instanceof Error
@@ -126,7 +127,9 @@ export function TeamsWorkspace() {
   }
 
   useEscapeToClose(isModalOpen, () => setIsModalOpen(false));
+  useModalFocusTrap(isModalOpen);
   useEscapeToClose(Boolean(eligibilityBlaster), () => setEligibilityBlaster(null));
+  useModalFocusTrap(Boolean(eligibilityBlaster));
 
   return (
     <div className="workspace space-y-6">

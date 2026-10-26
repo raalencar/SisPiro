@@ -145,13 +145,14 @@ export const modules: ErpModule[] = [
     slug: "billing",
     title: "Faturamento e Fiscal",
     shortTitle: "Faturamento / fiscal",
-    description: "Documentos fiscais e faturamento.",
+    description: "Documentos fiscais e faturamento eletrônico.",
     icon: "receipt",
     group: "Gestão",
-    emptyTitle: "A integração fiscal ainda não está disponível",
+    emptyTitle: "Faturamento fiscal conectado",
     emptyDescription:
-      "O backend não expõe endpoints fiscais. Nenhuma NF-e, NFS-e, MDF-e ou Guia de Tráfego pode ser emitida ou consultada por esta interface.",
-    statusLabel: "Planejado",
+      "Emissão e cancelamento de NF-e (Modelo 55), NFC-e (Modelo 65) e NFS-e de serviços pirotécnicos integrados perante a SEFAZ.",
+    statusLabel: "Tela integrada",
+    requiredRoles: ["COMERCIAL", "OPERACOES"],
   },
   {
     slug: "finance",

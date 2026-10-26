@@ -20,6 +20,7 @@ import {
 } from "@/lib/api";
 import { formatCurrency, formatDateOnly, formatNumber } from "@/lib/format";
 import { useEscapeToClose } from "@/lib/use-escape-to-close";
+import { useModalFocusTrap } from "@/lib/use-modal-focus-trap";
 
 function errorMessage(error: unknown): string {
   return error instanceof Error
@@ -438,11 +439,17 @@ export function CommercialWorkspace() {
   }
 
   useEscapeToClose(isQuoteModalOpen, () => setIsQuoteModalOpen(false));
+  useModalFocusTrap(isQuoteModalOpen);
   useEscapeToClose(Boolean(convertingQuote), () => setConvertingQuote(null));
+  useModalFocusTrap(Boolean(convertingQuote));
   useEscapeToClose(isSaleModalOpen, () => setIsSaleModalOpen(false));
+  useModalFocusTrap(isSaleModalOpen);
   useEscapeToClose(Boolean(returningSale), () => setReturningSale(null));
+  useModalFocusTrap(Boolean(returningSale));
   useEscapeToClose(isPricingModalOpen, () => setIsPricingModalOpen(false));
+  useModalFocusTrap(isPricingModalOpen);
   useEscapeToClose(isPromoModalOpen, () => setIsPromoModalOpen(false));
+  useModalFocusTrap(isPromoModalOpen);
 
   return (
     <div className="workspace space-y-6">

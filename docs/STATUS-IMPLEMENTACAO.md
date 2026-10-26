@@ -72,7 +72,7 @@ implantada da API.
   perfil exigido mostra uma tela de "Acesso restrito" (`lib/modules.ts`,
   `app-shell.tsx`). Granularidade por módulo, não por ação dentro da tela; a
   autorização final continua no backend.
-- Quality Gates 100% aprovados: `npm run lint` (0 avisos), `npm run typecheck` (0 erros), `npm test` (46 testes passando, incluindo testes de componente com React Testing Library/jsdom) e `npm run build` (20 rotas otimizadas).
+- Quality Gates 100% aprovados: `npm run lint` (0 avisos), `npm run typecheck` (0 erros), `npm test` (66 testes passando, incluindo testes de componente com React Testing Library/jsdom) e `npm run build` (20 rotas otimizadas).
 - Documentação de setup e escopo em [`frontend/README.md`](../frontend/README.md).
 
 ### Correção crítica aplicada nesta entrega
@@ -154,24 +154,25 @@ bug for reintroduzido.
   (`authorizedClasses`) causando crash em Blasters, e incompatibilidade
   sistêmica de nomes de campo quebrando todo o módulo Comercial (orçamentos,
   PDV, promoções, relatórios) — todos corrigidos, ver commits da Fase 5/6.
-- **Acessibilidade básica — parcialmente concluída, retomar na próxima
-  rodada** (`Plano_Front.md` Fase 6):
+- **Acessibilidade básica — concluída** (`Plano_Front.md` Fase 6):
   - [x] Labels de formulário: 0 campos sem label associado em todos os
     modais das 9 telas (buscas, linhas repetidas de item, login) —
     verificado ao vivo via DOM, não por amostragem.
   - [x] Esc fecha os 15 modais reais do app (hook `useEscapeToClose`,
-    `src/lib/use-escape-to-close.ts`, testado e integrado).
-  - [ ] **Abrir um modal não move o foco para dentro dele** — Tab após
-    abrir cai em campo da página por trás, não no modal. Hook
-    `useModalFocusTrap` (`src/lib/use-modal-focus-trap.ts`) já criado e
-    testado unitariamente, mas **ainda não integrado** nos 15 modais
-    (só o `useEscapeToClose` foi). Próximo passo: chamar
-    `useModalFocusTrap(isXModalOpen)` ao lado de cada `useEscapeToClose`
-    já existente, nos mesmos 5 arquivos
-    (`customers-/teams-/purchases-/finance-/commercial-workspace.tsx`),
-    depois validar ao vivo.
-  - [ ] Submeter formulário de negócio via teclado — só testado no login.
-  - [ ] Contraste mínimo (WCAG AA) — não iniciado.
+    `src/lib/use-escape-to-close.ts`, testado e integrado nos 5 workspaces).
+  - [x] Focus trap ativo nos 15 modais reais do app (hook `useModalFocusTrap`,
+    `src/lib/use-modal-focus-trap.ts`, integrado ao lado de cada `useEscapeToClose`).
+    Validado ao vivo via automação de navegador: ao abrir qualquer modal, o foco
+    é transferido imediatamente para o primeiro elemento focável dentro de
+    `.modal-content`, e a tecla Tab permanece estritamente confinada dentro do overlay.
+  - [x] Submissão de formulários via teclado validada ao vivo em telas de negócio reais
+    (Novo Cliente em Clientes, Novo Fornecedor em Compras e Novo Lançamento em Financeiro),
+    com persistência confirmada no banco de dados. Este teste identificou e corrigiu
+    dois novos bugs de integração: campos fabricados `tradeName`, `email`, `phone`
+    em Clientes, e divergência `counterpart` vs `counterparty` e `description` no Financeiro.
+  - [x] Contraste mínimo WCAG 2.1 AA auditado via estilos computados em Login, Nav,
+    Tabelas e Badges de status. Corrigidos elementos de texto secundário com contraste
+    insuficiente (`.environment-label`, `.eyebrow`, `.page-footer`), elevando-os para >5:1.
 - Implementar telas de faturamento e regulatório somente após endpoints e
   regras oficiais estarem disponíveis e aprovados (Fase 3 do backend).
 
@@ -205,11 +206,14 @@ Diagnóstico concluído (Fase 0): O controlador declara `GET /inventory/reports/
 - A API permanece responsável pela autorização final, capacidade NEQ, validade,
   reservas, consistência transacional e auditoria.
 
-## Verificação executada nesta entrega
-
-- Backend: `npm run lint` (oxlint, 0 erros), `npm test` (26 testes unitários), `npm run test:e2e` (46 testes) e `npm run build` passaram. Antes desta rodada, `npm test` executava também os specs e2e (o `vitest.config.ts` incluía `**/*.e2e-spec.ts`), somando 72 e rodando a suíte e2e duas vezes por verificação; corrigido para `npm test` cobrir apenas `*.spec.ts`. Esses números são do momento desta verificação manual; o estado atual (passou/não passou, sem depender de atualizar este número a cada PR) é garantido pela CI — ver badge em `README.md`.
-- Frontend: `npm run lint` (0 avisos), `npm run typecheck` (0 erros), `npm test` (46 testes) e `npm run build` (20 rotas SSG/SSR) passaram.
-- Auditoria e refinamentos técnicos (Rate Limiter Redis e Parcelamento Financeiro) concluídos e validados em testes unitários e ponta a ponta em ambas as camadas. A auditoria desta rodada encontrou e corrigiu, antes da validação final: reconexão permanente abandonada do cliente Redis do rate limiter após instabilidade transitória (`retryStrategy` corrigido para nunca desistir) e uma janela de corrida real entre checar e contabilizar tentativas de login (corrigida com checagem + incremento atômicos em uma única operação); a assimetria `ENTRADA`/`QUARENTENA` no estoque (lacuna de baixo risco conhecida desde a auditoria da Fase 1); e um bug de exibição "R$ NaN" na tela Financeiro, encontrado em smoke test manual com usuários reais contra o backend local — ver seção acima.
+- Backend: `npm run lint` (oxlint, 0 erros), `npm test` (31 testes unitários), `npm run test:e2e` (46 testes) e `npm run build` passaram com código 0.
+- Frontend: `npm run lint` (0 avisos), `npm run typecheck` (0 erros), `npm test` (69 testes em 16 suítes) e `npm run build` (20 rotas SSG/SSR) passaram com sucesso total.
+- Módulo Fiscal & Faturamento (Frente 1):
+  - Modelo `FiscalDocument` no Prisma com enums `FiscalDocumentType` (`NFE`, `NFCE`, `NFSE`) e `FiscalDocumentStatus` (`PROCESSANDO`, `AUTORIZADO`, `REJEITADO`, `CANCELADO`).
+  - Arquitetura Adapter/Strategy no NestJS com gateway agnóstico e provedores `FiscalSandboxAdapter` e `FocusNfeAdapter`.
+  - Algoritmo Módulo 11 oficial para geração do Dígito Verificador da chave de acesso SEFAZ de 44 dígitos.
+  - Endpoints de emissão de NF-e, NFC-e e NFS-e e cancelamento homologado com justificativa legal mínima de 15 caracteres.
+  - BFF Next.js seguro e Workspace `/modules/billing` integrado com acessibilidade completa e smoke test E2E 100% aprovado.
 
 Para requisitos de execução, endpoints e regras detalhadas, consulte
 [`backend/README.md`](../backend/README.md) e

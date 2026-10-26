@@ -101,9 +101,11 @@ npm run build      # Build de produção otimizado Next.js
 
 - Os controles de apresentação por perfil atuam no nível de módulo/tela, não
   de ação individual dentro de uma tela compartilhada por perfis diferentes.
-- Smoke test visual autenticado das jornadas completas (OS, estoque,
-  cadastros novos) contra o seed local ainda não foi realizado nesta
-  entrega.
+- Smoke tests visuais autenticados das jornadas completas (OS, estoque,
+  cadastros, compras, comercial, financeiro) foram executados extensivamente
+  contra o backend local, validando fluxo de sessão, responsividade mobile/tablet/desktop,
+  focus trap em modais e contraste WCAG AA. Validação cross-browser (Firefox e
+  Safari) permanece como teste manual pendente de automação.
 
 ## Container de produção
 

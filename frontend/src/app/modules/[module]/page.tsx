@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { CommercialWorkspace } from "@/components/commercial-workspace";
 import { CustomersWorkspace } from "@/components/customers-workspace";
 import { FinanceWorkspace } from "@/components/finance-workspace";
+import { FiscalWorkspace } from "@/components/fiscal-workspace";
 import { InventoryWorkspace } from "@/components/inventory-workspace";
 import { ModuleEmptyState } from "@/components/module-empty-state";
 import { OperationsWorkspace } from "@/components/operations-workspace";
@@ -53,6 +54,9 @@ export default async function ModulePage({
   }
   if (slug === "sales") {
     return <CommercialWorkspace key={slug} />;
+  }
+  if (slug === "billing") {
+    return <FiscalWorkspace key={slug} />;
   }
   if (slug === "finance") {
     return <FinanceWorkspace key={slug} />;

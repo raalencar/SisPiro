@@ -269,7 +269,7 @@ button {
   display: flex;
   align-items: center;
   gap: 7px;
-  color: #7b8987;
+  color: #52635d;
   font-size: 10px;
 }
 
@@ -363,7 +363,7 @@ button {
 
 .eyebrow {
   margin: 0 0 8px;
-  color: #82918b;
+  color: #52635d;
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 1.3px;
@@ -1418,7 +1418,7 @@ h1, h2, h3, p {
   gap: 12px;
   padding: 16px 38px 20px;
   border-top: 1px solid var(--line);
-  color: #98a29e;
+  color: #52635d;
   font-size: 9px;
 }
 

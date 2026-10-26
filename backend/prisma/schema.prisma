@@ -57,6 +57,19 @@ enum PurchaseStatus {
   CANCELADO
 }
 
+enum FiscalDocumentType {
+  NFE
+  NFCE
+  NFSE
+}
+
+enum FiscalDocumentStatus {
+  PROCESSANDO
+  AUTORIZADO
+  REJEITADO
+  CANCELADO
+}
+
 enum UserRole {
   ADMIN
   ESTOQUE
@@ -268,6 +281,7 @@ model ServiceOrder {
   responsibleBlaster   Blaster?           @relation(fields: [responsibleBlasterId], references: [id], onDelete: Restrict)
   items                ServiceOrderItem[]
   financialEntry       FinancialEntry?
+  fiscalDocuments      FiscalDocument[]
 
   @@index([status, eventAt])
   @@index([eventAt])
@@ -392,6 +406,7 @@ model Sale {
   financialEntry FinancialEntry?
   items          SaleItem[]
   returns        SaleReturn[]
+  fiscalDocuments FiscalDocument[]
 
   @@index([createdAt])
   @@map("vendas")
@@ -596,4 +611,33 @@ model FinancialPayment {
   @@index([entryId, occurredAt])
   @@index([occurredAt])
   @@map("pagamentos_financeiros")
+}
+
+model FiscalDocument {
+  id             String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  type           FiscalDocumentType   @map("tipo")
+  status         FiscalDocumentStatus @default(PROCESSANDO) @map("status")
+  number         Int                  @map("numero")
+  series         Int                  @default(1) @map("serie")
+  accessKey      String?              @unique @map("chave_acesso") @db.VarChar(50)
+  protocol       String?              @map("protocolo_autorizacao") @db.VarChar(50)
+  totalAmount    Decimal              @map("valor_total") @db.Decimal(12, 2)
+  xmlUrl         String?              @map("url_xml")
+  danfeUrl       String?              @map("url_danfe")
+  errorMessage   String?              @map("mensagem_erro")
+  issuedAt       DateTime?            @map("emitido_em") @db.Timestamptz(3)
+  cancelledAt    DateTime?            @map("cancelado_em") @db.Timestamptz(3)
+  cancelReason   String?              @map("motivo_cancelamento")
+  saleId         String?              @map("venda_id") @db.Uuid
+  serviceOrderId String?              @map("ordem_servico_id") @db.Uuid
+  createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  sale         Sale?         @relation(fields: [saleId], references: [id], onDelete: Restrict)
+  serviceOrder ServiceOrder? @relation(fields: [serviceOrderId], references: [id], onDelete: Restrict)
+
+  @@index([type, status, createdAt])
+  @@index([saleId])
+  @@index([serviceOrderId])
+  @@map("documentos_fiscais")
 }

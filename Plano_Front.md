@@ -290,8 +290,7 @@ senha, MFA) estar implementada no backend — já está.
       os detalhes (roteamento 404 em Clientes/Blasters, campo fabricado em
       Blasters, e incompatibilidade sistêmica de nomes de campo em todo o
       módulo Comercial — orçamentos, PDV, promoções e relatórios).
-- [~] **Acessibilidade básica — parcialmente concluída nesta rodada, retomar
-      na próxima.**
+- [x] **Acessibilidade básica — concluída nesta rodada.**
       - [x] Labels de formulário: varredura via DOM (`label[for]`/`<label>`
             envolvente/`aria-label`/`aria-labelledby`) em todas as 9 telas e
             seus modais de criação/edição. Achados corrigidos: buscas de
@@ -304,37 +303,32 @@ senha, MFA) estar implementada no backend — já está.
             campo e, quando fazia sentido, o produto da linha. Confirmado ao
             vivo: 0 campos sem label restantes em todos os modais testados,
             incluindo o próprio formulário de login.
-      - [x] Navegação por teclado — testado e corrigido parcialmente:
+      - [x] Navegação por teclado:
             - [x] Login completo via Tab/Enter, sem mouse — funciona.
             - [x] Menu mobile (hambúrguer): abre com Enter, fecha com Esc e
-                  devolve o foco ao botão que abriu — já funcionava.
-            - [x] **Achado e corrigido:** nenhum dos 15 modais reais
+                  devolve o foco ao botão que abriu — funciona.
+            - [x] Fechamento via Escape: integrado nos 15 modais reais
                   (`modal-backdrop`, em `customers-/teams-/purchases-/
-                  finance-/commercial-workspace.tsx`) fechava com Esc. Criado
-                  `src/lib/use-escape-to-close.ts` (testado) e integrado nos
-                  15. Confirmado ao vivo em Clientes e Compras.
-                  `operations-workspace.tsx`/`inventory-workspace.tsx` usam
-                  painel inline, não modal overlay — Esc não se aplica lá.
-            - [ ] **Achado, não corrigido — retomar primeiro na próxima
-                  rodada:** abrir um modal não move o foco para dentro dele
-                  (confirmado ao vivo: abrir "Novo blaster" via teclado e
-                  apertar Tab leva a um campo *fora* do modal, na página por
-                  trás). Criado e testado unitariamente
-                  `src/lib/use-modal-focus-trap.ts` (move foco ao primeiro
-                  campo focável ao abrir; prende Tab/Shift+Tab dentro do
-                  modal) — **mas ainda não foi integrado em nenhum dos 15
-                  modais** (só o `useEscapeToClose` foi). Próximo passo
-                  mecânico: repetir exatamente a integração já feita para
-                  `useEscapeToClose` (mesmos 15 pontos, mesmos 5 arquivos),
-                  chamando `useModalFocusTrap(isXModalOpen)` ao lado de cada
-                  `useEscapeToClose(...)` já existente, depois validar ao
-                  vivo (Tab após abrir cada modal deve cair dentro dele).
-            - [ ] Submeter formulário via Tab/Enter — só testado no login;
-                  não testado em nenhum modal de negócio ainda (depende do
-                  item acima para ser um teste limpo).
-      - [ ] Contraste mínimo (WCAG AA) nos elementos principais (login, nav,
-            tabelas, badges de status) — não iniciado.
-      - [x] Achados registrados em `docs/STATUS-IMPLEMENTACAO.md`.
+                  finance-/commercial-workspace.tsx`) via `useEscapeToClose`
+                  (`src/lib/use-escape-to-close.ts`).
+            - [x] Focus trap ativo nos 15 modais reais via `useModalFocusTrap`
+                  (`src/lib/use-modal-focus-trap.ts`), integrado ao lado de
+                  cada `useEscapeToClose` nos 5 arquivos. Validado ao vivo
+                  no Chrome via automação: foco inicial transferido imediatamente
+                  para dentro de `.modal-content`, e ciclo Tab/Shift+Tab permanece
+                  confinado no modal sem vazar para a página de fundo.
+            - [x] Submissão de formulário via teclado testada ao vivo em
+                  modais de negócio reais (Novo Cliente, Novo Fornecedor e
+                  Novo Lançamento Financeiro), com persistência confirmada
+                  no banco de dados real. Encontrou e corrigiu 2 novos bugs:
+                  campos fabricados `tradeName`, `email`, `phone` no cadastro de
+                  Clientes (rejeitados com 400 pelo backend), e incompatibilidade
+                  do campo `counterpart` vs `counterparty` e omissão da `description`
+                  no cadastro manual do Financeiro.
+      - [x] Contraste mínimo (WCAG 2.1 AA) auditado via estilos computados em
+            login, nav, tabelas e status badges. Ajustados `.environment-label`,
+            `.eyebrow` e `.page-footer` para taxa >5:1 sobre fundos claros.
+      - [x] Achados registrados em `docs/STATUS-IMPLEMENTACAO.md` e `docs/RESUMO-FUNCIONALIDADES.md`.
 
 ---
 

@@ -14,6 +14,7 @@ import { AuthModule } from './modules/auth/auth.module.js';
 import { InventoryModule } from './modules/inventory/inventory.module.js';
 import { OperationsModule } from './modules/operations/operations.module.js';
 import { ProcurementModule } from './modules/procurement/procurement.module.js';
+import { FiscalModule } from './modules/fiscal/fiscal.module.js';
 
 @Module({
   imports: [
@@ -81,6 +82,7 @@ import { ProcurementModule } from './modules/procurement/procurement.module.js';
     CommercialModule,
     FinanceModule,
     ProcurementModule,
+    FiscalModule,
   ],
   providers: [
     {

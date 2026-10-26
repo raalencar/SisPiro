@@ -14,6 +14,7 @@ import {
 } from "@/lib/api";
 import { formatCurrency, formatDateOnly, formatNumber } from "@/lib/format";
 import { useEscapeToClose } from "@/lib/use-escape-to-close";
+import { useModalFocusTrap } from "@/lib/use-modal-focus-trap";
 
 const PCE_CLASSES = ["1.1", "1.2", "1.3", "1.4", "1.5", "1.6"];
 
@@ -265,8 +266,11 @@ export function PurchasesWorkspace() {
   }
 
   useEscapeToClose(isSupplierModalOpen, () => setIsSupplierModalOpen(false));
+  useModalFocusTrap(isSupplierModalOpen);
   useEscapeToClose(isOrderModalOpen, () => setIsOrderModalOpen(false));
+  useModalFocusTrap(isOrderModalOpen);
   useEscapeToClose(Boolean(receivingPurchase), () => setReceivingPurchase(null));
+  useModalFocusTrap(Boolean(receivingPurchase));
 
   return (
     <div className="workspace space-y-6">

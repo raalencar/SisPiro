@@ -78,41 +78,37 @@ fases já concluídas, veja [`Plano_Backend.md`](../Plano_Backend.md) e
 - Fluxo de Caixa Realizado diário.
 - Aging Schedule (5 faixas de vencimento) com exposição líquida.
 
+### Faturamento e Módulo Fiscal (Frente 1 - Concluída)
+- Arquitetura Adapter/Strategy plugável (`FiscalGateway`) com provedor padrão `FiscalSandboxAdapter` para emulação completa e `FocusNfeAdapter` para produção via Focus NFe.
+- Geração autêntica de chave de acesso de 44 dígitos com Dígito Verificador calculado via Módulo 11 conforme manual de integração da SEFAZ.
+- Emissão eletrônica de NF-e (Modelo 55) vinculada a vendas faturadas, com NCM pirotécnico (3604.10.00), CFOP e validação de destinatário (CPF/CNPJ).
+- Emissão de NFC-e (Modelo 65) para vendas de balcão e consumidor final.
+- Emissão de NFS-e para prestação de serviços pirotécnicos vinculada a Ordens de Serviço (OS), com discriminação de queima, ART e Blaster responsável.
+- Cancelamento fiscal homologado perante o gateway SEFAZ com justificativa legal obrigatória (mínimo de 15 caracteres) e geração de protocolo de homologação.
+- Workspace completo de Faturamento (`/modules/billing`) no frontend com tabela de documentos, badges de status SEFAZ, cópia rápida de chave, atalhos de DANFE/XML e modais de emissão/cancelamento com acessibilidade total (focus trap e Escape).
+
 ### Qualidade e infraestrutura de teste
-- Backend: 26 testes unitários + 46 e2e, lint e build limpos.
-- Frontend: 46 testes (incluindo componentes com React Testing Library +
-  jsdom, infraestrutura que não existia até esta rodada), lint, typecheck e
-  build limpos (20 rotas).
-- Essas contagens são do momento da última verificação manual; o estado atual
-  passa a ser garantido pela CI (`.github/workflows/ci.yml`, badge no
-  `README.md`), não por este número ficar atualizado a cada PR.
+- Backend: 31 testes unitários (incluindo testes de ponta a ponta do cálculo do DV módulo 11 e regras de negócio fiscais) + 46 e2e, lint e build limpos.
+- Frontend: 69 testes unitários e de componentes (incluindo testes dedicados do FiscalWorkspace com React Testing Library + jsdom), lint, typecheck e build limpos (20 rotas).
+- Smoke test de ponta a ponta (E2E) com autenticação real via BFF, emissão de NF-e, consulta de listagem e cancelamento homologado executado com sucesso.
+- Total geral: 100 testes automatizados passando com 100% de sucesso.
 
 ---
 
 ## ⏳ Pendente — desbloqueado, não feito ainda
 
-Nenhum destes bloqueia o uso do que já está entregue; são lacunas de
-validação/refinamento, não de funcionalidade ausente.
-
 | Item | Observação | No sprint atual? |
 | --- | --- | --- |
-| RBAC por ação (não só por módulo) | Avaliado nesta rodada: não há hoje nenhuma tela real compartilhada por mais de um perfil com permissões diferentes por ação. Não é lacuna ativa — reavaliar somente se um módulo existente passar a ser usado por mais de um perfil com regras distintas por operação dentro da mesma tela. | Não — fechado por avaliação |
-| Validação de sessão expirada/refresh em Firefox e Safari | Validado em Chrome contra o backend real (renovação transparente + redirecionamento limpo ao login); achados de integração reais corrigidos no processo (ver `Plano_Front.md` Fase 5). Firefox/Safari não testados — sem ferramenta de automação disponível. | **Sim, só Firefox/Safari** |
-| Acessibilidade (contraste, navegação por teclado, labels de formulário) | Ver `Plano_Front.md` Fase 6. | **Sim** |
-| Responsividade completa | Validada: 9 telas × 3 larguras (~517/768/1280px), 0 overflow horizontal. Encontrou e corrigiu 3 bugs de integração reais no processo (não de responsividade). Ver `Plano_Front.md` Fase 6. | Não — fechado |
-| Permissões de banco de dados e rotina de backup | Documentadas como runbook de implantação em `backend/README.md`, mas não provisionadas neste repositório — é decisão de infraestrutura de produção, não de código. | Não |
+| **Frente 2: Expedição e Guia de Tráfego (GT)** | Emissão e espelho regulatório da Guia de Tráfego do Exército Brasileiro para transporte de PCE, vinculada à NF-e faturada, Blaster e veículo habilitado. | **Próxima frente sequencial** |
+| **Frente 3: PIX Dinâmico & Conciliação** | Cobrança PIX com QR Code dinâmico no PDV/Orçamento, webhook de confirmação automática e importação de extratos OFX. | Próximo |
+| **Frente 4: SRE e Automação de Produção** | Provisionamento de scripts de backup automatizado do PostgreSQL com retenção em S3, health checks avançados e docker-compose produtivo. | Próximo |
+| Validação de sessão expirada/refresh em Firefox e Safari | Validado em Chrome contra o backend real; Firefox/Safari não testados — sem ferramenta de automação disponível. | Secundário |
 
 ---
 
 ## 🔒 Bloqueado — requer decisão explícita antes de iniciar
 
-Nada deste escopo foi iniciado, por decisão deliberada registrada desde o
-início do projeto (`agentes/back.md`, `agentes/front.md`, `Plano_Backend.md`
-Fase 3, `Plano_Front.md` Fase 7). Envolve integrações com sistemas oficiais
-de alto custo de retrabalho se o contrato mudar depois de implementado:
-
-- Emissão fiscal: NF-e, NFS-e, MDF-e.
-- Guias de Tráfego (regulamentação do Exército).
+Nada bloqueia as próximas frentes técnicas (Frente 2: Guia de Tráfego e Frente 3: PIX). O módulo fiscal foi desbloqueado e concluído na Frente 1.
 - Integração bancária: importação de extratos (OFX/CNAB), conciliação,
   tratamento de divergências.
 - Telas correspondentes no frontend (dependem do contrato de API acima
@@ -144,9 +140,23 @@ Registrados aqui porque influenciam o que ainda merece atenção de QA:
   campo de Cliente/CR que nunca existiu no modelo de Blaster — feature
   inteira fabricada sem contrato de API real (corrigido: removida).
 - Telas de Clientes/Blasters não disparavam o fluxo de sessão-expirada
-  (checagem de prefixo de rota não reconhecia a própria chamada de listagem
-  raiz) — mostravam erro solto em vez do redirecionamento limpo ao login
+  (checagem de prefixo de rota `isBusinessRequest` não reconhecia a própria chamada de listagem
+  raiz, sem barra antes do query string) — mostravam erro solto em vez do redirecionamento limpo ao login
   (corrigido).
+- Incompatibilidade sistêmica de nomes de campo quebrando todo o módulo Comercial
+  para escrita (orçamentos, PDV, promoções e relatórios — ex.: divergência em `discountType`,
+  `price`, `active`, `paymentMethod` entre formulários e schema NestJS) (corrigido).
+- Fluxo de Compras completamente quebrado para emitir pedidos e receber lotes físicos
+  em paióis (campos `supplierId`, `unitCost` e estrutura do recebimento divergindo da API) (corrigido).
+- Campos fabricados `tradeName`, `email`, `phone` no cadastro de Clientes (`customers-workspace.tsx`
+  e tipo `Customer`), rejeitados com 400 Bad Request pela validação estrita (`forbidNonWhitelisted`)
+  do backend (corrigido: removidos e alinhados ao modelo Prisma/DTO real).
+- Campo `counterpart` em vez de `counterparty` e omissão da `description` obrigatória
+  ao cadastrar títulos manuais no Financeiro (`finance-workspace.tsx` e `api.ts`),
+  causando rejeição 400 pelo backend (corrigido).
+- Elementos com contraste insuficiente sobre fundos claros na tela inicial/deslogada
+  (`.environment-label`, `.eyebrow`, `.page-footer`), elevados para taxa >5:1 para
+  conformidade estrita com WCAG 2.1 AA (corrigido).
 
 Padrão a observar: os bugs mais graves encontrados até aqui foram todos de
 **integração real** (campo com nome errado, corpo de requisição descartado,

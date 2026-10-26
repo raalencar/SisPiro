@@ -15,6 +15,7 @@ import {
 } from "@/lib/api";
 import { formatCurrency, formatDateOnly } from "@/lib/format";
 import { useEscapeToClose } from "@/lib/use-escape-to-close";
+import { useModalFocusTrap } from "@/lib/use-modal-focus-trap";
 
 function errorMessage(error: unknown): string {
   return error instanceof Error
@@ -191,7 +192,7 @@ export function FinanceWorkspace() {
       await financeApi.createEntry({
         direction: newDirection,
         category: newCategory.trim(),
-        counterpart: newCounterpart.trim(),
+        counterparty: newCounterpart.trim(),
         amount: newAmount,
         dueDate: newDueDate,
         customerId: newCustomerId || undefined,
@@ -213,7 +214,9 @@ export function FinanceWorkspace() {
   }
 
   useEscapeToClose(isNewEntryOpen, () => setIsNewEntryOpen(false));
+  useModalFocusTrap(isNewEntryOpen);
   useEscapeToClose(Boolean(payingEntry), () => setPayingEntry(null));
+  useModalFocusTrap(Boolean(payingEntry));
 
   return (
     <div className="space-y-6">

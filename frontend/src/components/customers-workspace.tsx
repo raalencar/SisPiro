@@ -10,6 +10,7 @@ import {
 } from "@/lib/api";
 import { formatDateOnly } from "@/lib/format";
 import { useEscapeToClose } from "@/lib/use-escape-to-close";
+import { useModalFocusTrap } from "@/lib/use-modal-focus-trap";
 
 const PCE_CLASSES = ["1.1", "1.2", "1.3", "1.4", "1.5", "1.6"];
 
@@ -30,10 +31,7 @@ export function CustomersWorkspace() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [legalName, setLegalName] = useState("");
-  const [tradeName, setTradeName] = useState("");
   const [taxId, setTaxId] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
   const [hasCr, setHasCr] = useState(false);
   const [crNumber, setCrNumber] = useState("");
   const [crExpiresAt, setCrExpiresAt] = useState("");
@@ -71,10 +69,7 @@ export function CustomersWorkspace() {
   function handleOpenCreate() {
     setEditingCustomer(null);
     setLegalName("");
-    setTradeName("");
     setTaxId("");
-    setEmail("");
-    setPhone("");
     setHasCr(false);
     setCrNumber("");
     setCrExpiresAt("");
@@ -86,10 +81,7 @@ export function CustomersWorkspace() {
   function handleOpenEdit(customer: Customer) {
     setEditingCustomer(customer);
     setLegalName(customer.legalName);
-    setTradeName(customer.tradeName || "");
     setTaxId(customer.taxId);
-    setEmail(customer.email || "");
-    setPhone(customer.phone || "");
     setHasCr(customer.hasCr);
     setCrNumber(customer.crNumber || "");
     setCrExpiresAt(customer.crExpiresAt ? customer.crExpiresAt.slice(0, 10) : "");
@@ -105,10 +97,7 @@ export function CustomersWorkspace() {
     try {
       const payload: Partial<Customer> = {
         legalName: legalName.trim(),
-        tradeName: tradeName.trim() || null,
         taxId: taxId.replace(/\D/g, ""),
-        email: email.trim() || null,
-        phone: phone.trim() || null,
         hasCr,
         crNumber: hasCr ? crNumber.trim() : null,
         crExpiresAt: hasCr && crExpiresAt ? crExpiresAt : null,
@@ -164,7 +153,9 @@ export function CustomersWorkspace() {
   }
 
   useEscapeToClose(isModalOpen, () => setIsModalOpen(false));
+  useModalFocusTrap(isModalOpen);
   useEscapeToClose(Boolean(eligibilityCustomer), () => setEligibilityCustomer(null));
+  useModalFocusTrap(Boolean(eligibilityCustomer));
 
   return (
     <div className="workspace space-y-6">
@@ -239,11 +230,6 @@ export function CustomersWorkspace() {
                         <div className="font-semibold text-neutral-100">
                           {c.legalName}
                         </div>
-                        {c.tradeName && (
-                          <div className="text-xs text-neutral-400">
-                            {c.tradeName}
-                          </div>
-                        )}
                       </td>
                       <td className="p-3 font-mono text-xs">{c.taxId}</td>
                       <td className="p-3">
@@ -341,15 +327,6 @@ export function CustomersWorkspace() {
               </label>
 
               <label className="field">
-                <span>Nome Fantasia</span>
-                <input
-                  type="text"
-                  value={tradeName}
-                  onChange={(e) => setTradeName(e.target.value)}
-                />
-              </label>
-
-              <label className="field">
                 <span>CPF ou CNPJ (apenas dígitos) *</span>
                 <input
                   type="text"
@@ -360,25 +337,6 @@ export function CustomersWorkspace() {
                   onChange={(e) => setTaxId(e.target.value)}
                 />
               </label>
-
-              <div className="grid grid-cols-2 gap-3">
-                <label className="field">
-                  <span>E-mail</span>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </label>
-                <label className="field">
-                  <span>Telefone</span>
-                  <input
-                    type="text"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                  />
-                </label>
-              </div>
 
               {/* Seção de CR */}
               <div className="p-3 bg-neutral-900 border border-neutral-800 rounded-md space-y-3">
