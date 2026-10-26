@@ -94,6 +94,146 @@ function StatusPill({ status }: { status: ServiceOrderStatus }) {
   );
 }
 
+interface StepDef {
+  number: number;
+  label: string;
+  sublabel: string;
+  state: "completed" | "current" | "upcoming";
+}
+
+function getOrderSteps(order: ServiceOrder): StepDef[] {
+  const isCanceled = order.status === "CANCELADO";
+  const s = order.status;
+
+  const step1State: StepDef["state"] = isCanceled
+    ? "upcoming"
+    : s === "ORCAMENTO"
+      ? "current"
+      : "completed";
+
+  const step2State: StepDef["state"] = isCanceled || s === "ORCAMENTO"
+    ? "upcoming"
+    : s === "APROVADO"
+      ? "current"
+      : "completed";
+
+  const step3State: StepDef["state"] = isCanceled || s === "ORCAMENTO"
+    ? "upcoming"
+    : s === "APROVADO" || s === "EM_MONTAGEM"
+      ? "current"
+      : "completed";
+
+  const step4State: StepDef["state"] = isCanceled || s === "ORCAMENTO" || s === "APROVADO"
+    ? "upcoming"
+    : s === "EM_MONTAGEM"
+      ? "current"
+      : "completed";
+
+  const step5State: StepDef["state"] = s === "CONCLUIDO"
+    ? "current"
+    : "upcoming";
+
+  return [
+    {
+      number: 1,
+      label: "1. Orçamento",
+      sublabel: s === "ORCAMENTO" ? "Proposta em aberto" : "Lotes validados",
+      state: step1State,
+    },
+    {
+      number: 2,
+      label: "2. Aprovação & ART",
+      sublabel: order.responsibleBlaster ? order.responsibleBlaster.name : "Designar Blaster",
+      state: step2State,
+    },
+    {
+      number: 3,
+      label: "3. Guia de Tráfego",
+      sublabel: s === "CONCLUIDO" || s === "EM_MONTAGEM" ? "Transporte liberado" : "Emitir DFPC",
+      state: step3State,
+    },
+    {
+      number: 4,
+      label: "4. Montagem & Queima",
+      sublabel: s === "CONCLUIDO" ? "Detonação realizada" : "Execução no local",
+      state: step4State,
+    },
+    {
+      number: 5,
+      label: "5. Faturamento & PIX",
+      sublabel: s === "CONCLUIDO" ? "Pronto para cobrança" : "Pós-evento",
+      state: step5State,
+    },
+  ];
+}
+
+function OrderStepper({ order }: { order: ServiceOrder }) {
+  if (order.status === "CANCELADO") {
+    return (
+      <div className="p-3 my-4 bg-rose-950/30 border border-rose-800/60 rounded text-rose-300 text-xs flex items-center gap-2">
+        <span className="font-bold">⚠️ Ordem de Serviço Cancelada:</span>
+        <span>As reservas de estoque foram estornadas e o processo foi interrompido.</span>
+      </div>
+    );
+  }
+
+  const steps = getOrderSteps(order);
+
+  return (
+    <nav aria-label="Progresso da ordem de serviço" className="my-5 p-4 bg-neutral-900/70 border border-neutral-800 rounded-lg">
+      <ol className="grid grid-cols-1 sm:grid-cols-5 gap-3 relative">
+        {steps.map((st, idx) => {
+          const isCompleted = st.state === "completed";
+          const isCurrent = st.state === "current";
+
+          return (
+            <li key={st.number} className="flex flex-col items-center sm:items-start text-center sm:text-left gap-1.5 relative">
+              <div className="flex items-center gap-2 w-full">
+                <div
+                  className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-colors ${
+                    isCompleted
+                      ? "bg-emerald-600 text-white shadow-sm shadow-emerald-500/30"
+                      : isCurrent
+                        ? "bg-blue-600 text-white ring-2 ring-blue-400 ring-offset-2 ring-offset-neutral-900"
+                        : "bg-neutral-800 text-neutral-400 border border-neutral-700"
+                  }`}
+                  aria-current={isCurrent ? "step" : undefined}
+                >
+                  {isCompleted ? "✓" : st.number}
+                </div>
+                {idx < steps.length - 1 && (
+                  <div
+                    className={`hidden sm:block h-0.5 flex-1 ${
+                      isCompleted ? "bg-emerald-600/70" : "bg-neutral-800"
+                    }`}
+                    aria-hidden="true"
+                  />
+                )}
+              </div>
+              <div>
+                <span
+                  className={`text-xs font-semibold block ${
+                    isCurrent
+                      ? "text-blue-300 font-bold"
+                      : isCompleted
+                        ? "text-neutral-200"
+                        : "text-neutral-500"
+                  }`}
+                >
+                  {st.label}
+                </span>
+                <span className="text-[11px] text-neutral-400 block truncate max-w-[130px]">
+                  {st.sublabel}
+                </span>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}
+
 function Metric({
   label,
   value,
@@ -916,6 +1056,9 @@ export function OperationsWorkspace() {
               )}
             </div>
           </div>
+
+          <OrderStepper order={selected} />
+
           <dl className="operations-detail__facts">
             <div>
               <dt>Cliente</dt>

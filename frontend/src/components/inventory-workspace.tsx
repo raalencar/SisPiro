@@ -955,13 +955,39 @@ export function InventoryWorkspace({ initialTab = "overview" }: Props) {
                               )}
                             </td>
                             <td>
-                              {formatNumber(Number(magazine.currentNeqKg))} kg
+                              {(() => {
+                                const cur = Number(magazine.currentNeqKg) || 0;
+                                const max = Number(magazine.maxNeqCapacityKg) || 1;
+                                const pct = Math.min(100, Math.round((cur / max) * 100));
+                                const barColor = pct >= 90 ? "bg-rose-500" : pct >= 70 ? "bg-amber-500" : "bg-emerald-500";
+                                const textColor = pct >= 90 ? "text-rose-400 font-bold" : pct >= 70 ? "text-amber-400 font-semibold" : "text-emerald-400";
+                                return (
+                                  <div className="space-y-1 min-w-[130px]">
+                                    <div className="flex items-center justify-between text-xs">
+                                      <span className={textColor}>{formatNumber(cur)} kg</span>
+                                      <span className="text-[11px] text-neutral-400 font-mono">{pct}%</span>
+                                    </div>
+                                    <div className="w-full bg-neutral-800 rounded-full h-1.5 overflow-hidden">
+                                      <div
+                                        className={`h-full rounded-full transition-all duration-300 ${barColor}`}
+                                        style={{ width: `${pct}%` }}
+                                        role="progressbar"
+                                        aria-valuenow={pct}
+                                        aria-valuemin={0}
+                                        aria-valuemax={100}
+                                      />
+                                    </div>
+                                  </div>
+                                );
+                              })()}
                             </td>
                             <td>
                               {formatNumber(Number(magazine.maxNeqCapacityKg))} kg
                             </td>
                             <td>
-                              {formatNumber(Number(magazine.remainingNeqKg))} kg
+                              <span className="font-mono text-xs text-neutral-300">
+                                {formatNumber(Number(magazine.remainingNeqKg))} kg
+                              </span>
                             </td>
                             <td>
                               {formatDateOnly(magazine.fireLicenseExpiresAt)}

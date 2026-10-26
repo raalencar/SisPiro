@@ -4,8 +4,12 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Icon } from "@/components/icon";
 import {
   commercialApi,
+  financeApi,
+  fiscalApi,
   inventoryApi,
   operationsApi,
+  type FiscalDocument,
+  type GeneratedPix,
   type OperationalCustomer,
   type OperationalLot,
   type PageResult,
@@ -21,6 +25,7 @@ import {
 import { formatCurrency, formatDateOnly, formatNumber } from "@/lib/format";
 import { useEscapeToClose } from "@/lib/use-escape-to-close";
 import { useModalFocusTrap } from "@/lib/use-modal-focus-trap";
+import { PixModal } from "@/components/pix-modal";
 
 function errorMessage(error: unknown): string {
   return error instanceof Error
@@ -68,8 +73,14 @@ export function CommercialWorkspace() {
   const [quoteSubmitting, setQuoteSubmitting] = useState(false);
   const [quoteError, setQuoteError] = useState<string | null>(null);
 
-  // Modal Conversão de Orçamento
+  // Modal Conversão de Orçamento (Dual: Venda ou Ordem de Serviço)
   const [convertingQuote, setConvertingQuote] = useState<SalesQuote | null>(null);
+  const [convertDestination, setConvertDestination] = useState<"SALE" | "ORDER">("SALE");
+  const [convertEventLocation, setConvertEventLocation] = useState("Local do Espetáculo");
+  const [convertEventAt, setConvertEventAt] = useState(() => {
+    const d = new Date(Date.now() + 7 * 86400000);
+    return d.toISOString().slice(0, 16);
+  });
   const [convertCondition, setConvertCondition] = useState<"IMEDIATO" | "PRAZO">("IMEDIATO");
   const [convertPaymentMethod, setConvertPaymentMethod] = useState("PIX");
   const [convertDueDate, setConvertDueDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -123,6 +134,19 @@ export function CommercialWorkspace() {
   >([]);
   const [promoSubmitting, setPromoSubmitting] = useState(false);
   const [promoError, setPromoError] = useState<string | null>(null);
+
+  // Estados de Emissão Fiscal da Venda
+  const [fiscalSale, setFiscalSale] = useState<Sale | null>(null);
+  const [fiscalType, setFiscalType] = useState<"NFE" | "NFCE">("NFE");
+  const [fiscalNature, setFiscalNature] = useState("Venda de mercadoria");
+  const [fiscalSubmitting, setFiscalSubmitting] = useState(false);
+  const [fiscalError, setFiscalError] = useState<string | null>(null);
+  const [fiscalSuccess, setFiscalSuccess] = useState<FiscalDocument | null>(null);
+
+  // Estados de Cobrança PIX da Venda
+  const [isPixModalOpen, setIsPixModalOpen] = useState(false);
+  const [pixData, setPixData] = useState<GeneratedPix | null>(null);
+  const [pixLoading, setPixLoading] = useState(false);
 
   // Carregamento de dados
   useEffect(() => {
@@ -263,6 +287,10 @@ export function CommercialWorkspace() {
 
   function handleOpenConvertQuote(q: SalesQuote) {
     setConvertingQuote(q);
+    setConvertDestination("SALE");
+    setConvertEventLocation("Praça Central / Local do Espetáculo");
+    const d = new Date(Date.now() + 7 * 86400000);
+    setConvertEventAt(d.toISOString().slice(0, 16));
     setConvertCondition("IMEDIATO");
     setConvertPaymentMethod("PIX");
     setConvertDueDate(new Date().toISOString().slice(0, 10));
@@ -275,13 +303,32 @@ export function CommercialWorkspace() {
     setConvertSubmitting(true);
     setConvertError(null);
     try {
-      await commercialApi.convertQuote(convertingQuote.id, {
-        condition: convertCondition,
-        paymentMethod: convertCondition === "IMEDIATO" ? convertPaymentMethod : undefined,
-        dueDate: convertCondition === "PRAZO" ? convertDueDate : undefined,
-      });
-      setConvertingQuote(null);
-      setActionSuccess("Orçamento convertido em venda concluída com sucesso.");
+      if (convertDestination === "ORDER") {
+        if (!convertingQuote.customerId) {
+          throw new Error("Para converter em Ordem de Serviço, o orçamento precisa ter um cliente vinculado.");
+        }
+        const createdOrder = await operationsApi.createOrder({
+          customerId: convertingQuote.customerId,
+          contractedAmount: Number(convertingQuote.total),
+          eventAt: new Date(convertEventAt).toISOString(),
+          eventLocation: convertEventLocation.trim() || "Local do Espetáculo",
+          items: convertingQuote.items.map((it) => ({
+            productId: it.productId,
+            productLotId: it.productLotId,
+            plannedQuantity: Number(it.quantity),
+          })),
+        });
+        setConvertingQuote(null);
+        setActionSuccess(`Orçamento convertido com sucesso na Ordem de Serviço #${createdOrder.code}! Lotes transferidos.`);
+      } else {
+        await commercialApi.convertQuote(convertingQuote.id, {
+          condition: convertCondition,
+          paymentMethod: convertCondition === "IMEDIATO" ? convertPaymentMethod : undefined,
+          dueDate: convertCondition === "PRAZO" ? convertDueDate : undefined,
+        });
+        setConvertingQuote(null);
+        setActionSuccess("Orçamento convertido em venda concluída com sucesso.");
+      }
       setReloadTrigger((prev) => prev + 1);
     } catch (err) {
       setConvertError(errorMessage(err));
@@ -438,6 +485,73 @@ export function CommercialWorkspace() {
     }
   }
 
+  function handleOpenFiscalModal(sale: Sale) {
+    setFiscalSale(sale);
+    setFiscalType(sale.customer ? "NFE" : "NFCE");
+    setFiscalNature("Venda de mercadoria");
+    setFiscalError(null);
+    setFiscalSuccess(null);
+  }
+
+  async function handleSubmitFiscal(e: FormEvent) {
+    e.preventDefault();
+    if (!fiscalSale) return;
+    setFiscalSubmitting(true);
+    setFiscalError(null);
+    try {
+      let doc: FiscalDocument;
+      if (fiscalType === "NFE") {
+        doc = await fiscalApi.emitNFe({
+          saleId: fiscalSale.id,
+          natureOfOperation: fiscalNature.trim() || "Venda de mercadoria",
+        });
+      } else {
+        doc = await fiscalApi.emitNFCe({
+          saleId: fiscalSale.id,
+        });
+      }
+      setFiscalSuccess(doc);
+      setActionSuccess(`${doc.type} #${doc.number} emitida e autorizada com sucesso pela SEFAZ!`);
+      setReloadTrigger((prev) => prev + 1);
+    } catch (err) {
+      setFiscalError(errorMessage(err));
+    } finally {
+      setFiscalSubmitting(false);
+    }
+  }
+
+  async function handleOpenPixModal(sale: Sale) {
+    setPixLoading(true);
+    try {
+      let entryId = sale.financialEntry?.id;
+      if (!entryId) {
+        const entries = await financeApi.getEntries(1, "RECEBER");
+        const match = entries.data.find(
+          (e) =>
+            (sale.customer && e.counterparty?.includes(sale.customer.legalName)) ||
+            Math.abs(Number(e.amount) - Number(sale.total)) < 0.01,
+        );
+        if (match) {
+          entryId = match.id;
+        }
+      }
+
+      if (!entryId) {
+        throw new Error(
+          "Nenhum título a receber pendente encontrado para esta venda.",
+        );
+      }
+
+      const pix = await financeApi.generatePix(entryId);
+      setPixData(pix);
+      setIsPixModalOpen(true);
+    } catch (err) {
+      alert("Erro ao gerar QR Code PIX para a venda: " + errorMessage(err));
+    } finally {
+      setPixLoading(false);
+    }
+  }
+
   useEscapeToClose(isQuoteModalOpen, () => setIsQuoteModalOpen(false));
   useModalFocusTrap(isQuoteModalOpen);
   useEscapeToClose(Boolean(convertingQuote), () => setConvertingQuote(null));
@@ -450,6 +564,8 @@ export function CommercialWorkspace() {
   useModalFocusTrap(isPricingModalOpen);
   useEscapeToClose(isPromoModalOpen, () => setIsPromoModalOpen(false));
   useModalFocusTrap(isPromoModalOpen);
+  useEscapeToClose(Boolean(fiscalSale), () => setFiscalSale(null));
+  useModalFocusTrap(Boolean(fiscalSale));
 
   return (
     <div className="workspace space-y-6">
@@ -633,12 +749,29 @@ export function CommercialWorkspace() {
                           {formatCurrency(Number(s.total))}
                         </td>
                         <td className="p-3 text-right">
-                          <button
-                            className="button button--ghost text-xs py-1 px-2 text-amber-400"
-                            onClick={() => handleOpenReturn(s)}
-                          >
-                            Devolver Itens
-                          </button>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              className="button button--secondary text-xs py-1 px-2 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10 flex items-center gap-1"
+                              onClick={() => handleOpenFiscalModal(s)}
+                              title={s.customer ? "Emitir NF-e (Modelo 55)" : "Emitir NFC-e (Modelo 65)"}
+                            >
+                              <span>📄</span> {s.customer ? "NF-e" : "NFC-e"}
+                            </button>
+                            <button
+                              className="button button--secondary text-xs py-1 px-2 border-teal-500/40 text-teal-300 hover:bg-teal-500/10 flex items-center gap-1"
+                              onClick={() => void handleOpenPixModal(s)}
+                              disabled={pixLoading}
+                              title="Cobrar via QR Code PIX no balcão"
+                            >
+                              <span>📱</span> PIX
+                            </button>
+                            <button
+                              className="button button--ghost text-xs py-1 px-2 text-amber-400"
+                              onClick={() => handleOpenReturn(s)}
+                            >
+                              Devolver Itens
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -953,47 +1086,92 @@ export function CommercialWorkspace() {
       {convertingQuote && (
         <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="modal-content panel max-w-md w-full space-y-4">
-            <h2 className="text-xl font-bold">Converter Orçamento em Venda</h2>
+            <h2 className="text-xl font-bold">Converter Orçamento</h2>
             <p className="text-xs text-neutral-400">
-              Valor Total: <strong>{formatCurrency(Number(convertingQuote.total))}</strong>
+              Valor Total: <strong>{formatCurrency(Number(convertingQuote.total))}</strong> · Cliente: <strong>{convertingQuote.customer?.legalName || "Não informado"}</strong>
             </p>
             <form className="form-stack space-y-3" onSubmit={handleConfirmConvertQuote}>
               <label className="field">
-                <span>Condição de Pagamento *</span>
+                <span>Destino da Conversão *</span>
                 <select
-                  value={convertCondition}
-                  onChange={(e) => setConvertCondition(e.target.value as "IMEDIATO" | "PRAZO")}
-                  className="input"
+                  value={convertDestination}
+                  onChange={(e) => setConvertDestination(e.target.value as "SALE" | "ORDER")}
+                  className="input font-semibold text-primary-400"
                 >
-                  <option value="IMEDIATO">Imediato (À vista)</option>
-                  <option value="PRAZO">A Prazo</option>
+                  <option value="SALE">🛍️ Venda Direta / Balcão (Baixa imediata de estoque)</option>
+                  <option value="ORDER" disabled={!convertingQuote.customerId}>
+                    🎆 Ordem de Serviço (Espetáculo Pirotécnico & Blaster)
+                  </option>
                 </select>
+                {!convertingQuote.customerId && (
+                  <span className="text-[11px] text-amber-400 block mt-1">
+                    * Orçamentos sem cliente cadastrado só podem ser convertidos em Venda Balcão.
+                  </span>
+                )}
               </label>
 
-              {convertCondition === "IMEDIATO" ? (
-                <label className="field">
-                  <span>Método de Pagamento *</span>
-                  <select
-                    value={convertPaymentMethod}
-                    onChange={(e) => setConvertPaymentMethod(e.target.value)}
-                    className="input"
-                  >
-                    <option value="PIX">PIX</option>
-                    <option value="DINHEIRO">Dinheiro</option>
-                    <option value="CARTAO_DEBITO">Cartão de Débito</option>
-                    <option value="CARTAO_CREDITO">Cartão de Crédito</option>
-                  </select>
-                </label>
+              {convertDestination === "ORDER" ? (
+                <>
+                  <label className="field">
+                    <span>Local da Queima / Evento *</span>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ex: Arena Municipal, Clube de Campo, Fazenda Santa Fé"
+                      value={convertEventLocation}
+                      onChange={(e) => setConvertEventLocation(e.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Data e Hora do Evento *</span>
+                    <input
+                      type="datetime-local"
+                      required
+                      value={convertEventAt}
+                      onChange={(e) => setConvertEventAt(e.target.value)}
+                    />
+                  </label>
+                </>
               ) : (
-                <label className="field">
-                  <span>Data de Vencimento *</span>
-                  <input
-                    type="date"
-                    required
-                    value={convertDueDate}
-                    onChange={(e) => setConvertDueDate(e.target.value)}
-                  />
-                </label>
+                <>
+                  <label className="field">
+                    <span>Condição de Pagamento *</span>
+                    <select
+                      value={convertCondition}
+                      onChange={(e) => setConvertCondition(e.target.value as "IMEDIATO" | "PRAZO")}
+                      className="input"
+                    >
+                      <option value="IMEDIATO">Imediato (À vista)</option>
+                      <option value="PRAZO">A Prazo</option>
+                    </select>
+                  </label>
+
+                  {convertCondition === "IMEDIATO" ? (
+                    <label className="field">
+                      <span>Método de Pagamento *</span>
+                      <select
+                        value={convertPaymentMethod}
+                        onChange={(e) => setConvertPaymentMethod(e.target.value)}
+                        className="input"
+                      >
+                        <option value="PIX">PIX</option>
+                        <option value="DINHEIRO">Dinheiro</option>
+                        <option value="CARTAO_DEBITO">Cartão de Débito</option>
+                        <option value="CARTAO_CREDITO">Cartão de Crédito</option>
+                      </select>
+                    </label>
+                  ) : (
+                    <label className="field">
+                      <span>Data de Vencimento *</span>
+                      <input
+                        type="date"
+                        required
+                        value={convertDueDate}
+                        onChange={(e) => setConvertDueDate(e.target.value)}
+                      />
+                    </label>
+                  )}
+                </>
               )}
 
               {convertError && <p className="form-error text-xs" role="alert">{convertError}</p>}
@@ -1008,7 +1186,11 @@ export function CommercialWorkspace() {
                   Cancelar
                 </button>
                 <button type="submit" className="button button--primary" disabled={convertSubmitting}>
-                  {convertSubmitting ? "Convertendo..." : "Confirmar Venda e Baixar Estoque"}
+                  {convertSubmitting
+                    ? "Convertendo..."
+                    : convertDestination === "ORDER"
+                      ? "Gerar Ordem de Serviço"
+                      : "Confirmar Venda e Baixar Estoque"}
                 </button>
               </div>
             </form>
@@ -1456,6 +1638,148 @@ export function CommercialWorkspace() {
           </div>
         </div>
       )}
+
+      {/* MODAL EMISSÃO FISCAL DA VENDA */}
+      {fiscalSale && (
+        <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div
+            className="modal-content panel max-w-lg w-full space-y-4 max-h-[90vh] overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="fiscal-sale-title"
+          >
+            <h2 id="fiscal-sale-title" className="text-xl font-bold flex items-center gap-2">
+              <span>📄</span> Emissão Fiscal de Venda
+            </h2>
+
+            <div className="p-3 bg-neutral-900 border border-neutral-800 rounded space-y-1 text-xs">
+              <div>
+                <strong>Destinatário:</strong>{" "}
+                {fiscalSale.customer
+                  ? `${fiscalSale.customer.legalName} (${fiscalSale.customer.taxId})`
+                  : "Consumidor Final (Venda de balcão)"}
+              </div>
+              <div>
+                <strong>Valor Total:</strong>{" "}
+                <span className="font-mono font-bold text-emerald-400">
+                  {formatCurrency(Number(fiscalSale.total))}
+                </span>
+              </div>
+              <div>
+                <strong>Itens:</strong> {fiscalSale.items.length} produto(s)
+              </div>
+            </div>
+
+            {fiscalSuccess ? (
+              <div className="p-4 bg-emerald-950/40 border border-emerald-600 rounded space-y-2 text-xs text-emerald-200">
+                <div className="font-bold text-sm text-emerald-300">
+                  ✅ Documento Fiscal Autorizado pela SEFAZ!
+                </div>
+                <div>
+                  <strong>Tipo:</strong> {fiscalSuccess.type} · <strong>Número:</strong> {fiscalSuccess.number} · <strong>Série:</strong> {fiscalSuccess.series}
+                </div>
+                {fiscalSuccess.accessKey && (
+                  <div className="p-2 bg-neutral-900 border border-neutral-800 rounded font-mono text-[11px] break-all select-all">
+                    Chave: {fiscalSuccess.accessKey}
+                  </div>
+                )}
+                {fiscalSuccess.xmlUrl && (
+                  <div>
+                    <a
+                      href={fiscalSuccess.xmlUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="button button--secondary text-xs inline-block mt-2"
+                    >
+                      Baixar XML Autorizado
+                    </a>
+                  </div>
+                )}
+                <div className="pt-2 text-right">
+                  <button
+                    type="button"
+                    className="button button--primary text-xs"
+                    onClick={() => setFiscalSale(null)}
+                  >
+                    Concluir
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form className="form-stack space-y-3" onSubmit={handleSubmitFiscal}>
+                <label className="field">
+                  <span>Modelo de Documento Fiscal *</span>
+                  <select
+                    value={fiscalType}
+                    onChange={(e) => setFiscalType(e.target.value as "NFE" | "NFCE")}
+                    className="input"
+                  >
+                    <option value="NFE" disabled={!fiscalSale.customer}>
+                      NF-e — Modelo 55 (Nota Fiscal Eletrônica com Destinatário)
+                    </option>
+                    <option value="NFCE">
+                      NFC-e — Modelo 65 (Nota Fiscal de Consumidor Eletrônica)
+                    </option>
+                  </select>
+                  {!fiscalSale.customer && (
+                    <span className="text-[11px] text-amber-400 block mt-1">
+                      * Vendas sem cliente identificado emitem NFC-e (Cupom de Balcão).
+                    </span>
+                  )}
+                </label>
+
+                {fiscalType === "NFE" && (
+                  <label className="field">
+                    <span>Natureza da Operação *</span>
+                    <input
+                      type="text"
+                      required
+                      value={fiscalNature}
+                      onChange={(e) => setFiscalNature(e.target.value)}
+                    />
+                  </label>
+                )}
+
+                {fiscalError && (
+                  <p className="form-error text-xs" role="alert">
+                    {fiscalError}
+                  </p>
+                )}
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    className="button button--ghost"
+                    onClick={() => setFiscalSale(null)}
+                    disabled={fiscalSubmitting}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="button button--primary"
+                    disabled={fiscalSubmitting}
+                  >
+                    {fiscalSubmitting ? "Emitindo..." : "Autorizar na SEFAZ"}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* MODAL COBRANÇA PIX DA VENDA */}
+      <PixModal
+        isOpen={isPixModalOpen}
+        onClose={() => setIsPixModalOpen(false)}
+        pixData={pixData}
+        onPaymentConfirmed={() => {
+          setIsPixModalOpen(false);
+          setActionSuccess("Pagamento PIX liquidado e compensado com sucesso!");
+          setReloadTrigger((prev) => prev + 1);
+        }}
+      />
     </div>
   );
 }

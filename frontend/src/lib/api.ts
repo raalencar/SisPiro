@@ -1062,6 +1062,7 @@ export type Sale = {
   quoteId?: string | null;
   total: string;
   customer?: Customer | null;
+  financialEntry?: { id: string; status: string } | null;
   items: SaleItem[];
   createdAt: string;
 };

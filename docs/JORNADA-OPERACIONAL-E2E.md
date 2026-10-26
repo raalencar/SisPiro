@@ -110,12 +110,39 @@ flowchart TD
 
 ## ⚡ Elos de Transição Fluida no Frontend (UX 10/10)
 
-Para que a experiência do usuário seja contínua e sem fricções, os seguintes atalhos conectam as etapas da jornada:
+Para que a experiência do usuário seja contínua, sem fricções e à prova de falhas regulatórias, os seguintes elos e componentes visuais conectam as etapas da jornada:
 
-1. **Na OS em Montagem (`/modules/operations`)**:
-   - Botão **`🚚 Emitir Guia de Tráfego (GT)`**: Abre o modal de emissão já pré-carregando cliente, Blaster, data, local do evento e itens da OS com seus respectivos lotes.
-2. **Na OS Concluída (`/modules/operations`)**:
-   - Botão **`📄 Faturar / Emitir NFS-e`**: Abre a emissão de serviço no faturamento com os dados da queima já vinculados.
-   - Botão **`📱 Receber via PIX`**: Abre o **PixModal** imediatamente com o QR Code dinâmico do saldo a receber contratado.
-3. **No Orçamento Comercial Aprovado (`/modules/sales`)**:
-   - Opção de conversão dual: *"Converter em Venda Direta"* ou *"Converter em Ordem de Serviço"*.
+1. **Pipeline Visual Interativo na OS (`/modules/operations`)**:
+   - **`OrderStepper` (Linha do Tempo de 5 Estágios)**: Exibe instantaneamente no detalhe da ordem o progresso do show pirotécnico:
+     `1. Orçamento` ➔ `2. Aprovação & ART` ➔ `3. Guia de Tráfego` ➔ `4. Montagem & Queima` ➔ `5. Faturamento & PIX`.
+   - Botão **`🚚 Emitir Guia de Tráfego (GT)`**: Presente nas ordens aprovadas ou em montagem, pré-carregando cliente, Blaster, itinerário e lotes.
+   - Botão **`📄 Faturar / Emitir NFS-e`**: Nas ordens concluídas, integrando a nota de serviço com os dados da queima.
+   - Botão **`📱 Receber via PIX`**: Abre o **PixModal** imediatamente com o QR Code dinâmico do valor contratado.
+
+2. **Fechamento Fiscal & PIX Imediato no Balcão Comercial (`/modules/sales`)**:
+   - Na listagem de vendas concluídas:
+     - Botão **`📄 NF-e / NFC-e`**: Emissão direta de Nota Fiscal Eletrônica (Modelo 55 com destinatário) ou Cupom de Consumidor (Modelo 65 para balcão).
+     - Botão **`📱 PIX`**: Abre o **PixModal** com QR Code dinâmico do valor da venda para o cliente escanear no balcão.
+
+3. **Conversão Dual de Orçamento Comercial (`/modules/sales`)**:
+   - Modal de conversão inteligente com escolha entre:
+     - *"🛍️ Venda Direta / Balcão"* (baixa imediata de estoque e financeiro).
+     - *"🎆 Ordem de Serviço (Espetáculo Pirotécnico & Blaster)"* (gera a OS em `/modules/operations` transferindo produtos, lotes, data e local do show).
+
+4. **Monitoramento Preventivo de CR Militar (`/modules/customers`)**:
+   - Cálculo automático de dias restantes para o vencimento do Certificado de Registro do Exército:
+     - Menos de 30 dias: Badge pulsante âmbar *"⚠️ Vence em X dia(s)"*.
+     - Vencido: Badge vermelha *"🚫 Vencido em DD/MM/AAAA (Bloqueado para PCE)"*.
+     - Regular: Badge verde *"✓ Válido até DD/MM/AAAA"*.
+   - Botão de ação rápida **`+ Orçamento`** direto na linha do cliente para iniciar vendas com 1 clique.
+
+5. **Termômetro Visual de Carga Explosiva NEQ nos Paióis (`/modules/inventory`)**:
+   - Barra de progresso com porcentagem de ocupação e código de cores militar:
+     - `< 70%`: Verde (Capacidade regular)
+     - `70% - 90%`: Âmbar (Alerta de ocupação elevada)
+     - `> 90%`: Vermelho (Perigo de infração ao limite regulatório do R-105).
+
+6. **Ações Rápidas de Despacho Rodoviário de GT (`/modules/compliance`)**:
+   - Botão **`🚚 Iniciar Viagem`** (avanço com 1 clique de `EMITIDA` para `EM_TRANSITO`).
+   - Botão **`🏁 Concluir Entrega`** (avanço com 1 clique de `EM_TRANSITO` para `CONCLUIDA`).
+   - Botão **`Espelho GT`** com layout de impressão oficial em folha A4 para fiscalização rodoviária (PRF/Exército).

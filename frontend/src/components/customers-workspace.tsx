@@ -45,7 +45,6 @@ export function CustomersWorkspace() {
   const [eligibilityResult, setEligibilityResult] = useState<CustomerEligibility | null>(null);
   const [checkingEligibility, setCheckingEligibility] = useState(false);
 
-  const [currentDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [reloadTrigger, setReloadTrigger] = useState(0);
 
   useEffect(() => {
@@ -220,10 +219,18 @@ export function CustomersWorkspace() {
               </thead>
               <tbody className="divide-y divide-neutral-800">
                 {customers.data.map((c) => {
-                  const crExpired =
-                    Boolean(c.hasCr &&
-                    c.crExpiresAt &&
-                    c.crExpiresAt.slice(0, 10) < currentDate);
+                  const daysUntilExpiration = c.crExpiresAt
+                    ? Math.ceil(
+                        (new Date(c.crExpiresAt).getTime() - new Date().getTime()) /
+                          (1000 * 60 * 60 * 24),
+                      )
+                    : null;
+                  const crExpired = daysUntilExpiration !== null && daysUntilExpiration < 0;
+                  const crExpiringSoon =
+                    daysUntilExpiration !== null &&
+                    daysUntilExpiration >= 0 &&
+                    daysUntilExpiration <= 30;
+
                   return (
                     <tr key={c.id} className="hover:bg-neutral-800/30">
                       <td className="p-3">
@@ -234,23 +241,30 @@ export function CustomersWorkspace() {
                       <td className="p-3 font-mono text-xs">{c.taxId}</td>
                       <td className="p-3">
                         {c.hasCr ? (
-                          <div>
-                            <span className="font-mono text-xs text-emerald-400">
-                              {c.crNumber || "CR s/ nº"}
+                          <div className="space-y-1">
+                            <span className="font-mono text-xs font-bold text-neutral-200 block">
+                              CR #{c.crNumber || "s/ nº"}
                             </span>
                             {c.crExpiresAt && (
-                              <div
-                                className={`text-xs ${
-                                  crExpired ? "text-rose-400 font-bold" : "text-neutral-400"
-                                }`}
-                              >
-                                Vence: {formatDateOnly(c.crExpiresAt)}
-                                {crExpired && " (EXPIRADO)"}
+                              <div>
+                                {crExpired ? (
+                                  <span className="status-pill status-pill--error text-[11px] py-0.5 px-2">
+                                    🚫 Vencido ({formatDateOnly(c.crExpiresAt)})
+                                  </span>
+                                ) : crExpiringSoon ? (
+                                  <span className="status-pill status-pill--warning text-[11px] py-0.5 px-2 font-bold animate-pulse">
+                                    ⚠️ Vence em {daysUntilExpiration} dia(s)
+                                  </span>
+                                ) : (
+                                  <span className="text-[11px] text-emerald-400">
+                                    ✓ Válido até {formatDateOnly(c.crExpiresAt)}
+                                  </span>
+                                )}
                               </div>
                             )}
                           </div>
                         ) : (
-                          <span className="text-xs text-neutral-500">Sem CR</span>
+                          <span className="text-xs text-neutral-500">Sem CR (Não autorizado para PCE)</span>
                         )}
                       </td>
                       <td className="p-3">
@@ -279,7 +293,14 @@ export function CustomersWorkspace() {
                         </span>
                       </td>
                       <td className="p-3 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <a
+                            href={`/modules/sales`}
+                            className="button button--ghost text-xs py-1 px-2 text-primary-400"
+                            title="Abrir novo orçamento para este cliente"
+                          >
+                            + Orçamento
+                          </a>
                           <button
                             className="button button--ghost text-xs py-1 px-2"
                             onClick={() => {
@@ -287,7 +308,7 @@ export function CustomersWorkspace() {
                               setClassesToCheck(["1.3G"]);
                               setEligibilityResult(null);
                             }}
-                            title="Validar elegibilidade PCE"
+                            title="Validar elegibilidade PCE perante o Exército"
                           >
                             Checar CR
                           </button>

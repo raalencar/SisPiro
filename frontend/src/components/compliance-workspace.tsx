@@ -254,6 +254,22 @@ export function ComplianceWorkspace() {
     }
   }
 
+  async function handleFastForwardStatus(guide: TrafficGuide, targetStatus: TrafficGuideStatus) {
+    try {
+      await complianceApi.updateTrafficGuideStatus(guide.id, {
+        status: targetStatus,
+      });
+      setActionSuccess(
+        `Guia de Tráfego ${guide.number} atualizada para ${
+          targetStatus === "EM_TRANSITO" ? "EM TRÂNSITO" : "CONCLUÍDA"
+        } com sucesso!`,
+      );
+      setReloadTrigger((v) => v + 1);
+    } catch (err) {
+      setError(errorMessage(err));
+    }
+  }
+
   function renderStatusBadge(status: TrafficGuideStatus) {
     switch (status) {
       case "EMITIDA":
@@ -452,7 +468,7 @@ export function ComplianceWorkspace() {
                       </div>
                     </td>
                     <td style={{ textAlign: "right" }}>
-                      <div style={{ display: "inline-flex", gap: "0.5rem", justifyContent: "flex-end" }}>
+                      <div style={{ display: "inline-flex", gap: "0.5rem", justifyContent: "flex-end", alignItems: "center" }}>
                         <button
                           type="button"
                           className="action-button secondary"
@@ -462,6 +478,31 @@ export function ComplianceWorkspace() {
                         >
                           Espelho GT
                         </button>
+
+                        {gt.status === "EMITIDA" && (
+                          <button
+                            type="button"
+                            className="action-button primary"
+                            style={{ padding: "0.25rem 0.5rem", fontSize: "0.8rem", backgroundColor: "#2b6cb0" }}
+                            onClick={() => void handleFastForwardStatus(gt, "EM_TRANSITO")}
+                            title="Despachar carga rodoviária (colocar em trânsito)"
+                          >
+                            🚚 Iniciar Viagem
+                          </button>
+                        )}
+
+                        {gt.status === "EM_TRANSITO" && (
+                          <button
+                            type="button"
+                            className="action-button primary"
+                            style={{ padding: "0.25rem 0.5rem", fontSize: "0.8rem", backgroundColor: "#2f855a" }}
+                            onClick={() => void handleFastForwardStatus(gt, "CONCLUIDA")}
+                            title="Confirmar entrega do material PCE no local do evento"
+                          >
+                            🏁 Concluir Entrega
+                          </button>
+                        )}
+
                         {gt.status !== "CONCLUIDA" && gt.status !== "CANCELADA" && (
                           <button
                             type="button"
@@ -473,9 +514,9 @@ export function ComplianceWorkspace() {
                               setStatusReason("");
                               setStatusError(null);
                             }}
-                            title="Atualizar status da viagem"
+                            title="Mais opções de status / cancelamento"
                           >
-                            Status
+                            Status...
                           </button>
                         )}
                       </div>
