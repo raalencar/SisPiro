@@ -206,14 +206,19 @@ Diagnóstico concluído (Fase 0): O controlador declara `GET /inventory/reports/
 - A API permanece responsável pela autorização final, capacidade NEQ, validade,
   reservas, consistência transacional e auditoria.
 
-- Backend: `npm run lint` (oxlint, 0 erros), `npm test` (31 testes unitários), `npm run test:e2e` (46 testes) e `npm run build` passaram com código 0.
-- Frontend: `npm run lint` (0 avisos), `npm run typecheck` (0 erros), `npm test` (69 testes em 16 suítes) e `npm run build` (20 rotas SSG/SSR) passaram com sucesso total.
+- Backend: `npm run lint` (oxlint, 0 erros), `npm test` (36 testes unitários), `npm run test:e2e` (46 testes) e `npm run build` passaram com código 0.
+- Frontend: `npm run lint` (0 avisos), `npm run typecheck` (0 erros), `npm test` (72 testes em 17 suítes) e `npm run build` (20 rotas SSG/SSR) passaram com sucesso total.
 - Módulo Fiscal & Faturamento (Frente 1):
   - Modelo `FiscalDocument` no Prisma com enums `FiscalDocumentType` (`NFE`, `NFCE`, `NFSE`) e `FiscalDocumentStatus` (`PROCESSANDO`, `AUTORIZADO`, `REJEITADO`, `CANCELADO`).
   - Arquitetura Adapter/Strategy no NestJS com gateway agnóstico e provedores `FiscalSandboxAdapter` e `FocusNfeAdapter`.
   - Algoritmo Módulo 11 oficial para geração do Dígito Verificador da chave de acesso SEFAZ de 44 dígitos.
   - Endpoints de emissão de NF-e, NFC-e e NFS-e e cancelamento homologado com justificativa legal mínima de 15 caracteres.
   - BFF Next.js seguro e Workspace `/modules/billing` integrado com acessibilidade completa e smoke test E2E 100% aprovado.
+- Expedição & Guia de Tráfego Militar (Frente 2):
+  - Modelos `TrafficGuide` e `TrafficGuideItem` no Prisma com enum `TrafficGuideStatus`.
+  - Controle estrito de saldo de lote PCE no paiol de origem, validação de validade da carteira do Blaster e cálculo em tempo real de Massa Líquida Total de Explosivo (NEQ).
+  - Emissão de GT no padrão sequencial anual do Exército (`GT-YYYY/NNNN`).
+  - BFF seguro e Workspace `/modules/compliance` com emissão, atualização de status de trânsito e **Espelho Oficial Militar de Impressão** formatado perante o DFPC/COLOG com classes de risco ONU e campos de assinatura técnica.
 
 Para requisitos de execução, endpoints e regras detalhadas, consulte
 [`backend/README.md`](../backend/README.md) e

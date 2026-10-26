@@ -41,14 +41,15 @@ export const modules: ErpModule[] = [
   {
     slug: "compliance",
     title: "Compliance e Regulatório",
-    shortTitle: "Compliance",
-    description: "Documentos, licenças e obrigações regulatórias.",
+    shortTitle: "Compliance / GT",
+    description: "Guias de Tráfego (Exército Brasileiro), licenças e obrigações regulatórias.",
     icon: "shield",
     group: "Governança",
-    emptyTitle: "A gestão regulatória ainda não está conectada",
+    emptyTitle: "Compliance e Guias de Tráfego conectadas",
     emptyDescription:
-      "O backend ainda não oferece consultas ou operações para CRs, licenças, Guias de Tráfego ou mapas regulatórios. Nenhuma validação regulatória está sendo realizada por esta tela.",
-    statusLabel: "Planejado",
+      "Emissão oficial de Guias de Tráfego (GT) para transporte terrestre de Produtos Controlados (PCE), cálculo de massa líquida de explosivo (NEQ) e controle de condutores MOPP.",
+    statusLabel: "Tela integrada",
+    requiredRoles: ["OPERACOES", "COMERCIAL"],
   },
   {
     slug: "inventory",

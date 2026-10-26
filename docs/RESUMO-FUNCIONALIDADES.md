@@ -87,11 +87,25 @@ fases já concluídas, veja [`Plano_Backend.md`](../Plano_Backend.md) e
 - Cancelamento fiscal homologado perante o gateway SEFAZ com justificativa legal obrigatória (mínimo de 15 caracteres) e geração de protocolo de homologação.
 - Workspace completo de Faturamento (`/modules/billing`) no frontend com tabela de documentos, badges de status SEFAZ, cópia rápida de chave, atalhos de DANFE/XML e modais de emissão/cancelamento com acessibilidade total (focus trap e Escape).
 
+### Expedição e Guia de Tráfego do Exército (Frente 2 - Concluída)
+- Modelo `TrafficGuide` e `TrafficGuideItem` no Prisma com enum `TrafficGuideStatus` (`EMITIDA`, `EM_TRANSITO`, `CONCLUIDA`, `CANCELADA`).
+- Regras regulamentares do Exército Brasileiro (DFPC/SFPC - R-105):
+  - Numeração anual sequencial auditada (ex: `GT-2026/0001`).
+  - Validação de paiol ativo e conferência estrita de saldo físico disponível no lote de origem.
+  - Verificação de validade da carteira profissional do Blaster perante a data limite do trânsito.
+  - Cálculo automático em tempo real da massa líquida total de explosivos (NEQ em kg) a partir da densidade energética cadastrada no produto PCE.
+  - Controle de dados do transporte rodoviário: veículo, placa/UF, motorista habilitado com certificação MOPP e itinerário rodoviário detalhado.
+  - Atualização do status de deslocamento (`EM_TRANSITO`, `CONCLUIDA`, `CANCELADA` com justificativa legal mínima de 10 caracteres).
+- Workspace regulatório no frontend (`/modules/compliance`):
+  - Tabela de guias com busca por número, placa, motorista e filtros por status.
+  - Modal acessível de emissão de nova GT com seleção de produtos/lotes e indicador visual de carga NEQ.
+  - **Espelho Oficial Militar de Impressão**: Layout idêntico ao modelo DFPC/COLOG com cabeçalho oficial da República Federativa do Brasil, discriminação dos PCEs com classe ONU e campos de assinatura de responsabilidade técnica.
+
 ### Qualidade e infraestrutura de teste
-- Backend: 31 testes unitários (incluindo testes de ponta a ponta do cálculo do DV módulo 11 e regras de negócio fiscais) + 46 e2e, lint e build limpos.
-- Frontend: 69 testes unitários e de componentes (incluindo testes dedicados do FiscalWorkspace com React Testing Library + jsdom), lint, typecheck e build limpos (20 rotas).
-- Smoke test de ponta a ponta (E2E) com autenticação real via BFF, emissão de NF-e, consulta de listagem e cancelamento homologado executado com sucesso.
-- Total geral: 100 testes automatizados passando com 100% de sucesso.
+- Backend: 36 testes unitários (incluindo testes de validações militares, regras de Blaster e cálculo de NEQ) + 46 e2e, lint e build limpos.
+- Frontend: 72 testes unitários e de componentes (incluindo testes dedicados do ComplianceWorkspace com React Testing Library + jsdom), lint, typecheck e build limpos (20 rotas).
+- Smoke tests E2E executados com sucesso real para o Módulo Fiscal (Frente 1) e Guia de Tráfego (Frente 2).
+- Total geral: 108 testes automatizados passando com 100% de sucesso.
 
 ---
 
@@ -99,8 +113,7 @@ fases já concluídas, veja [`Plano_Backend.md`](../Plano_Backend.md) e
 
 | Item | Observação | No sprint atual? |
 | --- | --- | --- |
-| **Frente 2: Expedição e Guia de Tráfego (GT)** | Emissão e espelho regulatório da Guia de Tráfego do Exército Brasileiro para transporte de PCE, vinculada à NF-e faturada, Blaster e veículo habilitado. | **Próxima frente sequencial** |
-| **Frente 3: PIX Dinâmico & Conciliação** | Cobrança PIX com QR Code dinâmico no PDV/Orçamento, webhook de confirmação automática e importação de extratos OFX. | Próximo |
+| **Frente 3: PIX Dinâmico & Conciliação Bancária** | Cobrança PIX com QR Code dinâmico no PDV/Orçamento, webhook de confirmação automática no Financeiro e importação de extratos OFX. | **Próxima frente sequencial** |
 | **Frente 4: SRE e Automação de Produção** | Provisionamento de scripts de backup automatizado do PostgreSQL com retenção em S3, health checks avançados e docker-compose produtivo. | Próximo |
 | Validação de sessão expirada/refresh em Firefox e Safari | Validado em Chrome contra o backend real; Firefox/Safari não testados — sem ferramenta de automação disponível. | Secundário |
 
@@ -108,11 +121,7 @@ fases já concluídas, veja [`Plano_Backend.md`](../Plano_Backend.md) e
 
 ## 🔒 Bloqueado — requer decisão explícita antes de iniciar
 
-Nada bloqueia as próximas frentes técnicas (Frente 2: Guia de Tráfego e Frente 3: PIX). O módulo fiscal foi desbloqueado e concluído na Frente 1.
-- Integração bancária: importação de extratos (OFX/CNAB), conciliação,
-  tratamento de divergências.
-- Telas correspondentes no frontend (dependem do contrato de API acima
-  estar definido — construir a UI antes é retrabalho garantido).
+Nada bloqueia as próximas frentes técnicas (Frente 3: PIX Dinâmico e Frente 4: SRE). Módulo Fiscal (Frente 1) e Guia de Tráfego do Exército (Frente 2) foram concluídos com êxito.
 
 ---
 

@@ -175,6 +175,7 @@ model Product {
   saleItems       SaleItem[]
   salesQuoteItems SalesQuoteItem[]
   purchaseItems   PurchaseItem[]
+  trafficGuideItems TrafficGuideItem[]
 
   @@map("produtos")
 }
@@ -189,6 +190,7 @@ model Magazine {
   sourceMovements      StockMovement[]   @relation("MovementSourceMagazine")
   destinationMovements StockMovement[]   @relation("MovementDestinationMagazine")
   purchaseReceipts     PurchaseReceipt[]
+  trafficGuides        TrafficGuide[]
 
   @@map("paioes")
 }
@@ -213,6 +215,7 @@ model ProductLot {
   salesQuoteItems        SalesQuoteItem[]
   saleReturnItems        SaleReturnItem[]
   purchaseReceipts       PurchaseReceipt[]
+  trafficGuideItems      TrafficGuideItem[]
 
   @@unique([productId, lotNumber])
   @@index([magazineId, productId])
@@ -262,6 +265,7 @@ model Blaster {
   category         String?        @map("categoria") @db.VarChar(30)
   active           Boolean        @default(true) @map("ativo")
   serviceOrders    ServiceOrder[]
+  trafficGuides    TrafficGuide[]
 
   @@map("blasters")
 }
@@ -282,6 +286,7 @@ model ServiceOrder {
   items                ServiceOrderItem[]
   financialEntry       FinancialEntry?
   fiscalDocuments      FiscalDocument[]
+  trafficGuides        TrafficGuide[]
 
   @@index([status, eventAt])
   @@index([eventAt])
@@ -635,9 +640,76 @@ model FiscalDocument {
 
   sale         Sale?         @relation(fields: [saleId], references: [id], onDelete: Restrict)
   serviceOrder ServiceOrder? @relation(fields: [serviceOrderId], references: [id], onDelete: Restrict)
+  trafficGuides TrafficGuide[]
 
   @@index([type, status, createdAt])
   @@index([saleId])
   @@index([serviceOrderId])
   @@map("documentos_fiscais")
+}
+
+enum TrafficGuideStatus {
+  EMITIDA
+  EM_TRANSITO
+  CONCLUIDA
+  CANCELADA
+}
+
+model TrafficGuide {
+  id                 String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  number             String             @unique @map("numero_gt") @db.VarChar(50)
+  fiscalDocumentId   String?            @map("documento_fiscal_id") @db.Uuid
+  serviceOrderId     String?            @map("ordem_servico_id") @db.Uuid
+  sourceMagazineId   String?            @map("paiol_origem_id") @db.Uuid
+  status             TrafficGuideStatus @default(EMITIDA) @map("status")
+  validFrom          DateTime           @map("valida_de") @db.Timestamptz(3)
+  validUntil         DateTime           @map("valida_ate") @db.Timestamptz(3)
+  originCity         String             @map("cidade_origem") @db.VarChar(100)
+  originState        String             @map("uf_origem") @db.VarChar(2)
+  destinationCity    String             @map("cidade_destino") @db.VarChar(100)
+  destinationState   String             @map("uf_destino") @db.VarChar(2)
+  routeDescription   String             @map("itinerario") @db.VarChar(500)
+  vehiclePlate       String             @map("veiculo_placa") @db.VarChar(10)
+  vehiclePlateState  String             @map("veiculo_uf") @db.VarChar(2)
+  vehicleModel       String?            @map("veiculo_modelo") @db.VarChar(100)
+  driverName         String             @map("motorista_nome") @db.VarChar(150)
+  driverCpf          String             @map("motorista_cpf") @db.VarChar(14)
+  driverLicense      String             @map("motorista_cnh") @db.VarChar(20)
+  hasMopp            Boolean            @default(true) @map("possui_mopp")
+  blasterId          String?            @map("blaster_id") @db.Uuid
+  totalNeqKg         Decimal            @map("total_neq_kg") @db.Decimal(10, 4)
+  notes              String?            @map("observacoes") @db.VarChar(500)
+  issuedAt           DateTime           @default(now()) @map("emitida_em") @db.Timestamptz(3)
+  createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  fiscalDocument     FiscalDocument?    @relation(fields: [fiscalDocumentId], references: [id], onDelete: Restrict)
+  serviceOrder       ServiceOrder?      @relation(fields: [serviceOrderId], references: [id], onDelete: Restrict)
+  sourceMagazine     Magazine?          @relation(fields: [sourceMagazineId], references: [id], onDelete: Restrict)
+  blaster            Blaster?           @relation(fields: [blasterId], references: [id], onDelete: Restrict)
+  items              TrafficGuideItem[]
+
+  @@index([status, validUntil])
+  @@index([fiscalDocumentId])
+  @@index([serviceOrderId])
+  @@map("guias_trafego")
+}
+
+model TrafficGuideItem {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  trafficGuideId String       @map("guia_trafego_id") @db.Uuid
+  productId      String       @map("produto_id") @db.Uuid
+  productLotId   String       @map("produto_lote_id") @db.Uuid
+  quantity       Decimal      @map("quantidade") @db.Decimal(10, 2)
+  neqGrams       Decimal      @map("neq_gramas") @db.Decimal(10, 4)
+  unNumber       String       @default("UN 0336") @map("numero_onu") @db.VarChar(20)
+  riskClass      String       @default("1.4G") @map("classe_risco") @db.VarChar(20)
+
+  trafficGuide   TrafficGuide @relation(fields: [trafficGuideId], references: [id], onDelete: Cascade)
+  product        Product      @relation(fields: [productId], references: [id], onDelete: Restrict)
+  productLot     ProductLot   @relation(fields: [productLotId], references: [id], onDelete: Restrict)
+
+  @@index([trafficGuideId])
+  @@index([productLotId])
+  @@map("guia_trafego_itens")
 }

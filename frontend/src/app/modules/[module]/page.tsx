@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CommercialWorkspace } from "@/components/commercial-workspace";
+import { ComplianceWorkspace } from "@/components/compliance-workspace";
 import { CustomersWorkspace } from "@/components/customers-workspace";
 import { FinanceWorkspace } from "@/components/finance-workspace";
 import { FiscalWorkspace } from "@/components/fiscal-workspace";
@@ -34,6 +35,9 @@ export default async function ModulePage({
   const currentModule = getModule(slug);
   if (!currentModule) notFound();
 
+  if (slug === "compliance") {
+    return <ComplianceWorkspace key={slug} />;
+  }
   if (slug === "inventory") {
     return <InventoryWorkspace key={slug} />;
   }
