@@ -103,6 +103,30 @@ npm run build      # Build de produção otimizado Next.js
   cadastros novos) contra o seed local ainda não foi realizado nesta
   entrega.
 
+## Container de produção
+
+```bash
+docker build \
+  --build-arg NEXT_PUBLIC_API_URL=https://api.dominio-corporativo.com.br \
+  --build-arg NEXT_PUBLIC_API_PREFIX=/api/v1 \
+  -t erp-pirotecnico-frontend .
+```
+
+O Dockerfile usa a saída `standalone` do Next.js (build multi-stage, imagem final
+mínima). `NEXT_PUBLIC_API_URL` e `NEXT_PUBLIC_API_PREFIX` são embutidas no bundle
+do cliente em tempo de build, não lidas em runtime pelo container — informe-as
+sempre via `--build-arg` ao construir a imagem de produção; sem isso, prevalecem
+os defaults de desenvolvimento (`http://localhost:3000`, `/api/v1`). O container
+expõe a porta `3001` e serve `node server.js` como usuário não privilegiado
+(`node`).
+
+```bash
+docker run -p 3001:3001 erp-pirotecnico-frontend
+```
+
+Em produção, sirva o container atrás de um proxy/CDN com HTTPS e certificados TLS
+válidos (ver [Diretrizes de Segurança](#diretrizes-de-segurança) abaixo).
+
 ## Diretrizes de Segurança
 
 As requisições de negócio passam obrigatoriamente pelo BFF do Next.js sob cookies

@@ -66,6 +66,16 @@ A documentação OpenAPI é servida em `http://localhost:3000/api/v1/docs`.
 Consulte também [a documentação do backend](./backend/README.md) para requisitos,
 comandos e configuração de persistência.
 
+## Containers de produção
+
+Backend e frontend têm `Dockerfile` próprios. O backend inicia a API (migrações
+são aplicadas separadamente com `npm run db:deploy` no processo de implantação);
+o frontend precisa de `NEXT_PUBLIC_API_URL`/`NEXT_PUBLIC_API_PREFIX` informadas
+como `--build-arg` no `docker build`, pois são embutidas no bundle em tempo de
+build. Veja [`backend/README.md`](./backend/README.md#container-de-produção) e
+[`frontend/README.md`](./frontend/README.md#container-de-produção) para os
+comandos completos.
+
 ## Verificação do frontend
 
 ```bash
