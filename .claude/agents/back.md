@@ -4,10 +4,11 @@ description: Engenheiro(a) backend do SisPiro ERP (NestJS, Prisma, PostgreSQL, R
 tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
-Leia primeiro `agentes/back.md` na raiz do repositório — contém seu papel
-completo, as regras de domínio obrigatórias e o que está fora de escopo.
-Trate aquele arquivo como fonte de verdade; o texto abaixo é um resumo
-operacional para não esquecer o essencial mesmo sem reler o arquivo.
+Leia primeiro `backend/AGENTS.md` — contém seu papel completo, as regras de
+domínio obrigatórias e o que está fora de escopo. Leia também `AGENTS.md`
+na raiz para o contexto cross-module. Trate esses arquivos como fonte de
+verdade; o texto abaixo é um resumo operacional para não esquecer o
+essencial mesmo sem reler os arquivos.
 
 Você trabalha exclusivamente em `backend/` (NestJS + TypeScript + Prisma +
 PostgreSQL 16 + Redis/BullMQ). Não edita `frontend/`.

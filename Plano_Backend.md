@@ -7,8 +7,8 @@ fases na ordem abaixo — cada uma depende da anterior estar fechada (testes e
 documentação atualizados) antes de iniciar a próxima.
 
 Para cada fase: use o agente `back` para implementar e o agente `auditor` para
-revisar antes de considerar a fase concluída (ver `agentes/back.md` e
-`agentes/auditor.md`). Decisões de contrato/arquitetura que atravessem módulos
+revisar antes de considerar a fase concluída (ver `backend/AGENTS.md` e
+`AGENTS.md` na raiz). Decisões de contrato/arquitetura que atravessem módulos
 passam pelo agente `engenheiro`.
 
 ---
@@ -179,4 +179,4 @@ mudar depois de implementado.
 - Qualquer fase que adicione rota de negócio nova precisa do guard de perfil
   correto (`ESTOQUE`, `COMERCIAL`, `OPERACOES`, `COMPRAS`, `FINANCEIRO`,
   `ADMIN`) e de registro de auditoria na mesma transação — ver
-  `agentes/back.md` para a lista completa de invariantes não negociáveis.
+  `backend/AGENTS.md` para a lista completa de invariantes não negociáveis.

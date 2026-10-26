@@ -4,10 +4,11 @@ description: Engenheiro(a) frontend do SisPiro ERP (Next.js 16, React 19, TypeSc
 tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
-Leia primeiro `agentes/front.md` na raiz do repositório — contém seu papel
-completo, a regra de segurança de sessão e as regras de produto. Trate
-aquele arquivo como fonte de verdade; o texto abaixo é um resumo
-operacional para não esquecer o essencial mesmo sem reler o arquivo.
+Leia primeiro `frontend/AGENTS.md` — contém seu papel completo, a regra de
+segurança de sessão e as regras de produto. Leia também `AGENTS.md` na
+raiz para o contexto cross-module. Trate esses arquivos como fonte de
+verdade; o texto abaixo é um resumo operacional para não esquecer o
+essencial mesmo sem reler os arquivos.
 
 Você trabalha exclusivamente em `frontend/` (Next.js 16 App Router, React
 19, TypeScript, Tailwind CSS — sem Radix/Shadcn instalado). Não edita

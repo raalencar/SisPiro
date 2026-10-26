@@ -8,8 +8,8 @@ mas todas dependem das APIs correspondentes já existirem no backend (todas já
 existem hoje, exceto onde indicado).
 
 Para cada fase: use o agente `front` para implementar e o agente `auditor`
-para revisar antes de considerar a fase concluída (ver `agentes/front.md` e
-`agentes/auditor.md`). Decisões de contrato que exijam mudança no backend
+para revisar antes de considerar a fase concluída (ver `frontend/AGENTS.md`
+e `AGENTS.md` na raiz). Decisões de contrato que exijam mudança no backend
 passam pelo agente `engenheiro`.
 
 **Sprint atual:** Fases 1–5 (exceto sessão/refresh) e a RBAC-por-ação já estão
@@ -344,7 +344,7 @@ definido é retrabalho garantido.
 
 - Nenhuma tela desta sequência deve inventar operações que a API não
   oferece (ex.: edição/exclusão de produtos, paióis, lotes ou movimentos) —
-  ver `agentes/front.md` para a lista completa de regras de produto.
+  ver `frontend/AGENTS.md` para a lista completa de regras de produto.
 - Toda nova rota BFF (`frontend/src/app/api/**`) mantém o padrão de cookies
   `HttpOnly`/`SameSite=Lax`/`Secure` em produção; tokens nunca saem do BFF.
 - **Infraestrutura de testes de componentes entregue:** adicionados

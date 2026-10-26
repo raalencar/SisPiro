@@ -1,25 +1,22 @@
-# Papel: Engenheiro(a) Backend (NestJS / Prisma / PostgreSQL)
+# AGENTS.md — Backend (NestJS / Prisma / PostgreSQL)
 
-## Persona
-
-Especialista backend sênior em NestJS/TypeScript, Prisma e PostgreSQL,
-focado em sistemas transacionais com regras de negócio críticas (controle
-de estoque regulado, financeiro). Trabalha exclusivamente em `backend/`.
-Recebe contratos e decisões de arquitetura do agente [[engenheiro]]; não
-decide limites de bounded context por conta própria — se uma tarefa exigir
-isso, escalar antes de implementar.
+Regras específicas para trabalhar em `backend/`. Leia também o `AGENTS.md`
+na raiz do repositório — contém o contexto de domínio e o checklist de
+auditoria que valem para o projeto inteiro.
 
 ## Escopo
 
 Somente `backend/`. Não editar `frontend/` nem `docs/` (exceto
 `backend/README.md`, que deve ser mantido verdadeiro junto com a
-implementação).
+implementação). Decisões de arquitetura cross-module ou que mudam limites
+entre bounded contexts (ver `AGENTS.md` raiz) não são deste escopo — se uma
+tarefa exigir isso, parar e perguntar antes de implementar.
 
 ## Stack
 
 - Node.js 22+, NestJS, TypeScript, PostgreSQL 16, Prisma, Redis + BullMQ.
 - Estrutura em `backend/src/modules/{auth,inventory,operations,commercial,
-  procurement,finance,compliance}`, cada um com `*.controller.ts`,
+  procurement,finance,compliance,fiscal}`, cada um com `*.controller.ts`,
   `*.service.ts`, `*.dto.ts`.
 - Schema em `backend/prisma/schema.prisma`; migrações de desenvolvimento via
   `npm run db:migrate -- --name nome_da_migracao`; aplicação em ambientes via
@@ -64,9 +61,9 @@ Estas regras vêm de `backend/README.md` e não são opcionais em código novo:
 
 Emissão de NF-e, NFC-e e NFS-e, Guia de Tráfego Militar, cobrança PIX e
 conciliação bancária via extrato OFX **já estão implementados** (Frentes
-1-3, ver `docs/STATUS-IMPLEMENTACAO.md`) — não são mais fora de escopo.
-Evoluções nesses fluxos seguem o workflow normal, não exigem aprovação
-especial além do contrato do [[engenheiro]].
+1-3, ver `docs/STATUS-IMPLEMENTACAO.md`) — não são fora de escopo.
+Evoluções nesses fluxos seguem o workflow normal, sem aprovação especial
+além do contrato de arquitetura.
 
 Continuam fora de escopo sem aprovação explícita: emissão de MDF-e e
 importação de extrato bancário em formato CNAB (só OFX está implementado) —
@@ -75,9 +72,7 @@ tarefa parecer exigir uma delas, parar e perguntar antes de avançar.
 
 MFA, recuperação de senha, rate limiting de login e parcelamento de
 lançamentos financeiros **já estão implementados** (Fases 1 e 2, ver
-`backend/README.md`) — não são mais fora de escopo. Evoluções nesses fluxos
-seguem o workflow normal, não exigem aprovação especial além do contrato do
-[[engenheiro]].
+`backend/README.md`) — não são fora de escopo.
 
 Também não implementar edição/exclusão de produtos, paióis, lotes e
 movimentos de estoque — a API deliberadamente não oferece essas operações
@@ -85,17 +80,17 @@ hoje (ver "Limites funcionais explícitos" em `docs/STATUS-IMPLEMENTACAO.md`).
 
 ## Workflow esperado
 
-1. Ler o contrato/instrução recebida do [[engenheiro]] (ou do usuário)
-   identificando módulo, rota, DTO e regra de negócio exata.
+1. Ler o contrato/instrução recebida identificando módulo, rota, DTO e
+   regra de negócio exata.
 2. Verificar `backend/README.md` para confirmar que a mudança é compatível
    com o que já está documentado como comportamento atual.
 3. Implementar: schema (se necessário) → migração → DTO → service →
    controller → testes e2e cobrindo a regra nova (positivo e negativo).
 4. Rodar `npm run lint`, `npm test`, `npm run test:e2e`, `npm run build`
    localmente antes de considerar pronto.
-5. Atualizar `backend/README.md` (e sinalizar ao [[engenheiro]] se
+5. Atualizar `backend/README.md` (e sinalizar se
    `docs/STATUS-IMPLEMENTACAO.md` também precisa mudar).
-6. Entregar para revisão do [[auditor]].
+6. Entregar para revisão (checklist de auditoria no `AGENTS.md` raiz).
 
 ## Regras de estilo
 

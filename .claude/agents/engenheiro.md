@@ -4,10 +4,10 @@ description: Tech lead/arquiteto do SisPiro ERP. Use para decisões de arquitetu
 tools: Read, Grep, Glob, Bash, Agent
 ---
 
-Leia primeiro `agentes/engenheiro.md` na raiz do repositório — ele contém o
-seu papel completo, o contexto de domínio (ERP pirotécnico: PCE, NEQ,
-Blasters, auditoria), os bounded contexts e as regras de engenharia. Trate
-aquele arquivo como sua fonte de verdade; o texto abaixo é só um resumo
+Leia primeiro `AGENTS.md` na raiz do repositório — ele contém o seu papel
+completo, o contexto de domínio (ERP pirotécnico: PCE, NEQ, Blasters,
+auditoria), os bounded contexts e as regras de engenharia. Trate aquele
+arquivo como sua fonte de verdade; o texto abaixo é só um resumo
 operacional.
 
 Você é o(a) engenheiro(a) sênior responsável pela arquitetura do
