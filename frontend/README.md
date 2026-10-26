@@ -72,7 +72,17 @@ do backend. Entre com `demo.admin@local.test` e com a senha configurada em
    - Relatório analítico de Aging Schedule (cronograma de vencimento e risco de inadimplência em 5 faixas: A Vencer, 1-30d, 31-60d, 61-90d, >90d).
    - Lançamentos parcelados (número de parcelas, intervalo em dias ou datas customizadas), com identificação visual de cada parcela por grupo.
 
-8. **Controles de apresentação por perfil:**
+8. **Módulo Fiscal (NF-e, NFC-e, NFS-e) e Faturamento (`/modules/billing`):**
+   - Emissão de NF-e (Modelo 55 com chave SEFAZ de 44 dígitos) e NFC-e (Modelo 65) a partir de pedidos de venda fechados.
+   - Emissão de NFS-e vinculada a Ordens de Serviço (eventos pirotécnicos) com identificação de Blaster técnico e ART.
+   - Listagem com filtros de status e cancelamento homologado com justificativa legal obrigatória.
+
+9. **Compliance Regulatório e Guias de Tráfego do Exército (`/modules/compliance`):**
+   - Emissão e rastreio de Guias de Tráfego (R-105 / DFPC / SFPC) com numeração auditada `GT-YYYY/NNNN`.
+   - Validação em tempo real de saldo físico de paiol e verificação da habilitação do Blaster e condutor com curso MOPP.
+   - Cálculo automático da Massa Líquida de Explosivo Total (NEQ em kg) e visualização do **Espelho Oficial Militar DFPC/COLOG** formatado para fiscalização e impressão.
+
+10. **Controles de apresentação por perfil:**
    - Itens de navegação para módulos fora do perfil do usuário (`ESTOQUE`, `COMERCIAL`, `OPERACOES`, `COMPRAS`, `FINANCEIRO`; `ADMIN` sempre tem acesso) aparecem visualmente desabilitados, e o acesso direto por URL mostra uma tela de "Acesso restrito" (`src/lib/modules.ts`, `src/components/app-shell.tsx`).
    - Granularidade por módulo/tela, não por botão ou operação individual. A autorização final de toda regra de negócio continua exclusivamente no backend.
 
@@ -85,6 +95,8 @@ do backend. Entre com `demo.admin@local.test` e com a senha configurada em
 - `/modules/teams` — Blasters habilitados e equipes de espetáculo.
 - `/modules/purchases` — Compras, fornecedores e recebimento físico.
 - `/modules/sales` — Comercial, tabelas de preço, promoções, orçamentos e PDV.
+- `/modules/billing` — Faturamento, emissão de NF-e, NFC-e e NFS-e e cancelamento fiscal.
+- `/modules/compliance` — Compliance militar, emissão e espelho oficial de Guias de Tráfego (GT).
 - `/modules/operations` — Ordens de serviço e eventos pirotécnicos.
 - `/modules/finance` — Financeiro, contas a pagar/receber, fluxo de caixa e Aging schedule.
 

@@ -421,11 +421,25 @@ todas as contas ativas a pagar e a receber com base na data de referência infor
 Lançamentos avulsos podem ser simples ou parcelados (informando `installmentsCount` e `intervalDays` ou `customDueDates`), gerando títulos vinculados ao mesmo `installmentGroup` com rateio exato de centavos (resto alocado na 1ª parcela) e datas calculadas atomicamente. Cada recebimento de compra gera
 automaticamente uma conta a pagar vinculada à etapa recebida, a conclusão de
 uma OS gera uma conta a receber com o valor contratado e as vendas geram
-recebimentos ou contas a receber de acordo com a condição informada. Não há integração bancária,
-conciliação ou estorno de pagamentos. Emissão fiscal, Guias de
-Tráfego, mapas regulatórios e relatórios gerenciais adicionais ainda não estão
-expostos pela API. O frontend já consome a autenticação, estoque, comercial, financeiro
-e ordens de serviço.
+recebimentos ou contas a receber de acordo com a condição informada.
+
+### Módulo Fiscal (NF-e, NFC-e, NFS-e) e Faturamento
+
+O módulo fiscal oferece arquitetura plugável via interface `FiscalGateway` e injeção dinâmica de provedores (`FISCAL_PROVIDER=sandbox` ou `focusnfe`):
+- `POST /fiscal/nfe`: Emissão de NF-e (Modelo 55) para vendas faturadas com destinatário identificado (CPF/CNPJ), NCM pirotécnico (3604.10.00), CFOP 5102 e geração de chave de 44 dígitos com Dígito Verificador calculado via Módulo 11 oficial da SEFAZ. Perfis: `ADMIN`, `COMERCIAL`.
+- `POST /fiscal/nfce`: Emissão de NFC-e (Modelo 65) para vendas imediatas de balcão / consumidor final. Perfis: `ADMIN`, `COMERCIAL`.
+- `POST /fiscal/nfse`: Emissão de NFS-e para prestação de serviços pirotécnicos vinculada a Ordens de Serviço (OS), com discriminação de queima, ART e Blaster responsável técnico. Perfis: `ADMIN`, `OPERACOES`.
+- `GET /fiscal/documents`: Listagem paginada (`{ data, meta }`) de documentos fiscais emitidos com filtros por tipo (`NFE`, `NFCE`, `NFSE`), status (`AUTORIZADO`, `PROCESSANDO`, `CANCELADO`, `REJEITADO`) e busca por chave ou protocolo.
+- `GET /fiscal/documents/:id`: Detalhes completos do documento fiscal e itens faturados.
+- `POST /fiscal/documents/:id/cancel`: Cancelamento homologado perante o gateway fiscal mediante justificativa legal obrigatória com no mínimo 15 caracteres. Perfis: `ADMIN`, `COMERCIAL`, `OPERACOES`.
+
+### Compliance e Guias de Tráfego Militar (DFPC/SFPC - R-105)
+
+O módulo de compliance gerencia as obrigações regulatórias do Exército Brasileiro para transporte de Produtos Controlados pelo Exército (PCE):
+- `POST /compliance/traffic-guides`: Emissão de Guia de Tráfego militar com numeração anual auditada (`GT-YYYY/NNNN`), validação de saldo físico disponível no paiol de origem, conferência de validade da carteira do Blaster perante a data limite do trânsito, cálculo automático da Massa Líquida de Explosivo Total (NEQ em kg) e controle de condutores com habilitação MOPP. Perfis: `ADMIN`, `OPERACOES`, `COMERCIAL`.
+- `GET /compliance/traffic-guides`: Listagem paginada de GTs com busca por número, placa, condutor ou destino, e filtros por status (`EMITIDA`, `EM_TRANSITO`, `CONCLUIDA`, `CANCELADA`).
+- `GET /compliance/traffic-guides/:id`: Detalhes completos para renderização do **Espelho Oficial Militar DFPC/COLOG** com classes de risco ONU (1.1G, 1.3G, 1.4G) e termos de responsabilidade técnica.
+- `PATCH /compliance/traffic-guides/:id/status`: Atualização do status de deslocamento da carga controlada (`EM_TRANSITO`, `CONCLUIDA`, `CANCELADA` com justificativa mínima de 10 caracteres). Perfis: `ADMIN`, `OPERACOES`.
 
 Todas as rotas de negócio exigem access token e perfil compatível; liveness,
 readiness e os endpoints de bootstrap/login/refresh/logout/password-reset/login-mfa são públicos.
@@ -481,10 +495,11 @@ iniciar cada novo escopo.
 | Devolução e financeiro | Devolução aplica crédito ao saldo em aberto, cria conta a pagar para reembolso e suporta vendas legadas sem lançamento prévio de forma segura e idempotente | Nenhum no backend (concluído na Fase 2) |
 | Orçamentos comerciais | Emissão, consulta, cancelamento, edição (`PUT`) com lock pessimista e recálculo atômico de reserva, envio de e-mail via BullMQ (`POST /send`), conversão em venda e relatório de conversão (`GET /commercial/reports/quotes-conversion`) implementados | Nenhum no backend (concluído na Fase 2) |
 | Preços promocionais | Campanhas de preço fixo e desconto percentual (`PromotionDiscountType`), vigência inclusiva, aplicação automática estrita pelo menor preço efetivo e bloqueio de sobreposição por produto implementados | Nenhum no backend (concluído na Fase 2) |
-| Fiscal e regulatório | Sem emissão fiscal ou integração oficial | Integrações e fluxos de NF-e, NFS-e, MDF-e e Guias de Tráfego, sujeitos à validação regulatória (Fase 3) |
-| Bancos | Sem integração bancária ou conciliação | Importação/integração de extratos, conciliação e tratamento de divergências (Fase 3) |
-| Relatórios | Resumos de vendas por produto/cliente, conversão de orçamentos, OS por status, painéis financeiros por vencimento/categoria/método, Aging schedule (`current`, `overdue1to30`, `overdue31to60`, `overdue61to90`, `overdueOver90`), posição de estoque com alertas de validade e Mapa SFPC disponíveis | Relatórios específicos de NF-e e Guia de Tráfego na Fase 3 |
-| Frontend de negócio | Login/BFF, estoque (quarentena/split/paióis/SFPC), ordens de serviço, clientes, blasters, compras, comercial, financeiro (incluindo parcelamento), recuperação de senha e controle de acesso por módulo (RBAC de navegação) integrados à API | Validação visual em staging. RBAC por botão de ação foi avaliado e fechado (nenhuma tela real é hoje compartilhada por mais de um perfil com permissões diferentes por ação) — reavaliar somente se isso passar a existir |
+| Fiscal (NF-e, NFC-e, NFS-e) | Arquitetura Adapter/Strategy (`FiscalSandboxAdapter` e `FocusNfeAdapter`), emissão de NF-e (Modelo 55 com NCM pirotécnico), NFC-e (Modelo 65), NFS-e (Serviços com ART e Blaster), cálculo de chave SEFAZ de 44 dígitos com DV módulo 11 e cancelamento com justificativa legal implementados | Nenhum no backend (concluído na Frente 1) |
+| Compliance militar (Guia de Tráfego) | Modelagem `TrafficGuide` e `TrafficGuideItem`, numeração anual `GT-YYYY/NNNN`, conferência de saldo de paiol, cálculo automático de carga líquida de explosivos (NEQ em kg), controle de condutores MOPP e espelho oficial DFPC/SFPC implementados | Nenhum no backend (concluído na Frente 2) |
+| Bancos e PIX | Sem integração bancária ou conciliação ativa | Cobrança PIX com QR Code dinâmico, webhook de liquidação e importação de extratos OFX (Frente 3) |
+| Relatórios | Resumos de vendas por produto/cliente, conversão de orçamentos, OS por status, painéis financeiros por vencimento/categoria/método, Aging schedule, posição de estoque com alertas de validade, Mapa SFPC militar e espelho oficial de GT disponíveis | Conciliação bancária OFX na Frente 3 |
+| Frontend de negócio | Login/BFF, estoque (quarentena/split/paióis/SFPC), ordens de serviço, clientes, blasters, compras, comercial, financeiro (incluindo parcelamento), Faturamento/Fiscal (`/modules/billing`) e Compliance/GT (`/modules/compliance`) integrados à API | Frente 3 (PIX dinâmico e conciliação OFX) |
 
 Esta lista registra lacunas conhecidas, não constitui contrato final de API nem
 garante que todos os itens pertençam ao escopo aprovado do produto. Antes de
