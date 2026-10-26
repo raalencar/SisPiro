@@ -1007,8 +1007,8 @@ export type PromotionDiscountType = "PRECO_FIXO" | "PERCENTUAL";
 export type ProductPromotion = {
   id: string;
   name: string;
-  startsAt: string;
-  endsAt: string;
+  effectiveFrom: string;
+  effectiveUntil: string;
   active: boolean;
   createdAt: string;
   items?: Array<{
@@ -1036,14 +1036,13 @@ export type SalesQuoteStatus = "EMITIDO" | "CONVERTIDO" | "CANCELADO";
 
 export type SalesQuote = {
   id: string;
-  customerId: string;
-  pricingListId: string;
+  customerId: string | null;
+  priceListId: string;
   status: SalesQuoteStatus;
-  totalAmount: string;
-  validUntil: string;
-  reservationActive: boolean;
-  customer?: Customer;
-  pricingList?: PricingList;
+  total: string;
+  expiresAt: string;
+  customer?: Customer | null;
+  priceList?: PricingList;
   items: SalesQuoteItem[];
   createdAt: string;
 };
@@ -1055,7 +1054,6 @@ export type SaleItem = {
   quantity: string;
   unitPrice: string;
   subtotal: string;
-  returnedQuantity: string;
   product?: Product;
   productLot?: ProductLot;
 };
@@ -1063,9 +1061,9 @@ export type SaleItem = {
 export type Sale = {
   id: string;
   customerId?: string | null;
-  pricingListId: string;
+  priceListId: string;
   quoteId?: string | null;
-  totalAmount: string;
+  total: string;
   customer?: Customer | null;
   items: SaleItem[];
   createdAt: string;
@@ -1074,13 +1072,14 @@ export type Sale = {
 export type QuotesConversionReport = {
   period: { from: string; to: string };
   totals: {
-    totalQuotes: number;
-    convertedQuotes: number;
-    expiredQuotes: number;
-    activeQuotes: number;
+    quotesCount: number;
+    convertedCount: number;
+    canceledCount: number;
+    expiredCount: number;
+    activeCount: number;
     conversionRatePercent: number;
-    totalAmountQuoted: string;
-    totalAmountConverted: string;
+    quotedAmount: string;
+    convertedAmount: string;
     averageTicket: string;
   };
 };
@@ -1089,7 +1088,7 @@ export type SalesReportSummary = {
   period: { from: string; to: string };
   totals: {
     grossSales: string;
-    returns: string;
+    returned: string;
     netSales: string;
     salesCount: number;
     returnsCount: number;
@@ -1097,16 +1096,16 @@ export type SalesReportSummary = {
   byProduct: Array<{
     productId: string;
     productName: string;
-    grossAmount: string;
-    returnedAmount: string;
-    netAmount: string;
+    grossSales: string;
+    returned: string;
+    netSales: string;
   }>;
   byCustomer: Array<{
     customerId: string | null;
     customerName: string;
-    grossAmount: string;
-    returnedAmount: string;
-    netAmount: string;
+    grossSales: string;
+    returned: string;
+    netSales: string;
   }>;
 };
 
@@ -1129,8 +1128,8 @@ export const commercialApi = {
     ),
   createPromotion: (body: {
     name: string;
-    startsAt: string;
-    endsAt: string;
+    effectiveFrom: string;
+    effectiveUntil: string;
     items: Array<{
       productId: string;
       discountType: PromotionDiscountType;
@@ -1157,9 +1156,9 @@ export const commercialApi = {
   getQuote: (id: string) =>
     requestJson<SalesQuote>(`/api/commercial/quotes/${id}`),
   createQuote: (body: {
-    customerId: string;
-    pricingListId: string;
-    items: Array<{ productId: string; productLotId: string; quantity: number }>;
+    customerId?: string;
+    priceListId: string;
+    items: Array<{ productLotId: string; quantity: number }>;
   }) =>
     requestJson<SalesQuote>("/api/commercial/quotes", {
       method: "POST",
@@ -1169,8 +1168,8 @@ export const commercialApi = {
     id: string,
     body: {
       customerId?: string;
-      pricingListId?: string;
-      items: Array<{ productId: string; productLotId: string; quantity: number }>;
+      priceListId?: string;
+      items: Array<{ productLotId: string; quantity: number }>;
     },
   ) =>
     requestJson<SalesQuote>(`/api/commercial/quotes/${id}`, {
@@ -1204,11 +1203,11 @@ export const commercialApi = {
   getSale: (id: string) => requestJson<Sale>(`/api/commercial/sales/${id}`),
   createSale: (body: {
     customerId?: string;
-    pricingListId: string;
+    priceListId: string;
     condition: "IMEDIATO" | "PRAZO";
     paymentMethod?: string;
     dueDate?: string;
-    items: Array<{ productId: string; productLotId: string; quantity: number }>;
+    items: Array<{ productLotId: string; quantity: number }>;
   }) =>
     requestJson<Sale>("/api/commercial/sales", {
       method: "POST",

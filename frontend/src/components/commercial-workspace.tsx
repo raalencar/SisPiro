@@ -195,8 +195,8 @@ export function CommercialWorkspace() {
 
   function handleOpenEditQuote(q: SalesQuote) {
     setEditingQuote(q);
-    setQuoteCustomerId(q.customerId);
-    setQuotePricingListId(q.pricingListId);
+    setQuoteCustomerId(q.customerId || "");
+    setQuotePricingListId(q.priceListId);
     setQuoteItems(
       q.items.map((it) => ({
         productId: it.productId,
@@ -214,10 +214,9 @@ export function CommercialWorkspace() {
     setQuoteError(null);
     try {
       const payload = {
-        customerId: quoteCustomerId,
-        pricingListId: quotePricingListId,
+        customerId: quoteCustomerId || undefined,
+        priceListId: quotePricingListId,
         items: quoteItems.map((it) => ({
-          productId: it.productId,
           productLotId: it.productLotId,
           quantity: Number(it.quantity),
         })),
@@ -307,12 +306,11 @@ export function CommercialWorkspace() {
     try {
       await commercialApi.createSale({
         customerId: saleCustomerId || undefined,
-        pricingListId: salePricingListId,
+        priceListId: salePricingListId,
         condition: saleCondition,
         paymentMethod: saleCondition === "IMEDIATO" ? salePaymentMethod : undefined,
         dueDate: saleCondition === "PRAZO" ? saleDueDate : undefined,
         items: saleItems.map((it) => ({
-          productId: it.productId,
           productLotId: it.productLotId,
           quantity: Number(it.quantity),
         })),
@@ -331,13 +329,14 @@ export function CommercialWorkspace() {
     setReturningSale(s);
     setReturnReason("");
     setReturnDueDate(new Date().toISOString().slice(0, 10));
+    // A API não expõe o saldo já devolvido por item nesta listagem; sugere a
+    // quantidade total do item e deixa o usuário ajustar. O backend valida o
+    // saldo real ainda não devolvido no momento do envio.
     setReturnItems(
-      s.items
-        .filter((it) => Number(it.quantity) > Number(it.returnedQuantity))
-        .map((it) => ({
-          saleItemId: it.id,
-          quantity: Number(it.quantity) - Number(it.returnedQuantity),
-        })),
+      s.items.map((it) => ({
+        saleItemId: it.id,
+        quantity: Number(it.quantity),
+      })),
     );
     setReturnError(null);
   }
@@ -413,8 +412,8 @@ export function CommercialWorkspace() {
     try {
       await commercialApi.createPromotion({
         name: promoName.trim(),
-        startsAt: promoStartsAt,
-        endsAt: promoEndsAt,
+        effectiveFrom: promoStartsAt,
+        effectiveUntil: promoEndsAt,
         items: promoItems,
       });
       setIsPromoModalOpen(false);
@@ -512,16 +511,16 @@ export function CommercialWorkspace() {
                   <tbody className="divide-y divide-neutral-800">
                     {quotes.data.map((q) => {
                       const isExpired = Boolean(
-                        q.validUntil && q.validUntil.slice(0, 10) < currentDate,
+                        q.expiresAt && q.expiresAt.slice(0, 10) < currentDate,
                       );
                       return (
                         <tr key={q.id} className="hover:bg-neutral-800/30">
                           <td className="p-3 text-xs text-neutral-400">{formatDateOnly(q.createdAt)}</td>
                           <td className="p-3 font-semibold text-neutral-100">{q.customer?.legalName || "Cliente"}</td>
-                          <td className="p-3 font-mono font-bold text-neutral-100">{formatCurrency(Number(q.totalAmount))}</td>
+                          <td className="p-3 font-mono font-bold text-neutral-100">{formatCurrency(Number(q.total))}</td>
                           <td className="p-3 text-xs">
                             <span className={isExpired ? "text-rose-400 font-bold" : "text-emerald-400"}>
-                              {formatDateOnly(q.validUntil)} {isExpired ? "(Expirado)" : "(Reserva ativa)"}
+                              {formatDateOnly(q.expiresAt)} {isExpired ? "(Expirado)" : "(Reserva ativa)"}
                             </span>
                           </td>
                           <td className="p-3">
@@ -616,7 +615,7 @@ export function CommercialWorkspace() {
                           ))}
                         </td>
                         <td className="p-3 font-mono font-bold text-neutral-100">
-                          {formatCurrency(Number(s.totalAmount))}
+                          {formatCurrency(Number(s.total))}
                         </td>
                         <td className="p-3 text-right">
                           <button
@@ -695,7 +694,7 @@ export function CommercialWorkspace() {
                       </div>
                     </div>
                     <div className="text-xs text-neutral-400">
-                      Vigência: {formatDateOnly(pr.startsAt)} até {formatDateOnly(pr.endsAt)}
+                      Vigência: {formatDateOnly(pr.effectiveFrom)} até {formatDateOnly(pr.effectiveUntil)}
                     </div>
                   </div>
                 ))
@@ -715,12 +714,12 @@ export function CommercialWorkspace() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="p-3 bg-neutral-900 border border-neutral-800 rounded">
                   <span className="text-xs text-neutral-400 block">Total Emitido</span>
-                  <span className="text-xl font-bold font-mono">{quotesReport.totals.totalQuotes}</span>
+                  <span className="text-xl font-bold font-mono">{quotesReport.totals.quotesCount}</span>
                 </div>
                 <div className="p-3 bg-neutral-900 border border-neutral-800 rounded">
                   <span className="text-xs text-neutral-400 block">Convertidos em Venda</span>
                   <span className="text-xl font-bold font-mono text-emerald-400">
-                    {quotesReport.totals.convertedQuotes}
+                    {quotesReport.totals.convertedCount}
                   </span>
                 </div>
                 <div className="p-3 bg-neutral-900 border border-neutral-800 rounded">
@@ -755,7 +754,7 @@ export function CommercialWorkspace() {
                 <div className="p-3 bg-neutral-900 border border-neutral-800 rounded">
                   <span className="text-xs text-neutral-400 block">Devoluções</span>
                   <span className="text-lg font-bold font-mono text-rose-400">
-                    {formatCurrency(Number(salesReport.totals.returns))}
+                    {formatCurrency(Number(salesReport.totals.returned))}
                   </span>
                 </div>
                 <div className="p-3 bg-neutral-900 border border-neutral-800 rounded">
@@ -938,7 +937,7 @@ export function CommercialWorkspace() {
           <div className="modal-content panel max-w-md w-full space-y-4">
             <h2 className="text-xl font-bold">Converter Orçamento em Venda</h2>
             <p className="text-xs text-neutral-400">
-              Valor Total: <strong>{formatCurrency(Number(convertingQuote.totalAmount))}</strong>
+              Valor Total: <strong>{formatCurrency(Number(convertingQuote.total))}</strong>
             </p>
             <form className="form-stack space-y-3" onSubmit={handleConfirmConvertQuote}>
               <label className="field">
