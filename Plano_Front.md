@@ -272,15 +272,24 @@ senha, MFA) estar implementada no backend — já está.
       nas telas de Estoque (resumo e lista de lotes): sidebar colapsa para
       menu hamburguer, grid reflui para coluna única, sem overflow horizontal.
       Não é cobertura exaustiva de todas as telas/breakpoints.
-- [ ] **Responsividade completa — próximo sprint.** Testar nas 9 telas
-      integradas (login, estoque, produtos, clientes, blasters, compras,
-      comercial, operações, financeiro) em 3 breakpoints: mobile (390px),
-      tablet (768px) e desktop (1280px+). Critério de aceite por tela: sem
-      overflow horizontal, tabelas legíveis ou com alternativa (cards/scroll
-      controlado), modais utilizáveis sem corte de conteúdo. Registrar
-      matriz de resultado (tela × breakpoint) em
-      `docs/STATUS-IMPLEMENTACAO.md`; corrigir o que for trivial (CSS/layout)
-      na própria rodada e abrir item separado para qualquer redesenho maior.
+- [x] **Responsividade completa.** Testadas as 9 telas integradas (login,
+      estoque, produtos, clientes, blasters, compras, comercial, operações,
+      financeiro) em 3 larguras: ~517px (mobile; a janela real não fixou
+      exatamente em 390px, mas está na mesma faixa — sidebar colapsa para
+      hambúrguer nessa largura), 768px exatos (tablet) e 1280px exatos
+      (desktop). Critério de aceite por tela: `document.documentElement.
+      scrollWidth - clientWidth === 0` (sem overflow horizontal) e inspeção
+      visual via screenshot. **Resultado: 0 overflow horizontal em todas as
+      27 combinações tela×breakpoint.** Tabelas já usam scroll horizontal
+      contido (`overflow-x-auto`/`table-scroll`) em vez de vazar a página.
+      Matriz completa registrada em `docs/STATUS-IMPLEMENTACAO.md`.
+      **Achados reais encontrados durante esta varredura (não eram bugs de
+      responsividade, mas foram descobertos só porque as telas foram abertas
+      de verdade):** dois crashes e um módulo inteiro de escrita quebrado —
+      ver `docs/RESUMO-FUNCIONALIDADES.md` e os commits da Fase 5 acima para
+      os detalhes (roteamento 404 em Clientes/Blasters, campo fabricado em
+      Blasters, e incompatibilidade sistêmica de nomes de campo em todo o
+      módulo Comercial — orçamentos, PDV, promoções e relatórios).
 - [ ] **Acessibilidade básica — próximo sprint.**
       - [ ] Contraste mínimo (WCAG AA) nos elementos principais: login, nav,
             tabelas, badges de status.

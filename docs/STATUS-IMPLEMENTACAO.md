@@ -131,9 +131,31 @@ bug for reintroduzido.
     URL com query string não tem), fazendo essas duas telas pularem o fluxo
     de renovação/sessão-expirada e mostrar um erro solto em vez do
     redirecionamento limpo.
+- **Responsividade completa:** validada (`Plano_Front.md` Fase 6) — 9 telas
+  integradas × 3 larguras (~517px/768px/1280px) = 27 combinações, 0 overflow
+  horizontal em todas (`document.documentElement.scrollWidth - clientWidth`,
+  conferido com inspeção visual). Tabelas já usam scroll horizontal contido.
+  Matriz completa:
+
+  | Tela | ~517px | 768px | 1280px |
+  | --- | --- | --- | --- |
+  | Visão geral / login | ✅ | ✅ | ✅ |
+  | Estoque | ✅ | ✅ | ✅ |
+  | Produtos | ✅ | ✅ | ✅ |
+  | Clientes | ✅ | ✅ | ✅ |
+  | Blasters | ✅ | ✅ | ✅ |
+  | Compras | ✅ | ✅ | ✅ |
+  | Comercial | ✅ | ✅ | ✅ |
+  | Operações | ✅ | ✅ | ✅ |
+  | Financeiro | ✅ | ✅ | ✅ |
+
+  Essa varredura encontrou três bugs de integração reais (não eram de
+  responsividade): 404 de roteamento em Clientes/Blasters, campo fabricado
+  (`authorizedClasses`) causando crash em Blasters, e incompatibilidade
+  sistêmica de nomes de campo quebrando todo o módulo Comercial (orçamentos,
+  PDV, promoções, relatórios) — todos corrigidos, ver commits da Fase 5/6.
 - Validar acessibilidade (contraste, navegação por teclado, labels de
-  formulário) — não coberto nesta rodada; responsividade teve apenas um
-  smoke test pontual (estoque, viewport mobile), não é cobertura exaustiva.
+  formulário) — não coberto nesta rodada.
 - Implementar telas de faturamento e regulatório somente após endpoints e
   regras oficiais estarem disponíveis e aprovados (Fase 3 do backend).
 

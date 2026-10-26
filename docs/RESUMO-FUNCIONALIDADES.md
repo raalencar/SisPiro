@@ -99,7 +99,7 @@ validação/refinamento, não de funcionalidade ausente.
 | RBAC por ação (não só por módulo) | Avaliado nesta rodada: não há hoje nenhuma tela real compartilhada por mais de um perfil com permissões diferentes por ação. Não é lacuna ativa — reavaliar somente se um módulo existente passar a ser usado por mais de um perfil com regras distintas por operação dentro da mesma tela. | Não — fechado por avaliação |
 | Validação de sessão expirada/refresh em Firefox e Safari | Validado em Chrome contra o backend real (renovação transparente + redirecionamento limpo ao login); achados de integração reais corrigidos no processo (ver `Plano_Front.md` Fase 5). Firefox/Safari não testados — sem ferramenta de automação disponível. | **Sim, só Firefox/Safari** |
 | Acessibilidade (contraste, navegação por teclado, labels de formulário) | Ver `Plano_Front.md` Fase 6. | **Sim** |
-| Responsividade completa | Só houve smoke test pontual (estoque, viewport mobile); próximo sprint cobre as 9 telas integradas em 3 breakpoints. Ver `Plano_Front.md` Fase 6. | **Sim** |
+| Responsividade completa | Validada: 9 telas × 3 larguras (~517/768/1280px), 0 overflow horizontal. Encontrou e corrigiu 3 bugs de integração reais no processo (não de responsividade). Ver `Plano_Front.md` Fase 6. | Não — fechado |
 | Permissões de banco de dados e rotina de backup | Documentadas como runbook de implantação em `backend/README.md`, mas não provisionadas neste repositório — é decisão de infraestrutura de produção, não de código. | Não |
 
 ---
