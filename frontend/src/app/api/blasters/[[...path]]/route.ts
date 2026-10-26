@@ -5,7 +5,7 @@ import {
 } from "@/lib/server-auth";
 
 type RouteContext = {
-  params: Promise<{ path: string[] }>;
+  params: Promise<{ path?: string[] }>;
 };
 
 const UUID_PATTERN =
@@ -20,7 +20,7 @@ function validReadPath(path: string[]): boolean {
 
 function validCreatePath(path: string[]): boolean {
   if (path.length === 0) return true;
-  if (path.length === 2 && UUID_PATTERN.test(path[0]) && path[1] === "pce-eligibility") {
+  if (path.length === 2 && UUID_PATTERN.test(path[0]) && path[1] === "eligibility") {
     return true;
   }
   return false;
@@ -32,16 +32,16 @@ function validPatchPath(path: string[]): boolean {
 
 function invalidPath(): NextResponse {
   return NextResponse.json(
-    { message: "Endpoint de clientes não disponível." },
+    { message: "Endpoint de blasters não disponível." },
     { status: 404 },
   );
 }
 
 export async function GET(request: Request, context: RouteContext) {
-  const { path } = await context.params;
+  const path = (await context.params).path ?? [];
   if (!validReadPath(path)) return invalidPath();
   const query = new URL(request.url).search;
-  const target = path.length === 0 ? "customers" : `customers/${path.join("/")}`;
+  const target = path.length === 0 ? "blasters" : `blasters/${path.join("/")}`;
   return proxyAuthenticatedRequest(
     request,
     `${target}${query}`,
@@ -51,7 +51,7 @@ export async function GET(request: Request, context: RouteContext) {
 }
 
 export async function POST(request: Request, context: RouteContext) {
-  const { path } = await context.params;
+  const path = (await context.params).path ?? [];
   if (!validCreatePath(path)) return invalidPath();
   if (!isSameOriginRequest(request)) {
     return NextResponse.json(
@@ -59,7 +59,7 @@ export async function POST(request: Request, context: RouteContext) {
       { status: 403 },
     );
   }
-  const target = path.length === 0 ? "customers" : `customers/${path.join("/")}`;
+  const target = path.length === 0 ? "blasters" : `blasters/${path.join("/")}`;
   return proxyAuthenticatedRequest(
     request,
     target,
@@ -69,7 +69,7 @@ export async function POST(request: Request, context: RouteContext) {
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
-  const { path } = await context.params;
+  const path = (await context.params).path ?? [];
   if (!validPatchPath(path)) return invalidPath();
   if (!isSameOriginRequest(request)) {
     return NextResponse.json(
@@ -79,7 +79,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
   return proxyAuthenticatedRequest(
     request,
-    `customers/${path[0]}`,
+    `blasters/${path[0]}`,
     "PATCH",
     false,
   );
