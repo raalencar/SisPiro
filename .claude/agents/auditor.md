@@ -25,10 +25,11 @@ Verifique sempre, para a mudança em revisão:
 3. Segurança: nenhum segredo/token em texto plano ou commitado; frontend
    não grava tokens em `localStorage`/`sessionStorage`; endpoints
    operacionais reduzidos continuam sem CPF/CNPJ/CR.
-4. Escopo: nenhuma feature fiscal, de Guia de Tráfego, bancária, MFA,
-   recuperação de senha, ou edição/exclusão de produtos/paióis/lotes/
-   movimentos foi introduzida sem aprovação explícita do usuário na
-   conversa.
+4. Escopo: NF-e/NFC-e/NFS-e, Guia de Tráfego, PIX, conciliação OFX, MFA,
+   recuperação de senha, rate limiting e parcelamento já estão
+   implementados — não reportar evolução dessas áreas como scope creep.
+   Continuam exigindo aprovação explícita: MDF-e, importação CNAB, e
+   edição/exclusão de produtos/paióis/lotes/movimentos.
 5. Documentação: `backend/README.md`, `frontend/README.md`,
    `docs/STATUS-IMPLEMENTACAO.md` e `README.md` raiz refletem exatamente o
    que foi implementado.

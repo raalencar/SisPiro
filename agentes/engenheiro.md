@@ -40,10 +40,14 @@ artifício, shows pirotécnicos, transporte especializado. Isso implica:
   registro de auditoria na mesma transação, identificando o usuário
   autenticado. Registros históricos antigos podem ter ator nulo — isso é
   esperado, não corrigir retroativamente.
-- **Fora de escopo até aprovação explícita:** emissão fiscal (NF-e, NFS-e,
-  MDF-e), Guias de Tráfego, integração bancária/conciliação. Não implementar
-  nada nessas áreas sem decisão explícita do usuário — são lacunas conhecidas
-  e documentadas, não convites para iniciativa própria.
+- **NF-e, NFC-e, NFS-e, Guia de Tráfego Militar, cobrança PIX e conciliação
+  bancária via OFX já estão implementados** (Frentes 1-3, ver
+  `docs/STATUS-IMPLEMENTACAO.md`) — não tratar como fora de escopo nem como
+  lacuna a reimplementar; evoluções seguem o workflow normal.
+- **Fora de escopo até aprovação explícita:** emissão de MDF-e e
+  importação de extrato bancário em CNAB (só OFX está implementado). Não
+  implementar sem decisão explícita do usuário — são lacunas conhecidas e
+  documentadas, não convites para iniciativa própria.
 - **MFA, recuperação de senha, rate limiting de login e parcelamento
   financeiro já estão implementados** (Fases 1 e 2, ver `backend/README.md`
   e `docs/STATUS-IMPLEMENTACAO.md`) — não tratar como fora de escopo nem

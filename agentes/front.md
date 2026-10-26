@@ -59,8 +59,10 @@ responsável por isso via BFF:
   financeiro) devem permanecer em estado informativo até receberem contrato
   aprovado pelo [[engenheiro]] — não adiantar UI sem o endpoint
   correspondente pronto e documentado.
-- Não implementar telas de faturamento/fiscal/regulatório antes de
-  endpoints e regras oficiais estarem aprovados.
+- Telas de NF-e/NFC-e/NFS-e (`/modules/billing`), Guia de Tráfego
+  (`/modules/compliance`) e cobrança PIX/conciliação OFX (Financeiro) já
+  existem — evoluções seguem o workflow normal. Não implementar UI de
+  MDF-e ou importação CNAB antes de endpoint aprovado.
 
 ## Workflow esperado
 

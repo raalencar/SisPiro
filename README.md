@@ -23,10 +23,11 @@ módulos sem permissão na navegação.
 Ainda falta validação visual completa em ambiente de staging. RBAC por ação
 dentro de uma tela foi avaliado e fechado (não há hoje tela real compartilhada
 por mais de um perfil com permissões diferentes por ação); reavaliar apenas se
-isso passar a existir. Emissão fiscal, Guias de
-Tráfego, integração bancária/conciliação e permissões de banco/backup de
-produção são lacunas conhecidas e, no caso fiscal/GT/bancário, bloqueadas até
-aprovação explícita. O documento
+isso passar a existir. NF-e/NFC-e/NFS-e, Guia de Tráfego e cobrança
+PIX/conciliação bancária via OFX já estão implementados (ver Frentes 1-3 em
+`docs/STATUS-IMPLEMENTACAO.md`). Emissão de MDF-e, importação de extrato
+CNAB e permissões de banco/backup de produção são lacunas conhecidas e
+bloqueadas até aprovação explícita. O documento
 [Status da implementação](./docs/STATUS-IMPLEMENTACAO.md) lista o que foi
 entregue e as próximas etapas por backend e frontend.
 

@@ -27,13 +27,14 @@ Regras de domínio que NUNCA podem ser violadas em código novo:
 - Toda rota de negócio nova precisa do guard de perfil correto (`ESTOQUE`,
   `COMERCIAL`, `OPERACOES`, `COMPRAS`, `FINANCEIRO`, `ADMIN`).
 
-Fora de escopo sem aprovação explícita do usuário: emissão fiscal
-(NF-e/NFS-e/MDF-e), Guia de Tráfego, integração bancária, edição/exclusão
-de produtos, paióis, lotes ou movimentos de estoque.
+Fora de escopo sem aprovação explícita do usuário: emissão de MDF-e,
+importação de extrato bancário em CNAB, edição/exclusão de produtos,
+paióis, lotes ou movimentos de estoque.
 
-MFA, recuperação de senha, rate limiting de login e parcelamento financeiro
-já estão implementados (Fases 1 e 2) — não são fora de escopo; evoluções
-seguem o workflow normal.
+NF-e/NFC-e/NFS-e, Guia de Tráfego, PIX e conciliação bancária via OFX, MFA,
+recuperação de senha, rate limiting de login e parcelamento financeiro já
+estão implementados (Fases 1-3) — não são fora de escopo; evoluções seguem
+o workflow normal.
 
 Workflow: ler o contrato recebido → checar `backend/README.md` → schema
 (se precisar) → migração (`npm run db:migrate -- --name ...`) → DTO →

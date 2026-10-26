@@ -33,8 +33,9 @@ Regras de produto:
 - Módulos ainda não integrados (clientes, blasters, compras, comercial,
   financeiro) ficam em estado informativo até terem contrato aprovado —
   não adiantar UI sem endpoint pronto e documentado.
-- Nada de telas fiscais/regulatórias antes de endpoints oficiais
-  aprovados.
+- Telas fiscais (NF-e/NFC-e/NFS-e), Guia de Tráfego e PIX/OFX já existem;
+  evoluções seguem o workflow normal. MDF-e e CNAB continuam sem UI até
+  endpoint aprovado.
 
 Workflow: confirmar contrato de API (rota, DTO, perfil exigido) → rota BFF
 se necessário → página/componente consumindo `lib/api.ts` → teste Vitest

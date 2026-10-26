@@ -53,9 +53,12 @@ caso em que isso deve ser pedido fora deste papel padrão).
   CPF/CNPJ e número de CR.
 
 ### Escopo e limites funcionais
-- Nenhuma feature de emissão fiscal (NF-e/NFS-e/MDF-e), Guia de Tráfego,
-  integração bancária, MFA ou recuperação de senha foi introduzida sem
-  aprovação explícita registrada na conversa.
+- NF-e/NFC-e/NFS-e, Guia de Tráfego, PIX, conciliação bancária via OFX,
+  MFA, recuperação de senha, rate limiting e parcelamento financeiro já
+  estão implementados (Fases 1-3) — não reportar evolução dessas áreas como
+  scope creep.
+- Nenhuma feature de emissão de MDF-e ou importação de extrato bancário em
+  CNAB foi introduzida sem aprovação explícita registrada na conversa.
 - Nenhuma operação de edição/exclusão de produto, paiol, lote ou movimento
   de estoque foi adicionada (API não oferece isso hoje).
 

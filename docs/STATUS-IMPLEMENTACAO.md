@@ -173,17 +173,20 @@ bug for reintroduzido.
   - [x] Contraste mínimo WCAG 2.1 AA auditado via estilos computados em Login, Nav,
     Tabelas e Badges de status. Corrigidos elementos de texto secundário com contraste
     insuficiente (`.environment-label`, `.eyebrow`, `.page-footer`), elevando-os para >5:1.
-- Implementar telas de faturamento e regulatório somente após endpoints e
-  regras oficiais estarem disponíveis e aprovados (Fase 3 do backend).
+- Telas de faturamento (NF-e/NFC-e/NFS-e), Guia de Tráfego e PIX/OFX já
+  implementadas (`/modules/billing`, `/modules/compliance`, Financeiro —
+  ver Frentes 1-3 abaixo). Pendente: UI de MDF-e e importação CNAB,
+  bloqueada até aprovação explícita.
 
 ## Trabalho pendente no backend
 
-### Domínio e integrações (Fase 3 — Requer aprovação explícita antes de iniciar)
+### Domínio e integrações (Fase 3 — concluída para NF-e/NFC-e/NFS-e, Guia de Tráfego e PIX/OFX; MDF-e e CNAB requerem aprovação explícita antes de iniciar)
 
-- Definir e implementar emissão fiscal e integrações oficiais para NF-e,
-  NFS-e, MDF-e e Guias de Tráfego, com validação regulatória militar e fazendária.
-- Definir integração bancária, importação de extratos (OFX/CNAB), conciliação e tratamento
-  de divergências financeiras.
+- Emissão de NF-e, NFC-e e NFS-e, Guia de Tráfego Militar, cobrança PIX
+  dinâmica e conciliação bancária via extrato OFX foram implementadas e
+  testadas (ver Frentes 1-3 abaixo). **Pendente e ainda bloqueado até
+  aprovação explícita:** emissão de MDF-e e importação de extrato
+  bancário em formato CNAB.
 - Fases 0 (diagnóstico de ambiente), 1 (segurança e produção) e 2 (evolução comercial e financeira)
   estão concluídas, testadas e auditadas no backend. Nesta rodada de refinamentos técnicos:
   - O rate limiter de login foi migrado para operações atômicas em Redis (`ioredis`) com expiração em milissegundos e fallback gracioso em memória caso o Redis esteja indisponível.

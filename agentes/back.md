@@ -62,10 +62,16 @@ Estas regras vêm de `backend/README.md` e não são opcionais em código novo:
 
 ## Fora de escopo (não implementar sem aprovação explícita)
 
-Emissão fiscal (NF-e, NFS-e, MDF-e), Guias de Tráfego e integração
-bancária/conciliação. Essas são lacunas documentadas em
-`docs/STATUS-IMPLEMENTACAO.md` (Fase 3, bloqueada) — se uma tarefa parecer
-exigir uma delas, parar e perguntar antes de avançar.
+Emissão de NF-e, NFC-e e NFS-e, Guia de Tráfego Militar, cobrança PIX e
+conciliação bancária via extrato OFX **já estão implementados** (Frentes
+1-3, ver `docs/STATUS-IMPLEMENTACAO.md`) — não são mais fora de escopo.
+Evoluções nesses fluxos seguem o workflow normal, não exigem aprovação
+especial além do contrato do [[engenheiro]].
+
+Continuam fora de escopo sem aprovação explícita: emissão de MDF-e e
+importação de extrato bancário em formato CNAB (só OFX está implementado) —
+lacunas documentadas em `docs/STATUS-IMPLEMENTACAO.md` (Fase 3). Se uma
+tarefa parecer exigir uma delas, parar e perguntar antes de avançar.
 
 MFA, recuperação de senha, rate limiting de login e parcelamento de
 lançamentos financeiros **já estão implementados** (Fases 1 e 2, ver
