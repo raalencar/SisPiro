@@ -67,6 +67,26 @@ elegibilidade PCE de cliente pertence a Comercial/Clientes, não a Operações
 — ainda que OS precise consumi-la via leitura reduzida (ver
 `operational-options` / `operational-lots`).
 
+## Como trabalhar neste repositório (Antigravity e outros agentes)
+
+- **Tarefa não trivial → `/plan` primeiro.** Gerar o Implementation Plan
+  antes de codar, listando arquivos a mudar e como será validado. Esperar
+  aprovação antes de implementar.
+- **Mudança em `frontend/` → evidência real antes de declarar pronto.**
+  Rodar o app de verdade (Browser Agent ou servidor dev local) e clicar na
+  jornada afetada; o Walkthrough final deve conter essa evidência (print,
+  gravação ou saída de teste), não só "build passou". Este projeto já teve
+  vários bugs (`fix: fix completely broken create/receive flow in Compras`,
+  `fix: fix pervasive field-name mismatches breaking Comercial module`)
+  causados por tela aceita sem ninguém ter de fato clicado nela — não
+  repetir esse padrão.
+- **Comandos destrutivos ou migração de schema → aprovação manual.** Não
+  liberar esses comandos em allow-list automática.
+- **Escopo isolado por agente.** Se for rodar mais de um agente em paralelo,
+  um só deve tocar `backend/` e outro só `frontend/` — não deixar o mesmo
+  agente alternar entre os dois na mesma tarefa sem o contrato de API já
+  definido (ver "Bounded contexts" acima).
+
 ## Papéis
 
 ### Arquitetura e coordenação
