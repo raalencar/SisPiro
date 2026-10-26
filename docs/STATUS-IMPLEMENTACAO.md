@@ -154,8 +154,24 @@ bug for reintroduzido.
   (`authorizedClasses`) causando crash em Blasters, e incompatibilidade
   sistêmica de nomes de campo quebrando todo o módulo Comercial (orçamentos,
   PDV, promoções, relatórios) — todos corrigidos, ver commits da Fase 5/6.
-- Validar acessibilidade (contraste, navegação por teclado, labels de
-  formulário) — não coberto nesta rodada.
+- **Acessibilidade básica — parcialmente concluída, retomar na próxima
+  rodada** (`Plano_Front.md` Fase 6):
+  - [x] Labels de formulário: 0 campos sem label associado em todos os
+    modais das 9 telas (buscas, linhas repetidas de item, login) —
+    verificado ao vivo via DOM, não por amostragem.
+  - [x] Esc fecha os 15 modais reais do app (hook `useEscapeToClose`,
+    `src/lib/use-escape-to-close.ts`, testado e integrado).
+  - [ ] **Abrir um modal não move o foco para dentro dele** — Tab após
+    abrir cai em campo da página por trás, não no modal. Hook
+    `useModalFocusTrap` (`src/lib/use-modal-focus-trap.ts`) já criado e
+    testado unitariamente, mas **ainda não integrado** nos 15 modais
+    (só o `useEscapeToClose` foi). Próximo passo: chamar
+    `useModalFocusTrap(isXModalOpen)` ao lado de cada `useEscapeToClose`
+    já existente, nos mesmos 5 arquivos
+    (`customers-/teams-/purchases-/finance-/commercial-workspace.tsx`),
+    depois validar ao vivo.
+  - [ ] Submeter formulário de negócio via teclado — só testado no login.
+  - [ ] Contraste mínimo (WCAG AA) — não iniciado.
 - Implementar telas de faturamento e regulatório somente após endpoints e
   regras oficiais estarem disponíveis e aprovados (Fase 3 do backend).
 

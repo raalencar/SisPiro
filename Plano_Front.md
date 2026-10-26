@@ -290,18 +290,51 @@ senha, MFA) estar implementada no backend — já está.
       os detalhes (roteamento 404 em Clientes/Blasters, campo fabricado em
       Blasters, e incompatibilidade sistêmica de nomes de campo em todo o
       módulo Comercial — orçamentos, PDV, promoções e relatórios).
-- [ ] **Acessibilidade básica — próximo sprint.**
-      - [ ] Contraste mínimo (WCAG AA) nos elementos principais: login, nav,
-            tabelas, badges de status.
-      - [ ] Navegação por teclado: completar login, navegar módulos pela
-            sidebar, abrir/fechar modais (ex.: edição de OS, pagamento) e
-            submeter formulários usando só Tab/Enter/Esc.
-      - [ ] Labels de formulário: todo `<input>` tem `<label>` associado
-            (não só placeholder) — relevante para leitor de tela.
-      - [ ] Registrar achados em `docs/STATUS-IMPLEMENTACAO.md`; corrigir o
-            que for trivial (contraste/labels) nesta rodada e abrir item
-            separado para qualquer reestruturação maior de navegação por
-            teclado.
+- [~] **Acessibilidade básica — parcialmente concluída nesta rodada, retomar
+      na próxima.**
+      - [x] Labels de formulário: varredura via DOM (`label[for]`/`<label>`
+            envolvente/`aria-label`/`aria-labelledby`) em todas as 9 telas e
+            seus modais de criação/edição. Achados corrigidos: buscas de
+            Clientes/Blasters/Fornecedores (só tinham `placeholder`,
+            envolvidas em `<label><span className="sr-only">`, mesmo padrão
+            já usado em `inventory-workspace.tsx`); campos sem label em
+            linhas repetidas de item (pedido de compra, itens de
+            orçamento/venda, tabela de preço por produto, promoção por
+            produto, quantidade de devolução) via `aria-label` nomeando o
+            campo e, quando fazia sentido, o produto da linha. Confirmado ao
+            vivo: 0 campos sem label restantes em todos os modais testados,
+            incluindo o próprio formulário de login.
+      - [x] Navegação por teclado — testado e corrigido parcialmente:
+            - [x] Login completo via Tab/Enter, sem mouse — funciona.
+            - [x] Menu mobile (hambúrguer): abre com Enter, fecha com Esc e
+                  devolve o foco ao botão que abriu — já funcionava.
+            - [x] **Achado e corrigido:** nenhum dos 15 modais reais
+                  (`modal-backdrop`, em `customers-/teams-/purchases-/
+                  finance-/commercial-workspace.tsx`) fechava com Esc. Criado
+                  `src/lib/use-escape-to-close.ts` (testado) e integrado nos
+                  15. Confirmado ao vivo em Clientes e Compras.
+                  `operations-workspace.tsx`/`inventory-workspace.tsx` usam
+                  painel inline, não modal overlay — Esc não se aplica lá.
+            - [ ] **Achado, não corrigido — retomar primeiro na próxima
+                  rodada:** abrir um modal não move o foco para dentro dele
+                  (confirmado ao vivo: abrir "Novo blaster" via teclado e
+                  apertar Tab leva a um campo *fora* do modal, na página por
+                  trás). Criado e testado unitariamente
+                  `src/lib/use-modal-focus-trap.ts` (move foco ao primeiro
+                  campo focável ao abrir; prende Tab/Shift+Tab dentro do
+                  modal) — **mas ainda não foi integrado em nenhum dos 15
+                  modais** (só o `useEscapeToClose` foi). Próximo passo
+                  mecânico: repetir exatamente a integração já feita para
+                  `useEscapeToClose` (mesmos 15 pontos, mesmos 5 arquivos),
+                  chamando `useModalFocusTrap(isXModalOpen)` ao lado de cada
+                  `useEscapeToClose(...)` já existente, depois validar ao
+                  vivo (Tab após abrir cada modal deve cair dentro dele).
+            - [ ] Submeter formulário via Tab/Enter — só testado no login;
+                  não testado em nenhum modal de negócio ainda (depende do
+                  item acima para ser um teste limpo).
+      - [ ] Contraste mínimo (WCAG AA) nos elementos principais (login, nav,
+            tabelas, badges de status) — não iniciado.
+      - [x] Achados registrados em `docs/STATUS-IMPLEMENTACAO.md`.
 
 ---
 
