@@ -6,6 +6,30 @@ API modular em NestJS/TypeScript, com PostgreSQL 16, Prisma, Redis e BullMQ.
 Os módulos refletem os contextos da especificação: compliance, estoque/WMS,
 operações, comercial e financeiro.
 
+## Arquitetura de Serviços e Padrão Facade
+
+Para garantir manutenibilidade, legibilidade e conformidade com limites de complexidade (< 300 linhas por arquivo de serviço), os módulos de maior densidade de regras de negócio utilizam o **padrão Facade**:
+- **`AuthService`**: Delega operações para sub-serviços especializados em `src/modules/auth/services/`:
+  - `AuthSessionsService`: Login, emissão de tokens JWT, rotação e logout.
+  - `UsersManagementService`: Gestão de usuários, alteração de senha e RBAC.
+  - `AuthMfaService`: Pareamento TOTP RFC 6238 e validação de códigos de emergência.
+  - `PasswordResetService`: Recuperação com tokens opacos de uso único e lock relacional.
+- **`CommercialService`**: Delega operações para sub-serviços em `src/modules/commercial/services/`:
+  - `CommercialPricingService`: Tabelas de preços e campanhas promocionais.
+  - `CommercialQuotesService`: Ciclo de vida de orçamentos, edição e envio por e-mail.
+  - `CommercialSalesService`: Checkout PDV e conversão de orçamentos com lock pessimista.
+  - `CommercialReturnsService`: Devoluções físicas com reentrada de lotes e ajuste financeiro.
+  - `CommercialReportsService`: Indicadores de conversão e ticket médio.
+  - `CommercialPceValidationService`: Validação de CR e habilitação para PCE.
+- **`InventoryService`**: Delega operações para sub-serviços em `src/modules/inventory/services/`:
+  - `InventoryMagazinesService`: Capacidade NEQ, ativação/inativação de paióis.
+  - `InventoryLotsService`: Rastreabilidade, quarentena, bloqueio e desmembramento (`split`).
+  - `InventoryMovementsService`: Entradas, saídas, transferências e ajustes com trava atômica.
+  - `InventoryReceiptsService`: Recebimento físico de pedidos de compra com conferência de NEQ.
+  - `InventoryReportsService`: Consolidação do Mapa Mensal SFPC (R-105) para o Exército.
+
+Os facades mantêm 100% de retrocompatibilidade com os controllers e suítes de testes existentes, preservando transações e bloqueios relacionais (`FOR UPDATE`).
+
 ## Requisitos
 
 - Node.js 22 ou superior e npm
@@ -65,11 +89,14 @@ npm run db:seed
 
 Antes, mantenha `NODE_ENV=development`, altere `DEV_SEED_ENABLED=true` e
 configure `DEV_SEED_ADMIN_PASSWORD` em `.env` com uma senha local de pelo menos
-12 caracteres. O login criado é `demo.admin@local.test`; use a senha definida
-nessa variável. O comando também exige que `DATABASE_URL` aponte para
-`localhost`/loopback; falha fora de desenvolvimento ou sem a habilitação
-explícita. Os registros são identificados como DEMO e não representam dados ou
-documentos regulatórios reais. A execução é idempotente e pode ser repetida.
+12 caracteres. Os logins provisionados incluem `admin@casadefogossaojoao.com`
+(Administrador Geral) e `demo.admin@local.test` (compatibilidade local); use a senha definida
+nessa variável. O seed provisiona a base completa e profissional para a **CASA DE FOGOS SÃO JOÃO LTDA**
+(CNPJ 05.922.101/0001-33 - Fortaleza/CE), com paióis de alta capacidade homologados pelo SFPC / 10ª RM,
+blasters habilitados, clientes regionais (Prefeitura de Fortaleza, Marina Park, Beach Park),
+fornecedores do polo pirotécnico nacional, catálogo completo de artigos 1.3G, 1.4G e insumos,
+além de ordens de serviço, notas fiscais, Guias de Tráfego e títulos financeiros com PIX.
+O comando exige que `DATABASE_URL` aponte para `localhost`/loopback. A execução é idempotente e pode ser repetida.
 
 ## Persistência e regras de domínio
 
@@ -499,15 +526,15 @@ iniciar cada novo escopo.
 | Área | Situação atual | Trabalho pendente |
 | --- | --- | --- |
 | Acesso e operadores | Login JWT, refresh rotativo, rate limiting distribuído em Redis atômico (`ioredis`) com fallback gracioso em memória e HTTP 429, recuperação de senha com tokens de uso único e revogação de sessões, MFA (TOTP + backup codes), usuários e perfis por módulo implementados; auditoria identifica o ator; locks pessimistas contra race conditions; BFF web usa cookies HttpOnly; telas de MFA e recuperação de senha integradas no frontend | Nenhum (concluído) |
-| Financeiro de vendas | Checkout, conversão de orçamento, execução de OS e recebimentos de compras geram lançamentos vinculados; suporte a parcelamento nativo com rateio exato de centavos (`installmentCount`, `intervalDays`, `installmentGroup`) e devoluções de vendas legadas sem lançamento financeiro de forma idempotente | Integrar estornos fiscais como dependência da modelagem fiscal da Fase 3 |
+| Financeiro de vendas | Checkout, conversão de orçamento, execução de OS e recebimentos de compras geram lançamentos vinculados; suporte a parcelamento nativo com rateio exato de centavos (`installmentCount`, `intervalDays`, `installmentGroup`), devoluções idempotentes e cancelamento de notas fiscais integrado | Nenhum no backend (concluído) |
 | Devolução e financeiro | Devolução aplica crédito ao saldo em aberto, cria conta a pagar para reembolso e suporta vendas legadas sem lançamento prévio de forma segura e idempotente | Nenhum no backend (concluído na Fase 2) |
 | Orçamentos comerciais | Emissão, consulta, cancelamento, edição (`PUT`) com lock pessimista e recálculo atômico de reserva, envio de e-mail via BullMQ (`POST /send`), conversão em venda e relatório de conversão (`GET /commercial/reports/quotes-conversion`) implementados | Nenhum no backend (concluído na Fase 2) |
 | Preços promocionais | Campanhas de preço fixo e desconto percentual (`PromotionDiscountType`), vigência inclusiva, aplicação automática estrita pelo menor preço efetivo e bloqueio de sobreposição por produto implementados | Nenhum no backend (concluído na Fase 2) |
 | Fiscal (NF-e, NFC-e, NFS-e) | Arquitetura Adapter/Strategy (`FiscalSandboxAdapter` e `FocusNfeAdapter`), emissão de NF-e (Modelo 55 com NCM pirotécnico), NFC-e (Modelo 65), NFS-e (Serviços com ART e Blaster), cálculo de chave SEFAZ de 44 dígitos com DV módulo 11 e cancelamento com justificativa legal implementados | Nenhum no backend (concluído na Frente 1) |
 | Compliance militar (Guia de Tráfego) | Modelagem `TrafficGuide` e `TrafficGuideItem`, numeração anual `GT-YYYY/NNNN`, conferência de saldo de paiol, cálculo automático de carga líquida de explosivos (NEQ em kg), controle de condutores MOPP e espelho oficial DFPC/SFPC implementados | Nenhum no backend (concluído na Frente 2) |
 | Bancos, PIX e OFX | Cobrança PIX com QR Code dinâmico e BR Code EMVCo, webhook de liquidação bancária instantânea, leitor SGML/XML de arquivos OFX e conciliação bancária atômica com auditoria (`BankReconciliation`) implementados | Nenhum no backend (concluído na Frente 3) |
-| Relatórios | Resumos de vendas por produto/cliente, conversão de orçamentos, OS por status, painéis financeiros por vencimento/categoria/método, Aging schedule, posição de estoque com alertas de validade, Mapa SFPC militar, espelho de GT e conciliação bancária OFX disponíveis | Relatórios avançados de BI na Fase 4 |
-| Frontend de negócio | Login/BFF, estoque (quarentena/split/paióis/SFPC), ordens de serviço, clientes, blasters, compras, comercial, financeiro (com PIX dinâmico e modal OFX), Faturamento/Fiscal (`/modules/billing`) e Compliance/GT (`/modules/compliance`) integrados à API | Frente 4 (SRE e Automação de Produção) |
+| Relatórios | Resumos de vendas por produto/cliente, conversão de orçamentos, OS por status, painéis financeiros por vencimento/categoria/método, Aging schedule, posição de estoque com alertas de validade, Mapa SFPC militar, espelho de GT e conciliação bancária OFX disponíveis | Relatórios avançados de BI em fase futura |
+| Frontend de negócio & UX | 10 workspaces integrados (Estoque, Produtos, Clientes, Blasters, Compras, Comercial/PDV, Billing/Fiscal, Compliance/GT, Operações, Financeiro) com tipografia Inter, ToastProvider global flutuante, Skeletons de loading e Dashboard de Central de Operações | Nenhum (concluído nas Frentes 4 e 5) |
 
 Esta lista registra lacunas conhecidas, não constitui contrato final de API nem
 garante que todos os itens pertençam ao escopo aprovado do produto. Antes de

@@ -12,6 +12,12 @@ import { LoginRateLimiterService } from './login-rate-limiter.service.js';
 import { PasswordHasher } from './password-hasher.js';
 import { TotpService } from './totp.service.js';
 import { UsersController } from './users.controller.js';
+import {
+  AuthSessionsService,
+  UsersManagementService,
+  AuthMfaService,
+  PasswordResetService,
+} from './services/index.js';
 
 @Module({
   imports: [
@@ -29,12 +35,25 @@ import { UsersController } from './users.controller.js';
   providers: [
     redisClientProvider,
     AuthService,
+    AuthSessionsService,
+    UsersManagementService,
+    AuthMfaService,
+    PasswordResetService,
     PasswordHasher,
     LoginRateLimiterService,
     TotpService,
     AccessGuard,
     { provide: APP_GUARD, useExisting: AccessGuard },
   ],
-  exports: [AuthService, LoginRateLimiterService, TotpService, REDIS_CLIENT],
+  exports: [
+    AuthService,
+    AuthSessionsService,
+    UsersManagementService,
+    AuthMfaService,
+    PasswordResetService,
+    LoginRateLimiterService,
+    TotpService,
+    REDIS_CLIENT,
+  ],
 })
 export class AuthModule {}

@@ -29,6 +29,18 @@ do backend. Entre com `demo.admin@local.test` e com a senha configurada em
 `DEV_SEED_ADMIN_PASSWORD`. Se o MFA estiver ativado, utilize o aplicativo autenticador
 (Google Authenticator, Authy, etc.) ou o código de backup correspondente.
 
+## Arquitetura de Componentes e Clientes de API
+
+Para assegurar facilidade de manutenção e eliminar arquivos monolíticos (> 1.000 linhas), a base de código do frontend adota duas camadas bem delimitadas:
+
+1. **Clientes de API Especializados (`src/lib/api/`):**
+   - A biblioteca de comunicação com a API foi dividida em clientes desacoplados: `auth.api.ts`, `inventory.api.ts`, `commercial.api.ts`, `operations.api.ts`, `finance.api.ts`, `procurement.api.ts`, `customers.api.ts`, `teams.api.ts`, `fiscal.api.ts` e `compliance.api.ts`.
+   - O arquivo `src/lib/api.ts` atua como barrel export unificado, preservando as importações em toda a aplicação sem impacto retroativo.
+
+2. **Workspaces Componentizados (`src/components/{modulo}/`):**
+   - Os workspaces principais (`commercial-workspace.tsx`, `operations-workspace.tsx`, `inventory-workspace.tsx`, `compliance-workspace.tsx`, `fiscal-workspace.tsx`, `finance-workspace.tsx`, `purchases-workspace.tsx`, `customers-workspace.tsx`) atuam primariamente como **orquestradores de estado e ciclo de vida**.
+   - Cada modal, formulário complexo, tabela e aba especializada foi extraído para componentes dedicados com responsabilidade única sob suas respectivas pastas (`components/commercial/`, `components/operations/`, `components/inventory/`, `components/compliance/`, `components/fiscal/`, `components/finance/`, `components/purchases/`, `components/customers/`).
+
 ## Módulos e Integrações Disponíveis (V1.0)
 
 1. **Autenticação, MFA & Recuperação de Senha:**
@@ -107,9 +119,24 @@ do backend. Entre com `demo.admin@local.test` e com a senha configurada em
 ```bash
 npm run lint       # ESLint estrito (zero warnings)
 npm run typecheck  # Checagem estrita de tipos com tsc
-npm test           # Testes unitários e de componentes com Vitest e Testing Library (jsdom)
-npm run build      # Build de produção otimizado Next.js
+npm test           # Testes unitários e de componentes com Vitest e Testing Library (81 testes passando)
+npm run build      # Build de produção otimizado Next.js (20 rotas otimizadas)
 ```
+
+## Padrão de Design System & UX/UI
+
+- **Tipografia Moderna:** Fonte contemporânea `Inter` via `next/font/google` com fallback otimizado para o sistema operacional (`--font-inter`).
+- **Escala de Texto Padronizada:** Piso tipográfico em 12px (para micro-tags e badges de status) e 14px-15px para dados tabulares e formulários, eliminando textos ilegíveis de 8px/10px.
+- **Sistema de Notificações (Toasts):** `ToastProvider` flutuante no canto superior direito com auto-dismiss suave (4s), acessibilidade (`role="status"`, `aria-live="polite"`) e variantes semânticas (`success`, `error`, `warning`, `info`). Chamadas residuais a `alert()` do navegador foram 100% erradicadas.
+- **Skeletons de Loading:** Componente `Skeleton` com animação pulsante (*shimmer*) para transições assíncronas suaves em tabelas e cards.
+- **Cockpit do AppShell:** Topbar com avatar, nome do operador autenticado, chips de perfis ativos e botão integrado de logout; remoção da faixa estática `.auth-notice`, liberando 40px úteis de altura vertical em todos os módulos.
+- **Central de Operações Pirotécnicas (`/`):** Dashboard renovado com 4 KPI Cards vivos (Ordens de Serviço, Guias de Tráfego, Ocupação de NEQ e Faturamento/PIX), atalhos operacionais de 1 clique e radar regulatório de conformidade R-105.
+- **Sistema Print-Ready Universal & Espelhos Oficiais Físicos:**
+  - Regras `@media print` estritas em `globals.css` para impressão em folha A4 limpa (sem topbars, sidebars, toast containers ou botões de interface).
+  - **Espelho Oficial Militar SFPC (R-105):** Modal em `/modules/inventory` formatado para protocolo formal no Exército Brasileiro (DFPC/COLOG), com cabeçalho oficial, dados do CR, consolidação por classe de risco ONU (1.1G, 1.3G, 1.4G), NEQ total e termo de responsabilidade com assinaturas.
+  - **Espelho DANFE Simplificada (NF-e/NFC-e):** Modal em `/modules/billing` com chave de acesso de 44 dígitos legível, código de barras simulado em CSS e protocolo SEFAZ.
+  - **Ficha Técnica e Ordem de Queima Impressa da OS:** Modal em `/modules/operations` para a equipe técnica de campo (ART, relação de materiais controlados alocados, checklist de segurança e colunas de anotação de disparos e sobras).
+  - **Proposta Comercial e Comprovante de Balcão (PDV):** Modais em `/modules/commercial` para orçamentos formais com validade de 7 dias e recibos físicos de entrega no balcão.
 
 ## Limitações conhecidas
 

@@ -50,8 +50,8 @@ export function PixModal({
     if (!pixData) return;
     setSimulating(true);
     try {
-      // Chama webhook diretamente no backend para simular notificação bancária instantânea
-      const res = await fetch("http://localhost:3000/api/v1/finance/pix/webhook", {
+      // Chama webhook via proxy BFF para simular notificação bancária instantânea
+      const res = await fetch("/api/finance/pix/webhook", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

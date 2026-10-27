@@ -1,4 +1,4 @@
-import { FiscalDocumentType, FiscalDocumentStatus } from '@prisma/client';
+import { FiscalDocumentStatus } from '@prisma/client';
 
 export interface FiscalItemData {
   code: string;

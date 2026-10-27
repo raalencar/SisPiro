@@ -174,9 +174,9 @@ export class PixService {
     const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
     const txid = `SPP${cleanCode}${Date.now().toString().slice(-6)}${randomSuffix}`.slice(0, 25);
 
-    const pixKey = options?.pixKey?.trim() || process.env.PIX_DEFAULT_KEY || '12345678000190';
-    const merchantName = options?.merchantName?.trim() || 'CASA DE FOGOS ESPERANCA';
-    const merchantCity = options?.merchantCity?.trim() || 'SAO PAULO';
+    const pixKey = options?.pixKey?.trim() || process.env.PIX_DEFAULT_KEY || '05922101000133';
+    const merchantName = options?.merchantName?.trim() || process.env.PIX_MERCHANT_NAME || 'CASA DE FOGOS SAO JOAO';
+    const merchantCity = options?.merchantCity?.trim() || process.env.PIX_MERCHANT_CITY || 'FORTALEZA';
     const expiresInHours = options?.expiresInHours ?? 24;
 
     const copyPasteCode = this.buildEmvCoPayload({

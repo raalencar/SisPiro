@@ -17,9 +17,16 @@ import {
   type TrafficGuide,
   type TrafficGuideStatus,
 } from "@/lib/api";
-import { formatDateOnly, formatNumber } from "@/lib/format";
 import { useEscapeToClose } from "@/lib/use-escape-to-close";
 import { useModalFocusTrap } from "@/lib/use-modal-focus-trap";
+import { useToast } from "@/components/toast-provider";
+import {
+  CreateGtModal,
+  GtTable,
+  PrintGtModal,
+  UpdateGtStatusModal,
+  type GtDraftItem,
+} from "./compliance";
 
 function errorMessage(error: unknown): string {
   return error instanceof Error
@@ -28,6 +35,7 @@ function errorMessage(error: unknown): string {
 }
 
 export function ComplianceWorkspace() {
+  const toast = useToast();
   const [guides, setGuides] = useState<PageResult<TrafficGuide>>({
     data: [],
     meta: { page: 1, limit: 20, total: 0, totalPages: 1 },
@@ -54,7 +62,9 @@ export function ComplianceWorkspace() {
   const [sourceMagazineId, setSourceMagazineId] = useState("");
   const [fiscalDocumentId, setFiscalDocumentId] = useState("");
   const [serviceOrderId, setServiceOrderId] = useState("");
-  const [validFrom, setValidFrom] = useState(() => new Date().toISOString().slice(0, 16));
+  const [validFrom, setValidFrom] = useState(() =>
+    new Date().toISOString().slice(0, 16),
+  );
   const [validUntil, setValidUntil] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 3);
@@ -64,7 +74,9 @@ export function ComplianceWorkspace() {
   const [originState, setOriginState] = useState("SP");
   const [destinationCity, setDestinationCity] = useState("");
   const [destinationState, setDestinationState] = useState("SP");
-  const [routeDescription, setRouteDescription] = useState("Rodovias principais conforme trajeto autorizado");
+  const [routeDescription, setRouteDescription] = useState(
+    "Rodovias principais conforme trajeto autorizado",
+  );
   const [vehiclePlate, setVehiclePlate] = useState("");
   const [vehiclePlateState, setVehiclePlateState] = useState("SP");
   const [vehicleModel, setVehicleModel] = useState("");
@@ -74,9 +86,9 @@ export function ComplianceWorkspace() {
   const [hasMopp, setHasMopp] = useState(true);
   const [blasterId, setBlasterId] = useState("");
   const [notes, setNotes] = useState("");
-  const [items, setItems] = useState<
-    Array<{ productId: string; productLotId: string; quantity: number }>
-  >([{ productId: "", productLotId: "", quantity: 1 }]);
+  const [items, setItems] = useState<GtDraftItem[]>([
+    { productId: "", productLotId: "", quantity: 1 },
+  ]);
   const [submitting, setSubmitting] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
 
@@ -148,7 +160,7 @@ export function ComplianceWorkspace() {
 
   function handleItemChange(
     index: number,
-    field: "productId" | "productLotId" | "quantity",
+    field: keyof GtDraftItem,
     val: string | number,
   ) {
     setItems((prev) => {
@@ -165,7 +177,7 @@ export function ComplianceWorkspace() {
     return acc + (neqGrams * Number(it.quantity || 0)) / 1000;
   }, 0);
 
-  async function handleCreateGuide(e: FormEvent) {
+  async function handleCreateGuide(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!sourceMagazineId) {
       setModalError("Selecione o paiol de origem da carga.");
@@ -216,7 +228,9 @@ export function ComplianceWorkspace() {
       });
 
       setIsCreateModalOpen(false);
-      setActionSuccess(`Guia de Tráfego militar ${created.number} emitida com sucesso!`);
+      const msg = `Guia de Tráfego militar ${created.number} emitida com sucesso!`;
+      setActionSuccess(msg);
+      toast.success(msg);
       setReloadTrigger((v) => v + 1);
     } catch (err) {
       setModalError(errorMessage(err));
@@ -225,7 +239,7 @@ export function ComplianceWorkspace() {
     }
   }
 
-  async function handleUpdateStatus(e: FormEvent) {
+  async function handleUpdateStatus(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!statusDoc) return;
     if (newStatus === "CANCELADA" && statusReason.trim().length < 10) {
@@ -245,7 +259,9 @@ export function ComplianceWorkspace() {
       const num = statusDoc.number;
       setStatusDoc(null);
       setStatusReason("");
-      setActionSuccess(`Status da Guia de Tráfego ${num} atualizado para ${newStatus}.`);
+      const statusMsg = `Status da Guia de Tráfego ${num} atualizado para ${newStatus}.`;
+      setActionSuccess(statusMsg);
+      toast.success(statusMsg);
       setReloadTrigger((v) => v + 1);
     } catch (err) {
       setStatusError(errorMessage(err));
@@ -254,34 +270,17 @@ export function ComplianceWorkspace() {
     }
   }
 
-  async function handleFastForwardStatus(guide: TrafficGuide, targetStatus: TrafficGuideStatus) {
+  async function handleQuickDispatch(guide: TrafficGuide) {
     try {
       await complianceApi.updateTrafficGuideStatus(guide.id, {
-        status: targetStatus,
+        status: "EM_TRANSITO",
       });
-      setActionSuccess(
-        `Guia de Tráfego ${guide.number} atualizada para ${
-          targetStatus === "EM_TRANSITO" ? "EM TRÂNSITO" : "CONCLUÍDA"
-        } com sucesso!`,
-      );
+      const msg = `Guia de Tráfego ${guide.number} atualizada para EM TRÂNSITO com sucesso!`;
+      setActionSuccess(msg);
+      toast.success(msg);
       setReloadTrigger((v) => v + 1);
     } catch (err) {
       setError(errorMessage(err));
-    }
-  }
-
-  function renderStatusBadge(status: TrafficGuideStatus) {
-    switch (status) {
-      case "EMITIDA":
-        return <span className="status-badge status-badge-info">EMITIDA</span>;
-      case "EM_TRANSITO":
-        return <span className="status-badge status-badge-warning">EM TRÂNSITO</span>;
-      case "CONCLUIDA":
-        return <span className="status-badge status-badge-success">CONCLUÍDA</span>;
-      case "CANCELADA":
-        return <span className="status-badge status-badge-danger">CANCELADA</span>;
-      default:
-        return <span className="status-badge">{status}</span>;
     }
   }
 
@@ -380,698 +379,98 @@ export function ComplianceWorkspace() {
 
       {/* Tabela de Guias de Tráfego */}
       <div className="card">
-        {loading ? (
-          <div className="empty-state" style={{ padding: "3rem" }}>
-            <p>Carregando Guias de Tráfego...</p>
-          </div>
-        ) : guides.data.length === 0 ? (
-          <div className="empty-state" style={{ padding: "3rem" }}>
-            <h3>Nenhuma Guia de Tráfego emitida</h3>
-            <p>Emita a primeira Guia de Tráfego para autorizar o deslocamento legal de produtos controlados pelo Exército.</p>
-          </div>
-        ) : (
-          <div className="table-responsive">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Nº da GT</th>
-                  <th>Itinerário (Origem → Destino)</th>
-                  <th>Veículo / Placa</th>
-                  <th>Motorista / MOPP</th>
-                  <th>Blaster Técnico</th>
-                  <th>Carga NEQ (kg)</th>
-                  <th>Status</th>
-                  <th>Validade</th>
-                  <th style={{ textAlign: "right" }}>Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {guides.data.map((gt) => (
-                  <tr key={gt.id}>
-                    <td>
-                      <strong>{gt.number}</strong>
-                      {gt.fiscalDocument && (
-                        <div style={{ fontSize: "0.8rem", color: "var(--color-muted, #718096)" }}>
-                          NF-e #{gt.fiscalDocument.number}
-                        </div>
-                      )}
-                      {gt.serviceOrder && (
-                        <div style={{ fontSize: "0.8rem", color: "var(--color-muted, #718096)" }}>
-                          OS #{gt.serviceOrder.code}
-                        </div>
-                      )}
-                    </td>
-                    <td>
-                      <strong>{gt.originCity}/{gt.originState} → {gt.destinationCity}/{gt.destinationState}</strong>
-                      <div style={{ fontSize: "0.8rem", color: "var(--color-muted, #718096)" }}>
-                        {gt.routeDescription}
-                      </div>
-                    </td>
-                    <td>
-                      <strong>{gt.vehiclePlate} ({gt.vehiclePlateState})</strong>
-                      {gt.vehicleModel && (
-                        <div style={{ fontSize: "0.8rem", color: "var(--color-muted, #718096)" }}>
-                          {gt.vehicleModel}
-                        </div>
-                      )}
-                    </td>
-                    <td>
-                      <div><strong>{gt.driverName}</strong></div>
-                      <div style={{ fontSize: "0.8rem", color: "var(--color-muted, #718096)" }}>
-                        CNH: {gt.driverLicense} {gt.hasMopp ? "• MOPP Ativo" : ""}
-                      </div>
-                    </td>
-                    <td>
-                      {gt.blaster ? (
-                        <div>
-                          <strong>{gt.blaster.name}</strong>
-                          <div style={{ fontSize: "0.8rem", color: "var(--color-muted, #718096)" }}>
-                            CR: {gt.blaster.licenseNumber}
-                          </div>
-                        </div>
-                      ) : (
-                        <span style={{ color: "var(--color-muted, #718096)" }}>Não se aplica</span>
-                      )}
-                    </td>
-                    <td>
-                      <span className="badge">
-                        {formatNumber(Number(gt.totalNeqKg), 3)} kg NEQ
-                      </span>
-                    </td>
-                    <td>{renderStatusBadge(gt.status)}</td>
-                    <td>
-                      <div style={{ fontSize: "0.8rem" }}>
-                        De: {formatDateOnly(gt.validFrom)}
-                      </div>
-                      <div style={{ fontSize: "0.8rem", color: "var(--color-muted, #718096)" }}>
-                        Até: {formatDateOnly(gt.validUntil)}
-                      </div>
-                    </td>
-                    <td style={{ textAlign: "right" }}>
-                      <div style={{ display: "inline-flex", gap: "0.5rem", justifyContent: "flex-end", alignItems: "center" }}>
-                        <button
-                          type="button"
-                          className="action-button secondary"
-                          style={{ padding: "0.25rem 0.5rem", fontSize: "0.8rem" }}
-                          onClick={() => setViewGuide(gt)}
-                          title="Visualizar espelho oficial da Guia de Tráfego do Exército"
-                        >
-                          Espelho GT
-                        </button>
-
-                        {gt.status === "EMITIDA" && (
-                          <button
-                            type="button"
-                            className="action-button primary"
-                            style={{ padding: "0.25rem 0.5rem", fontSize: "0.8rem", backgroundColor: "#2b6cb0" }}
-                            onClick={() => void handleFastForwardStatus(gt, "EM_TRANSITO")}
-                            title="Despachar carga rodoviária (colocar em trânsito)"
-                          >
-                            🚚 Iniciar Viagem
-                          </button>
-                        )}
-
-                        {gt.status === "EM_TRANSITO" && (
-                          <button
-                            type="button"
-                            className="action-button primary"
-                            style={{ padding: "0.25rem 0.5rem", fontSize: "0.8rem", backgroundColor: "#2f855a" }}
-                            onClick={() => void handleFastForwardStatus(gt, "CONCLUIDA")}
-                            title="Confirmar entrega do material PCE no local do evento"
-                          >
-                            🏁 Concluir Entrega
-                          </button>
-                        )}
-
-                        {gt.status !== "CONCLUIDA" && gt.status !== "CANCELADA" && (
-                          <button
-                            type="button"
-                            className="action-button secondary"
-                            style={{ padding: "0.25rem 0.5rem", fontSize: "0.8rem" }}
-                            onClick={() => {
-                              setStatusDoc(gt);
-                              setNewStatus(gt.status === "EMITIDA" ? "EM_TRANSITO" : "CONCLUIDA");
-                              setStatusReason("");
-                              setStatusError(null);
-                            }}
-                            title="Mais opções de status / cancelamento"
-                          >
-                            Status...
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <GtTable
+          guides={guides.data}
+          loading={loading}
+          onViewGuide={(gt) => setViewGuide(gt)}
+          onQuickDispatch={handleQuickDispatch}
+          onOpenStatusModal={(gt) => {
+            setStatusDoc(gt);
+            setNewStatus(
+              gt.status === "EMITIDA" ? "EM_TRANSITO" : "CONCLUIDA",
+            );
+            setStatusReason("");
+            setStatusError(null);
+          }}
+        />
       </div>
 
       {/* Modal Emissão Nova Guia de Tráfego */}
-      {isCreateModalOpen && (
-        <div className="modal-backdrop">
-          <div
-            className="modal-content"
-            id="create-gt-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="create-gt-title"
-            style={{ maxWidth: "800px" }}
-          >
-            <div className="modal-header">
-              <h2 id="create-gt-title">Emitir Guia de Tráfego (Exército Brasileiro)</h2>
-              <button
-                type="button"
-                className="modal-close"
-                onClick={() => setIsCreateModalOpen(false)}
-                aria-label="Fechar modal"
-                disabled={submitting}
-              >
-                ✕
-              </button>
-            </div>
-            <form onSubmit={handleCreateGuide}>
-              <div className="modal-body" style={{ maxHeight: "75vh", overflowY: "auto" }}>
-                {modalError && (
-                  <div className="alert alert-danger" role="alert">
-                    <p>{modalError}</p>
-                  </div>
-                )}
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-                  <div className="form-group">
-                    <label htmlFor="gt-magazine-select" className="form-label">
-                      Paiol de Origem *
-                    </label>
-                    <select
-                      id="gt-magazine-select"
-                      className="form-input"
-                      value={sourceMagazineId}
-                      onChange={(e) => setSourceMagazineId(e.target.value)}
-                      required
-                    >
-                      <option value="">Selecione o paiol...</option>
-                      {magazines.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.name} (Capacidade: {m.maxNeqCapacityKg} kg NEQ)
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="gt-fiscal-select" className="form-label">
-                      NF-e Autorizada Vinculada
-                    </label>
-                    <select
-                      id="gt-fiscal-select"
-                      className="form-input"
-                      value={fiscalDocumentId}
-                      onChange={(e) => setFiscalDocumentId(e.target.value)}
-                    >
-                      <option value="">Nenhuma / Transporte de OS</option>
-                      {fiscalDocs.map((doc) => (
-                        <option key={doc.id} value={doc.id}>
-                          NF-e #{doc.number} - {doc.sale?.customer?.legalName || "Cliente"}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-                  <div className="form-group">
-                    <label htmlFor="gt-os-select" className="form-label">
-                      Ordem de Serviço Vinculada (Espetáculo)
-                    </label>
-                    <select
-                      id="gt-os-select"
-                      className="form-input"
-                      value={serviceOrderId}
-                      onChange={(e) => setServiceOrderId(e.target.value)}
-                    >
-                      <option value="">Nenhuma / Venda Direta</option>
-                      {serviceOrders.map((os) => (
-                        <option key={os.id} value={os.id}>
-                          OS #{os.code} - {os.eventLocation}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="gt-blaster-select" className="form-label">
-                      Blaster Responsável Técnico
-                    </label>
-                    <select
-                      id="gt-blaster-select"
-                      className="form-input"
-                      value={blasterId}
-                      onChange={(e) => setBlasterId(e.target.value)}
-                    >
-                      <option value="">Selecione o blaster responsável...</option>
-                      {blasters.map((b) => (
-                        <option key={b.id} value={b.id}>
-                          {b.name} (Validade: {formatDateOnly(b.licenseExpiresAt)})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-                  <div className="form-group">
-                    <label htmlFor="gt-valid-from" className="form-label">
-                      Início da Viagem *
-                    </label>
-                    <input
-                      id="gt-valid-from"
-                      type="datetime-local"
-                      className="form-input"
-                      value={validFrom}
-                      onChange={(e) => setValidFrom(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="gt-valid-until" className="form-label">
-                      Data Limite de Validade *
-                    </label>
-                    <input
-                      id="gt-valid-until"
-                      type="datetime-local"
-                      className="form-input"
-                      value={validUntil}
-                      onChange={(e) => setValidUntil(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "3fr 1fr 3fr 1fr", gap: "0.5rem" }}>
-                  <div className="form-group">
-                    <label htmlFor="gt-orig-city" className="form-label">Origem (Cidade) *</label>
-                    <input id="gt-orig-city" className="form-input" value={originCity} onChange={(e) => setOriginCity(e.target.value)} required />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="gt-orig-uf" className="form-label">UF *</label>
-                    <input id="gt-orig-uf" className="form-input" maxLength={2} value={originState} onChange={(e) => setOriginState(e.target.value.toUpperCase())} required />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="gt-dest-city" className="form-label">Destino (Cidade) *</label>
-                    <input id="gt-dest-city" className="form-input" placeholder="Ex: Campinas" value={destinationCity} onChange={(e) => setDestinationCity(e.target.value)} required />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="gt-dest-uf" className="form-label">UF *</label>
-                    <input id="gt-dest-uf" className="form-input" maxLength={2} value={destinationState} onChange={(e) => setDestinationState(e.target.value.toUpperCase())} required />
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="gt-route" className="form-label">Itinerário Detalhado (Rodovias Principais) *</label>
-                  <input id="gt-route" className="form-input" value={routeDescription} onChange={(e) => setRouteDescription(e.target.value)} required />
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem" }}>
-                  <div className="form-group">
-                    <label htmlFor="gt-plate" className="form-label">Placa do Veículo *</label>
-                    <input id="gt-plate" className="form-input" placeholder="ABC1D23" value={vehiclePlate} onChange={(e) => setVehiclePlate(e.target.value.toUpperCase())} required />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="gt-plate-uf" className="form-label">UF da Placa *</label>
-                    <input id="gt-plate-uf" className="form-input" maxLength={2} value={vehiclePlateState} onChange={(e) => setVehiclePlateState(e.target.value.toUpperCase())} required />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="gt-model" className="form-label">Modelo do Veículo</label>
-                    <input id="gt-model" className="form-input" placeholder="Ex: MB Sprinter" value={vehicleModel} onChange={(e) => setVehicleModel(e.target.value)} />
-                  </div>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: "1rem" }}>
-                  <div className="form-group">
-                    <label htmlFor="gt-driver-name" className="form-label">Nome do Motorista *</label>
-                    <input id="gt-driver-name" className="form-input" value={driverName} onChange={(e) => setDriverName(e.target.value)} required />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="gt-driver-cpf" className="form-label">CPF *</label>
-                    <input id="gt-driver-cpf" className="form-input" placeholder="000.000.000-00" value={driverCpf} onChange={(e) => setDriverCpf(e.target.value)} required />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="gt-driver-cnh" className="form-label">CNH *</label>
-                    <input id="gt-driver-cnh" className="form-input" value={driverLicense} onChange={(e) => setDriverLicense(e.target.value)} required />
-                  </div>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "1rem", alignItems: "center" }}>
-                  <div className="form-group" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                    <input
-                      id="gt-has-mopp"
-                      type="checkbox"
-                      checked={hasMopp}
-                      onChange={(e) => setHasMopp(e.target.checked)}
-                    />
-                    <label htmlFor="gt-has-mopp" className="form-label" style={{ margin: 0 }}>
-                      Condutor com MOPP Ativo
-                    </label>
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="gt-notes" className="form-label">Observações Regulatórias</label>
-                    <input
-                      id="gt-notes"
-                      className="form-input"
-                      placeholder="Ex: Carga escoltada e autorizada pelo DFPC"
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                {/* Itens Controlados */}
-                <div style={{ marginTop: "1rem", borderTop: "1px solid var(--border-color, #e2e8f0)", paddingTop: "1rem" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-                    <h3 style={{ margin: 0, fontSize: "1rem" }}>Produtos Controlados a Transportar</h3>
-                    <button type="button" className="action-button secondary" onClick={handleAddItem}>
-                      + Adicionar Produto
-                    </button>
-                  </div>
-
-                  {items.map((item, idx) => (
-                    <div key={idx} style={{ display: "grid", gridTemplateColumns: "3fr 3fr 1fr auto", gap: "0.5rem", alignItems: "center", marginBottom: "0.5rem" }}>
-                      <select
-                        className="form-input"
-                        value={item.productId}
-                        onChange={(e) => handleItemChange(idx, "productId", e.target.value)}
-                        required
-                        aria-label={`Produto item ${idx + 1}`}
-                      >
-                        <option value="">Selecione o produto PCE...</option>
-                        {products.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name} ({p.neqGrams}g NEQ)
-                          </option>
-                        ))}
-                      </select>
-
-                      <select
-                        className="form-input"
-                        value={item.productLotId}
-                        onChange={(e) => handleItemChange(idx, "productLotId", e.target.value)}
-                        required
-                        aria-label={`Lote item ${idx + 1}`}
-                      >
-                        <option value="">Selecione o lote do paiol...</option>
-                        {lots
-                          .filter((l) => !item.productId || l.productId === item.productId)
-                          .map((l) => (
-                            <option key={l.id} value={l.id}>
-                              Lote {l.lotNumber} (Saldo: {l.quantity})
-                            </option>
-                          ))}
-                      </select>
-
-                      <input
-                        type="number"
-                        min="1"
-                        className="form-input"
-                        value={item.quantity}
-                        onChange={(e) => handleItemChange(idx, "quantity", Number(e.target.value))}
-                        required
-                        aria-label={`Quantidade item ${idx + 1}`}
-                      />
-
-                      {items.length > 1 && (
-                        <button
-                          type="button"
-                          className="action-button danger"
-                          onClick={() => handleRemoveItem(idx)}
-                          style={{ padding: "0.4rem 0.6rem" }}
-                          aria-label={`Remover item ${idx + 1}`}
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-                  ))}
-
-                  <div style={{ marginTop: "0.5rem", textAlign: "right", fontWeight: "bold" }}>
-                    Carga Explosiva Estimada:{" "}
-                    <span style={{ color: "var(--color-primary, #2b6cb0)" }}>
-                      {estimatedNeqKg.toFixed(4)} kg NEQ
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="action-button secondary"
-                  onClick={() => setIsCreateModalOpen(false)}
-                  disabled={submitting}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="action-button primary"
-                  disabled={submitting}
-                >
-                  {submitting ? "Homologando GT..." : "Homologar e Emitir Guia"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <CreateGtModal
+        isOpen={isCreateModalOpen}
+        submitting={submitting}
+        modalError={modalError}
+        magazines={magazines}
+        fiscalDocs={fiscalDocs}
+        serviceOrders={serviceOrders}
+        blasters={blasters}
+        products={products}
+        lots={lots}
+        sourceMagazineId={sourceMagazineId}
+        fiscalDocumentId={fiscalDocumentId}
+        serviceOrderId={serviceOrderId}
+        blasterId={blasterId}
+        validFrom={validFrom}
+        validUntil={validUntil}
+        originCity={originCity}
+        originState={originState}
+        destinationCity={destinationCity}
+        destinationState={destinationState}
+        routeDescription={routeDescription}
+        vehiclePlate={vehiclePlate}
+        vehiclePlateState={vehiclePlateState}
+        vehicleModel={vehicleModel}
+        driverName={driverName}
+        driverCpf={driverCpf}
+        driverLicense={driverLicense}
+        hasMopp={hasMopp}
+        notes={notes}
+        items={items}
+        estimatedNeqKg={estimatedNeqKg}
+        onSourceMagazineIdChange={setSourceMagazineId}
+        onFiscalDocumentIdChange={setFiscalDocumentId}
+        onServiceOrderIdChange={setServiceOrderId}
+        onBlasterIdChange={setBlasterId}
+        onValidFromChange={setValidFrom}
+        onValidUntilChange={setValidUntil}
+        onOriginCityChange={setOriginCity}
+        onOriginStateChange={setOriginState}
+        onDestinationCityChange={setDestinationCity}
+        onDestinationStateChange={setDestinationState}
+        onRouteChange={setRouteDescription}
+        onVehiclePlateChange={setVehiclePlate}
+        onVehiclePlateStateChange={setVehiclePlateState}
+        onVehicleModelChange={setVehicleModel}
+        onDriverNameChange={setDriverName}
+        onDriverCpfChange={setDriverCpf}
+        onDriverLicenseChange={setDriverLicense}
+        onHasMoppChange={setHasMopp}
+        onNotesChange={setNotes}
+        onAddItem={handleAddItem}
+        onRemoveItem={handleRemoveItem}
+        onItemChange={handleItemChange}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSubmit={handleCreateGuide}
+      />
 
       {/* Modal Espelho de Impressão Militar da Guia de Tráfego */}
-      {viewGuide && (
-        <div className="modal-backdrop">
-          <div
-            className="modal-content"
-            id="view-gt-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="view-gt-title"
-            style={{ maxWidth: "850px" }}
-          >
-            <div className="modal-header">
-              <h2 id="view-gt-title">Espelho Oficial - Guia de Tráfego #{viewGuide.number}</h2>
-              <button
-                type="button"
-                className="modal-close"
-                onClick={() => setViewGuide(null)}
-                aria-label="Fechar visualização"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="modal-body" style={{ maxHeight: "75vh", overflowY: "auto", fontFamily: "serif" }}>
-              <div style={{ textAlign: "center", borderBottom: "2px solid #000", paddingBottom: "1rem", marginBottom: "1.5rem" }}>
-                <h3 style={{ margin: 0, textTransform: "uppercase", fontSize: "1.1rem" }}>
-                  República Federativa do Brasil
-                </h3>
-                <h4 style={{ margin: "4px 0", textTransform: "uppercase", fontSize: "1rem" }}>
-                  Ministério da Defesa • Exército Brasileiro
-                </h4>
-                <div style={{ fontSize: "0.9rem", fontWeight: "bold" }}>
-                  Comando Logístico (COLOG) • Diretoria de Fiscalização de Produtos Controlados (DFPC)
-                </div>
-                <div style={{ marginTop: "0.5rem", fontSize: "1.2rem", fontWeight: "bold" }}>
-                  GUIA DE TRÁFEGO PARA TRANSPORTE DE PCE (R-105)
-                </div>
-                <div style={{ fontSize: "1rem", color: "#444" }}>
-                  Nº {viewGuide.number} • Status: {viewGuide.status}
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem", fontSize: "0.9rem" }}>
-                <div style={{ border: "1px solid #ccc", padding: "0.75rem" }}>
-                  <strong>EXPEDIDOR / ORIGEM:</strong>
-                  <div>Casa de Fogos SisPiro ERP</div>
-                  <div>Paiol: {viewGuide.sourceMagazine?.name || "Paiol Central"}</div>
-                  <div>Município: {viewGuide.originCity} / {viewGuide.originState}</div>
-                </div>
-
-                <div style={{ border: "1px solid #ccc", padding: "0.75rem" }}>
-                  <strong>DESTINATÁRIO / FINALIDADE:</strong>
-                  <div>Destino: {viewGuide.destinationCity} / {viewGuide.destinationState}</div>
-                  <div>Itinerário: {viewGuide.routeDescription}</div>
-                  {viewGuide.fiscalDocument && <div>NF-e Vinculada: #{viewGuide.fiscalDocument.number}</div>}
-                  {viewGuide.serviceOrder && <div>OS de Queima: #{viewGuide.serviceOrder.code}</div>}
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem", fontSize: "0.9rem" }}>
-                <div style={{ border: "1px solid #ccc", padding: "0.75rem" }}>
-                  <strong>DADOS DO TRANSPORTE:</strong>
-                  <div>Veículo: Placa {viewGuide.vehiclePlate} ({viewGuide.vehiclePlateState})</div>
-                  <div>Motorista: {viewGuide.driverName}</div>
-                  <div>CPF: {viewGuide.driverCpf} • CNH: {viewGuide.driverLicense}</div>
-                  <div>Certificação MOPP: {viewGuide.hasMopp ? "SIM (Habilitado)" : "NÃO"}</div>
-                </div>
-
-                <div style={{ border: "1px solid #ccc", padding: "0.75rem" }}>
-                  <strong>RESPONSABILIDADE TÉCNICA:</strong>
-                  {viewGuide.blaster ? (
-                    <>
-                      <div>Blaster: {viewGuide.blaster.name}</div>
-                      <div>Carteira de Blaster: {viewGuide.blaster.licenseNumber}</div>
-                    </>
-                  ) : (
-                    <div>Transporte regular sob responsabilidade do expedidor</div>
-                  )}
-                  <div style={{ marginTop: "0.25rem", fontWeight: "bold" }}>
-                    Massa Líquida de Explosivo Total: {formatNumber(Number(viewGuide.totalNeqKg), 4)} kg NEQ
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ marginTop: "1rem" }}>
-                <strong>DISCRIMINAÇÃO DOS MATERIAIS CONTROLADOS (PCE):</strong>
-                <table style={{ width: "100%", borderCollapse: "collapse", marginTop: "0.5rem", fontSize: "0.85rem" }}>
-                  <thead>
-                    <tr style={{ borderBottom: "1px solid #000" }}>
-                      <th style={{ textAlign: "left", padding: "4px" }}>Item / Descrição</th>
-                      <th style={{ textAlign: "left", padding: "4px" }}>Nº Lote</th>
-                      <th style={{ textAlign: "center", padding: "4px" }}>Classe ONU</th>
-                      <th style={{ textAlign: "right", padding: "4px" }}>Qtd</th>
-                      <th style={{ textAlign: "right", padding: "4px" }}>NEQ (kg)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {viewGuide.items?.map((it, idx) => (
-                      <tr key={idx} style={{ borderBottom: "1px solid #eee" }}>
-                        <td style={{ padding: "4px" }}>{it.product?.name || "Produto PCE"}</td>
-                        <td style={{ padding: "4px" }}>{it.productLot?.lotNumber || "-"}</td>
-                        <td style={{ textAlign: "center", padding: "4px" }}>{it.unNumber} ({it.riskClass})</td>
-                        <td style={{ textAlign: "right", padding: "4px" }}>{it.quantity}</td>
-                        <td style={{ textAlign: "right", padding: "4px" }}>
-                          {(Number(it.neqGrams) / 1000).toFixed(4)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div style={{ marginTop: "2rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem", textAlign: "center", fontSize: "0.85rem" }}>
-                <div style={{ borderTop: "1px solid #000", paddingTop: "0.5rem" }}>
-                  Assinatura do Motorista Transportador
-                </div>
-                <div style={{ borderTop: "1px solid #000", paddingTop: "0.5rem" }}>
-                  Assinatura do Blaster / Responsável Técnico
-                </div>
-              </div>
-            </div>
-
-            <div className="modal-footer">
-              <button
-                type="button"
-                className="action-button secondary"
-                onClick={() => setViewGuide(null)}
-              >
-                Fechar
-              </button>
-              <button
-                type="button"
-                className="action-button primary"
-                onClick={() => window.print()}
-              >
-                Imprimir Guia Oficial
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <PrintGtModal
+        guide={viewGuide}
+        onClose={() => setViewGuide(null)}
+      />
 
       {/* Modal Atualização de Status */}
-      {statusDoc && (
-        <div className="modal-backdrop">
-          <div
-            className="modal-content"
-            id="status-gt-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="status-gt-title"
-          >
-            <div className="modal-header">
-              <h2 id="status-gt-title">Atualizar Status - {statusDoc.number}</h2>
-              <button
-                type="button"
-                className="modal-close"
-                onClick={() => setStatusDoc(null)}
-                aria-label="Fechar modal"
-                disabled={statusSubmitting}
-              >
-                ✕
-              </button>
-            </div>
-            <form onSubmit={handleUpdateStatus}>
-              <div className="modal-body">
-                {statusError && (
-                  <div className="alert alert-danger" role="alert">
-                    <p>{statusError}</p>
-                  </div>
-                )}
-                <div className="form-group">
-                  <label htmlFor="new-status-select" className="form-label">
-                    Novo Status Regulatório *
-                  </label>
-                  <select
-                    id="new-status-select"
-                    className="form-input"
-                    value={newStatus}
-                    onChange={(e) => setNewStatus(e.target.value as TrafficGuideStatus)}
-                    required
-                  >
-                    <option value="EM_TRANSITO">EM TRÂNSITO (Carga Liberada)</option>
-                    <option value="CONCLUIDA">CONCLUÍDA (Chegada Confirmada no Destino)</option>
-                    <option value="CANCELADA">CANCELADA (Viagem Suspensa/Revogada)</option>
-                  </select>
-                </div>
-
-                {newStatus === "CANCELADA" && (
-                  <div className="form-group">
-                    <label htmlFor="status-reason-input" className="form-label">
-                      Justificativa Militar do Cancelamento * (Mínimo 10 caracteres)
-                    </label>
-                    <textarea
-                      id="status-reason-input"
-                      className="form-input"
-                      rows={3}
-                      placeholder="Ex: Cancelamento do espetáculo por intempéries climáticas."
-                      value={statusReason}
-                      onChange={(e) => setStatusReason(e.target.value)}
-                      required
-                    />
-                  </div>
-                )}
-              </div>
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="action-button secondary"
-                  onClick={() => setStatusDoc(null)}
-                  disabled={statusSubmitting}
-                >
-                  Voltar
-                </button>
-                <button
-                  type="submit"
-                  className="action-button primary"
-                  disabled={statusSubmitting}
-                >
-                  {statusSubmitting ? "Atualizando..." : "Confirmar Alteração"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <UpdateGtStatusModal
+        guide={statusDoc}
+        newStatus={newStatus}
+        statusReason={statusReason}
+        statusSubmitting={statusSubmitting}
+        statusError={statusError}
+        onNewStatusChange={setNewStatus}
+        onStatusReasonChange={setStatusReason}
+        onClose={() => setStatusDoc(null)}
+        onSubmit={handleUpdateStatus}
+      />
     </section>
   );
 }

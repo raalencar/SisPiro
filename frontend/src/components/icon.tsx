@@ -1,6 +1,6 @@
 import type { ModuleIcon } from "@/lib/modules";
 
-type IconName = ModuleIcon | "home" | "menu" | "close" | "arrow" | "refresh" | "warning";
+type IconName = ModuleIcon | "home" | "menu" | "close" | "arrow" | "refresh" | "warning" | "check";
 
 export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
   const common = {
@@ -48,5 +48,7 @@ export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
       return <svg {...common}><path d="M20 7v5h-5M4 17v-5h5" /><path d="M5.6 9A7 7 0 0 1 18 6.5L20 12M4 12l2 5.5A7 7 0 0 0 18.4 15" /></svg>;
     case "warning":
       return <svg {...common}><path d="m10.3 3.9-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3.1l-8-14a2 2 0 0 0-3.4 0ZM12 9v4m0 4h.01" /></svg>;
+    case "check":
+      return <svg {...common}><path d="M20 6 9 17l-5-5" /></svg>;
   }
 }

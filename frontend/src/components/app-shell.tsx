@@ -235,38 +235,49 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="topbar__right">
             <span className="environment-label">
               <span className="environment-label__dot" aria-hidden="true" />
-              Ambiente de desenvolvimento
+              Ambiente ativo
             </span>
             <ApiHealthIndicator />
+            {auth.status === "authenticated" && auth.user && (
+              <div className="topbar-user">
+                <div className="user-avatar" title={auth.user.email} aria-hidden="true">
+                  {auth.user.name
+                    .trim()
+                    .split(/\s+/)
+                    .slice(0, 2)
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase() || "OP"}
+                </div>
+                <div className="user-info">
+                  <span className="user-info__name">{auth.user.name}</span>
+                  <div className="user-info__roles">
+                    {auth.user.roles.slice(0, 2).map((role) => (
+                      <span key={role} className="user-role-badge">
+                        {role}
+                      </span>
+                    ))}
+                    {auth.user.roles.length > 2 && (
+                      <span className="user-role-badge">
+                        +{auth.user.roles.length - 2}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="user-logout-btn"
+                  onClick={() => void auth.logout().catch(() => undefined)}
+                  title="Encerrar sessão"
+                  aria-label="Sair do sistema"
+                >
+                  <Icon name="close" size={14} />
+                  <span>Sair</span>
+                </button>
+              </div>
+            )}
           </div>
         </header>
-        <div className="auth-notice" role="status">
-          {auth.status === "authenticated" && auth.user ? (
-            <>
-              <Icon name="shield" size={16} />
-              <span>Sessão ativa: {auth.user.name} ({auth.user.email})</span>
-              {auth.error && <span className="auth-notice__error">{auth.error}</span>}
-              <button
-                className="button button--quiet"
-                type="button"
-                onClick={() => void auth.logout().catch(() => undefined)}
-              >
-                Sair
-              </button>
-            </>
-          ) : (
-            <>
-              <Icon name="warning" size={16} />
-              <span>
-                {auth.status === "anonymous"
-                  ? "Entre com uma conta autorizada para acessar os módulos."
-                  : auth.status === "error"
-                    ? auth.error
-                    : "Verificando sua sessão..."}
-              </span>
-            </>
-          )}
-        </div>
         <main className="page-content mx-auto w-full">
           {auth.status === "checking" && (
             <section className="panel session-state" role="status">

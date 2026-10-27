@@ -22,10 +22,23 @@ import {
   type SalesQuote,
   type SalesReportSummary,
 } from "@/lib/api";
-import { formatCurrency, formatDateOnly, formatNumber } from "@/lib/format";
-import { useEscapeToClose } from "@/lib/use-escape-to-close";
-import { useModalFocusTrap } from "@/lib/use-modal-focus-trap";
 import { PixModal } from "@/components/pix-modal";
+import { useToast } from "@/components/toast-provider";
+import {
+  ConvertQuoteModal,
+  FiscalModal,
+  PricingModal,
+  PricingPromotionsTab,
+  PromotionModal,
+  QuoteModal,
+  QuotePrintModal,
+  QuotesTab,
+  ReportsTab,
+  ReturnModal,
+  SaleModal,
+  SaleReceiptModal,
+  SalesTab,
+} from "./commercial/index";
 
 function errorMessage(error: unknown): string {
   return error instanceof Error
@@ -34,6 +47,7 @@ function errorMessage(error: unknown): string {
 }
 
 export function CommercialWorkspace() {
+  const toast = useToast();
   const [tab, setTab] = useState<"sales" | "quotes" | "pricing" | "reports">("quotes");
 
   // Dados globais de apoio
@@ -103,7 +117,6 @@ export function CommercialWorkspace() {
   // Modal Devolução de Venda
   const [returningSale, setReturningSale] = useState<Sale | null>(null);
   const [returnReason, setReturnReason] = useState("");
-  const [returnDueDate, setReturnDueDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [returnItems, setReturnItems] = useState<
     Array<{ saleItemId: string; quantity: number }>
   >([]);
@@ -147,6 +160,10 @@ export function CommercialWorkspace() {
   const [isPixModalOpen, setIsPixModalOpen] = useState(false);
   const [pixData, setPixData] = useState<GeneratedPix | null>(null);
   const [pixLoading, setPixLoading] = useState(false);
+
+  // Estados para Impressão de Proposta Comercial e Comprovante de Balcão
+  const [printQuote, setPrintQuote] = useState<SalesQuote | null>(null);
+  const [printSaleReceipt, setPrintSaleReceipt] = useState<Sale | null>(null);
 
   // Carregamento de dados
   useEffect(() => {
@@ -305,30 +322,31 @@ export function CommercialWorkspace() {
     try {
       if (convertDestination === "ORDER") {
         if (!convertingQuote.customerId) {
-          throw new Error("Para converter em Ordem de Serviço, o orçamento precisa ter um cliente vinculado.");
+          throw new Error("Cliente obrigatório para gerar Ordem de Serviço.");
         }
-        const createdOrder = await operationsApi.createOrder({
+        await operationsApi.createOrder({
           customerId: convertingQuote.customerId,
           contractedAmount: Number(convertingQuote.total),
+          eventLocation: convertEventLocation.trim(),
           eventAt: new Date(convertEventAt).toISOString(),
-          eventLocation: convertEventLocation.trim() || "Local do Espetáculo",
           items: convertingQuote.items.map((it) => ({
             productId: it.productId,
             productLotId: it.productLotId,
             plannedQuantity: Number(it.quantity),
           })),
         });
-        setConvertingQuote(null);
-        setActionSuccess(`Orçamento convertido com sucesso na Ordem de Serviço #${createdOrder.code}! Lotes transferidos.`);
+        await commercialApi.cancelQuote(convertingQuote.id);
+        setActionSuccess("Orçamento convertido em Ordem de Serviço de Show com sucesso!");
       } else {
         await commercialApi.convertQuote(convertingQuote.id, {
           condition: convertCondition,
           paymentMethod: convertCondition === "IMEDIATO" ? convertPaymentMethod : undefined,
           dueDate: convertCondition === "PRAZO" ? convertDueDate : undefined,
         });
-        setConvertingQuote(null);
-        setActionSuccess("Orçamento convertido em venda concluída com sucesso.");
+        setActionSuccess("Orçamento convertido em Venda Direta com sucesso!");
       }
+
+      setConvertingQuote(null);
       setReloadTrigger((prev) => prev + 1);
     } catch (err) {
       setConvertError(errorMessage(err));
@@ -342,7 +360,7 @@ export function CommercialWorkspace() {
     setSalePricingListId(pricingLists[0]?.id || "");
     setSaleCondition("IMEDIATO");
     setSalePaymentMethod("PIX");
-    setSaleDueDate(new Date().toISOString().slice(0, 10));
+    setSaleDueDate(currentDate);
     setSaleItems([{ productId: products[0]?.id || "", productLotId: lots[0]?.id || "", quantity: 1 }]);
     setSaleError(null);
     setIsSaleModalOpen(true);
@@ -364,6 +382,7 @@ export function CommercialWorkspace() {
           quantity: Number(it.quantity),
         })),
       });
+
       setIsSaleModalOpen(false);
       setActionSuccess("Venda finalizada com sucesso!");
       setReloadTrigger((prev) => prev + 1);
@@ -374,15 +393,11 @@ export function CommercialWorkspace() {
     }
   }
 
-  function handleOpenReturn(s: Sale) {
-    setReturningSale(s);
-    setReturnReason("");
-    setReturnDueDate(new Date().toISOString().slice(0, 10));
-    // A API não expõe o saldo já devolvido por item nesta listagem; sugere a
-    // quantidade total do item e deixa o usuário ajustar. O backend valida o
-    // saldo real ainda não devolvido no momento do envio.
+  function handleOpenReturn(sale: Sale) {
+    setReturningSale(sale);
+    setReturnReason("Desistência do cliente");
     setReturnItems(
-      s.items.map((it) => ({
+      sale.items.map((it) => ({
         saleItemId: it.id,
         quantity: Number(it.quantity),
       })),
@@ -392,17 +407,17 @@ export function CommercialWorkspace() {
 
   async function handleConfirmReturn(e: FormEvent) {
     e.preventDefault();
-    if (!returningSale || returnItems.length === 0) return;
+    if (!returningSale) return;
     setReturnSubmitting(true);
     setReturnError(null);
     try {
       await commercialApi.createReturn(returningSale.id, {
         reason: returnReason.trim(),
-        dueDate: returnDueDate,
         items: returnItems,
       });
+
       setReturningSale(null);
-      setActionSuccess("Devolução registrada com reentrada no lote de estoque.");
+      setActionSuccess("Devolução de mercadorias registrada com sucesso!");
       setReloadTrigger((prev) => prev + 1);
     } catch (err) {
       setReturnError(errorMessage(err));
@@ -413,20 +428,25 @@ export function CommercialWorkspace() {
 
   function handleOpenPricingModal() {
     setNewPricingName("");
-    setNewPricingItems(products.map((p) => ({ productId: p.id, unitPrice: 0 })));
+    setNewPricingItems(
+      products.map((p) => ({
+        productId: p.id,
+        unitPrice: 10,
+      })),
+    );
     setPricingError(null);
     setIsPricingModalOpen(true);
   }
 
   async function handleSavePricingList(e: FormEvent) {
     e.preventDefault();
-    if (!newPricingName.trim() || newPricingItems.length === 0) return;
+    if (!newPricingName.trim()) return;
     setPricingSubmitting(true);
     setPricingError(null);
     try {
       await commercialApi.createPricingList({
         name: newPricingName.trim(),
-        items: newPricingItems.filter((it) => it.unitPrice > 0),
+        items: newPricingItems,
       });
       setIsPricingModalOpen(false);
       setActionSuccess("Tabela de preços cadastrada com sucesso!");
@@ -546,26 +566,11 @@ export function CommercialWorkspace() {
       setPixData(pix);
       setIsPixModalOpen(true);
     } catch (err) {
-      alert("Erro ao gerar QR Code PIX para a venda: " + errorMessage(err));
+      toast.error("Erro ao gerar QR Code PIX para a venda: " + errorMessage(err));
     } finally {
       setPixLoading(false);
     }
   }
-
-  useEscapeToClose(isQuoteModalOpen, () => setIsQuoteModalOpen(false));
-  useModalFocusTrap(isQuoteModalOpen);
-  useEscapeToClose(Boolean(convertingQuote), () => setConvertingQuote(null));
-  useModalFocusTrap(Boolean(convertingQuote));
-  useEscapeToClose(isSaleModalOpen, () => setIsSaleModalOpen(false));
-  useModalFocusTrap(isSaleModalOpen);
-  useEscapeToClose(Boolean(returningSale), () => setReturningSale(null));
-  useModalFocusTrap(Boolean(returningSale));
-  useEscapeToClose(isPricingModalOpen, () => setIsPricingModalOpen(false));
-  useModalFocusTrap(isPricingModalOpen);
-  useEscapeToClose(isPromoModalOpen, () => setIsPromoModalOpen(false));
-  useModalFocusTrap(isPromoModalOpen);
-  useEscapeToClose(Boolean(fiscalSale), () => setFiscalSale(null));
-  useModalFocusTrap(Boolean(fiscalSale));
 
   return (
     <div className="workspace space-y-6">
@@ -590,7 +595,7 @@ export function CommercialWorkspace() {
       </header>
 
       {/* Tabs */}
-      <div className="flex border-b border-neutral-800 gap-4">
+      <div className="flex border-b border-neutral-200 gap-4">
         {[
           { id: "quotes", label: "Orçamentos Comerciais" },
           { id: "sales", label: "Vendas Concluídas" },
@@ -618,1158 +623,167 @@ export function CommercialWorkspace() {
         </div>
       )}
 
-      {/* ABA 1: ORÇAMENTOS */}
+      {/* Abas */}
       {tab === "quotes" && (
-        <div className="space-y-4">
-          <div className="panel p-0 overflow-hidden">
-            {loading ? (
-              <div className="p-8 text-center text-neutral-400">Carregando orçamentos...</div>
-            ) : !quotes || quotes.data.length === 0 ? (
-              <div className="p-8 text-center text-neutral-400">Nenhum orçamento emitido.</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="table w-full text-left text-sm">
-                  <thead className="bg-neutral-800/50 text-neutral-300">
-                    <tr>
-                      <th className="p-3">Data</th>
-                      <th className="p-3">Cliente</th>
-                      <th className="p-3">Valor Total</th>
-                      <th className="p-3">Validade / Reserva</th>
-                      <th className="p-3">Situação</th>
-                      <th className="p-3 text-right">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-800">
-                    {quotes.data.map((q) => {
-                      const isExpired = Boolean(
-                        q.expiresAt && q.expiresAt.slice(0, 10) < currentDate,
-                      );
-                      return (
-                        <tr key={q.id} className="hover:bg-neutral-800/30">
-                          <td className="p-3 text-xs text-neutral-400">{formatDateOnly(q.createdAt)}</td>
-                          <td className="p-3 font-semibold text-neutral-100">{q.customer?.legalName || "Cliente"}</td>
-                          <td className="p-3 font-mono font-bold text-neutral-100">{formatCurrency(Number(q.total))}</td>
-                          <td className="p-3 text-xs">
-                            <span className={isExpired ? "text-rose-400 font-bold" : "text-emerald-400"}>
-                              {formatDateOnly(q.expiresAt)} {isExpired ? "(Expirado)" : "(Reserva ativa)"}
-                            </span>
-                          </td>
-                          <td className="p-3">
-                            <span
-                              className={`status-pill ${
-                                q.status === "EMITIDO"
-                                  ? isExpired
-                                    ? "status-pill--neutral"
-                                    : "status-pill--warning"
-                                  : q.status === "CONVERTIDO"
-                                    ? "status-pill--available"
-                                    : "status-pill--error"
-                              }`}
-                            >
-                              {q.status}
-                            </span>
-                          </td>
-                          <td className="p-3 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
-                              {q.status === "EMITIDO" && !isExpired && (
-                                <>
-                                  <button
-                                    className="button button--ghost text-xs py-1 px-2 text-primary-400"
-                                    onClick={() => handleSendQuote(q.id)}
-                                    title="Enviar orçamento por e-mail via BullMQ"
-                                  >
-                                    Enviar
-                                  </button>
-                                  <button
-                                    className="button button--secondary text-xs py-1 px-2"
-                                    onClick={() => handleOpenEditQuote(q)}
-                                  >
-                                    Editar
-                                  </button>
-                                  <button
-                                    className="button button--primary text-xs py-1 px-2"
-                                    onClick={() => handleOpenConvertQuote(q)}
-                                  >
-                                    Converter
-                                  </button>
-                                  <button
-                                    className="button button--ghost text-xs py-1 px-2 text-rose-400"
-                                    onClick={() => handleCancelQuote(q.id)}
-                                  >
-                                    Cancelar
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
+        <QuotesTab
+          loading={loading}
+          quotes={quotes}
+          currentDate={currentDate}
+          onPrintQuote={(q) => setPrintQuote(q)}
+          onSendQuote={handleSendQuote}
+          onEditQuote={handleOpenEditQuote}
+          onConvertQuote={handleOpenConvertQuote}
+          onCancelQuote={handleCancelQuote}
+        />
       )}
 
-      {/* ABA 2: VENDAS PDV */}
       {tab === "sales" && (
-        <div className="space-y-4">
-          <div className="panel p-0 overflow-hidden">
-            {!sales || sales.data.length === 0 ? (
-              <div className="p-8 text-center text-neutral-400">Nenhuma venda finalizada.</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="table w-full text-left text-sm">
-                  <thead className="bg-neutral-800/50 text-neutral-300">
-                    <tr>
-                      <th className="p-3">Data</th>
-                      <th className="p-3">Cliente</th>
-                      <th className="p-3">Itens</th>
-                      <th className="p-3">Valor Líquido</th>
-                      <th className="p-3 text-right">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-800">
-                    {sales.data.map((s) => (
-                      <tr key={s.id} className="hover:bg-neutral-800/30">
-                        <td className="p-3 text-xs text-neutral-400">{formatDateOnly(s.createdAt)}</td>
-                        <td className="p-3 font-semibold text-neutral-100">
-                          {s.customer ? s.customer.legalName : "Venda de Balcão (s/ cliente)"}
-                        </td>
-                        <td className="p-3 text-xs">
-                          {s.items.map((it, i) => (
-                            <div key={i} className="text-neutral-300">
-                              {it.product?.name || "Produto"}: {formatNumber(Number(it.quantity))} un.
-                            </div>
-                          ))}
-                        </td>
-                        <td className="p-3 font-mono font-bold text-neutral-100">
-                          {formatCurrency(Number(s.total))}
-                        </td>
-                        <td className="p-3 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              className="button button--secondary text-xs py-1 px-2 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10 flex items-center gap-1"
-                              onClick={() => handleOpenFiscalModal(s)}
-                              title={s.customer ? "Emitir NF-e (Modelo 55)" : "Emitir NFC-e (Modelo 65)"}
-                            >
-                              <span>📄</span> {s.customer ? "NF-e" : "NFC-e"}
-                            </button>
-                            <button
-                              className="button button--secondary text-xs py-1 px-2 border-teal-500/40 text-teal-300 hover:bg-teal-500/10 flex items-center gap-1"
-                              onClick={() => void handleOpenPixModal(s)}
-                              disabled={pixLoading}
-                              title="Cobrar via QR Code PIX no balcão"
-                            >
-                              <span>📱</span> PIX
-                            </button>
-                            <button
-                              className="button button--ghost text-xs py-1 px-2 text-amber-400"
-                              onClick={() => handleOpenReturn(s)}
-                            >
-                              Devolver Itens
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
+        <SalesTab
+          sales={sales}
+          pixLoading={pixLoading}
+          onOpenFiscalModal={handleOpenFiscalModal}
+          onOpenPixModal={handleOpenPixModal}
+          onPrintSaleReceipt={(s) => setPrintSaleReceipt(s)}
+          onOpenReturn={handleOpenReturn}
+        />
       )}
 
-      {/* ABA 3: PREÇOS E PROMOÇÕES */}
       {tab === "pricing" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Tabelas de Preço */}
-          <div className="panel space-y-3">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-bold">Tabelas de Preço</h2>
-              <button className="button button--secondary text-xs" onClick={handleOpenPricingModal}>
-                + Nova Tabela
-              </button>
-            </div>
-            <div className="space-y-2">
-              {pricingLists.length === 0 ? (
-                <div className="p-4 text-center text-xs text-neutral-500">Nenhuma tabela cadastrada.</div>
-              ) : (
-                pricingLists.map((pl) => (
-                  <div key={pl.id} className="p-3 bg-neutral-900 border border-neutral-800 rounded">
-                    <div className="font-semibold text-neutral-100">{pl.name}</div>
-                    <div className="text-xs text-neutral-400">Criada em: {formatDateOnly(pl.createdAt)}</div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Promoções */}
-          <div className="panel space-y-3">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-bold">Campanhas Promocionais</h2>
-              <button className="button button--secondary text-xs" onClick={handleOpenPromoModal}>
-                + Nova Promoção
-              </button>
-            </div>
-            <div className="space-y-2">
-              {!promotions || promotions.data.length === 0 ? (
-                <div className="p-4 text-center text-xs text-neutral-500">Nenhuma campanha cadastrada.</div>
-              ) : (
-                promotions.data.map((pr) => (
-                  <div key={pr.id} className="p-3 bg-neutral-900 border border-neutral-800 rounded space-y-1">
-                    <div className="flex justify-between items-center">
-                      <span className="font-semibold text-neutral-100">{pr.name}</span>
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`status-pill ${
-                            pr.active ? "status-pill--available" : "status-pill--neutral"
-                          }`}
-                        >
-                          {pr.active ? "Ativa" : "Inativa"}
-                        </span>
-                        <button
-                          type="button"
-                          className="button button--ghost text-xs py-0.5 px-2 text-neutral-300"
-                          onClick={() => handleTogglePromotion(pr.id, pr.active)}
-                        >
-                          {pr.active ? "Desativar" : "Ativar"}
-                        </button>
-                      </div>
-                    </div>
-                    <div className="text-xs text-neutral-400">
-                      Vigência: {formatDateOnly(pr.effectiveFrom)} até {formatDateOnly(pr.effectiveUntil)}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
+        <PricingPromotionsTab
+          pricingLists={pricingLists}
+          promotions={promotions}
+          onOpenPricingModal={handleOpenPricingModal}
+          onOpenPromoModal={handleOpenPromoModal}
+          onTogglePromotion={handleTogglePromotion}
+        />
       )}
 
-      {/* ABA 4: RELATÓRIOS & CONVERSÃO */}
       {tab === "reports" && (
-        <div className="space-y-6">
-          {/* Relatório de Conversão de Orçamentos */}
-          <div className="panel space-y-4">
-            <h2 className="text-lg font-bold">Taxa de Conversão de Orçamentos Comerciais</h2>
-            {quotesReport ? (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div className="p-3 bg-neutral-900 border border-neutral-800 rounded">
-                  <span className="text-xs text-neutral-400 block">Total Emitido</span>
-                  <span className="text-xl font-bold font-mono">{quotesReport.totals.quotesCount}</span>
-                </div>
-                <div className="p-3 bg-neutral-900 border border-neutral-800 rounded">
-                  <span className="text-xs text-neutral-400 block">Convertidos em Venda</span>
-                  <span className="text-xl font-bold font-mono text-emerald-400">
-                    {quotesReport.totals.convertedCount}
-                  </span>
-                </div>
-                <div className="p-3 bg-neutral-900 border border-neutral-800 rounded">
-                  <span className="text-xs text-neutral-400 block">Taxa de Conversão</span>
-                  <span className="text-xl font-bold font-mono text-primary-400">
-                    {quotesReport.totals.conversionRatePercent.toFixed(1)}%
-                  </span>
-                </div>
-                <div className="p-3 bg-neutral-900 border border-neutral-800 rounded">
-                  <span className="text-xs text-neutral-400 block">Ticket Médio</span>
-                  <span className="text-xl font-bold font-mono">
-                    {formatCurrency(Number(quotesReport.totals.averageTicket))}
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-neutral-400">Carregando métricas de conversão...</p>
-            )}
-          </div>
-
-          {/* Resumo de Vendas */}
-          {salesReport && (
-            <div className="panel space-y-4">
-              <h2 className="text-lg font-bold">Resumo Financeiro de Vendas</h2>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="p-3 bg-neutral-900 border border-neutral-800 rounded">
-                  <span className="text-xs text-neutral-400 block">Vendas Brutas</span>
-                  <span className="text-lg font-bold font-mono text-emerald-400">
-                    {formatCurrency(Number(salesReport.totals.grossSales))}
-                  </span>
-                </div>
-                <div className="p-3 bg-neutral-900 border border-neutral-800 rounded">
-                  <span className="text-xs text-neutral-400 block">Devoluções</span>
-                  <span className="text-lg font-bold font-mono text-rose-400">
-                    {formatCurrency(Number(salesReport.totals.returned))}
-                  </span>
-                </div>
-                <div className="p-3 bg-neutral-900 border border-neutral-800 rounded">
-                  <span className="text-xs text-neutral-400 block">Vendas Líquidas</span>
-                  <span className="text-lg font-bold font-mono text-primary-400">
-                    {formatCurrency(Number(salesReport.totals.netSales))}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+        <ReportsTab
+          quotesReport={quotesReport}
+          salesReport={salesReport}
+        />
       )}
 
-      {/* MODAL CRIAR / EDITAR ORÇAMENTO */}
-      {isQuoteModalOpen && (
-        <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="modal-content panel max-w-xl w-full max-h-[90vh] overflow-y-auto space-y-4">
-            <h2 className="text-xl font-bold">
-              {editingQuote ? "Editar Orçamento Comercial" : "Novo Orçamento Comercial"}
-            </h2>
-            <form className="form-stack space-y-3" onSubmit={handleSaveQuote}>
-              <label className="field">
-                <span>Cliente *</span>
-                <select
-                  required
-                  value={quoteCustomerId}
-                  onChange={(e) => setQuoteCustomerId(e.target.value)}
-                  className="input"
-                >
-                  {customers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.legalName}
-                    </option>
-                  ))}
-                </select>
-              </label>
+      {/* Modais */}
+      <QuoteModal
+        isOpen={isQuoteModalOpen}
+        onClose={() => setIsQuoteModalOpen(false)}
+        editingQuote={editingQuote}
+        customerId={quoteCustomerId}
+        onCustomerIdChange={setQuoteCustomerId}
+        pricingListId={quotePricingListId}
+        onPricingListIdChange={setQuotePricingListId}
+        items={quoteItems}
+        onItemsChange={setQuoteItems}
+        customers={customers}
+        pricingLists={pricingLists}
+        products={products}
+        lots={lots}
+        submitting={quoteSubmitting}
+        error={quoteError}
+        onSubmit={handleSaveQuote}
+      />
 
-              <label className="field">
-                <span>Tabela de Preço *</span>
-                <select
-                  required
-                  value={quotePricingListId}
-                  onChange={(e) => setQuotePricingListId(e.target.value)}
-                  className="input"
-                >
-                  {pricingLists.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+      <ConvertQuoteModal
+        quote={convertingQuote}
+        onClose={() => setConvertingQuote(null)}
+        destination={convertDestination}
+        onDestinationChange={setConvertDestination}
+        eventLocation={convertEventLocation}
+        onEventLocationChange={setConvertEventLocation}
+        eventAt={convertEventAt}
+        onEventAtChange={setConvertEventAt}
+        condition={convertCondition}
+        onConditionChange={setConvertCondition}
+        paymentMethod={convertPaymentMethod}
+        onPaymentMethodChange={setConvertPaymentMethod}
+        dueDate={convertDueDate}
+        onDueDateChange={setConvertDueDate}
+        submitting={convertSubmitting}
+        error={convertError}
+        onSubmit={handleConfirmConvertQuote}
+      />
 
-              <div className="space-y-2 pt-2 border-t border-neutral-800">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-semibold">Itens e Lotes Reservados:</span>
-                  <button
-                    type="button"
-                    className="button button--ghost text-xs py-1 px-2"
-                    onClick={() =>
-                      setQuoteItems((prev) => [
-                        ...prev,
-                        {
-                          productId: products[0]?.id || "",
-                          productLotId: lots[0]?.id || "",
-                          quantity: 1,
-                        },
-                      ])
-                    }
-                  >
-                    + Adicionar item
-                  </button>
-                </div>
+      <SaleModal
+        isOpen={isSaleModalOpen}
+        onClose={() => setIsSaleModalOpen(false)}
+        customerId={saleCustomerId}
+        onCustomerIdChange={setSaleCustomerId}
+        pricingListId={salePricingListId}
+        onPricingListIdChange={setSalePricingListId}
+        condition={saleCondition}
+        onConditionChange={setSaleCondition}
+        paymentMethod={salePaymentMethod}
+        onPaymentMethodChange={setSalePaymentMethod}
+        dueDate={saleDueDate}
+        onDueDateChange={setSaleDueDate}
+        items={saleItems}
+        onItemsChange={setSaleItems}
+        customers={customers}
+        pricingLists={pricingLists}
+        products={products}
+        lots={lots}
+        submitting={saleSubmitting}
+        error={saleError}
+        onSubmit={handleSaveSale}
+      />
 
-                {quoteItems.map((item, index) => (
-                  <div
-                    key={index}
-                    className="grid grid-cols-12 gap-2 p-2 bg-neutral-900 border border-neutral-800 rounded items-center text-xs"
-                  >
-                    <div className="col-span-5">
-                      <select
-                        aria-label="Produto"
-                        value={item.productId}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setQuoteItems((prev) =>
-                            prev.map((it, idx) =>
-                              idx === index ? { ...it, productId: val } : it,
-                            ),
-                          );
-                        }}
-                        className="input text-xs w-full"
-                      >
-                        {products.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="col-span-4">
-                      <select
-                        aria-label="Lote"
-                        value={item.productLotId}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setQuoteItems((prev) =>
-                            prev.map((it, idx) =>
-                              idx === index ? { ...it, productLotId: val } : it,
-                            ),
-                          );
-                        }}
-                        className="input text-xs w-full"
-                      >
-                        {lots
-                          .filter((l) => l.product.id === item.productId || !item.productId)
-                          .map((l) => (
-                            <option key={l.id} value={l.id}>
-                              {l.lotNumber} ({l.quantity} disp.)
-                            </option>
-                          ))}
-                      </select>
-                    </div>
-                    <div className="col-span-2">
-                      <input
-                        type="number"
-                        min="1"
-                        placeholder="Qtd"
-                        aria-label="Quantidade"
-                        value={item.quantity}
-                        onChange={(e) => {
-                          const val = Number(e.target.value);
-                          setQuoteItems((prev) =>
-                            prev.map((it, idx) =>
-                              idx === index ? { ...it, quantity: val } : it,
-                            ),
-                          );
-                        }}
-                        className="input text-xs w-full"
-                      />
-                    </div>
-                    <div className="col-span-1 text-center">
-                      {quoteItems.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setQuoteItems((prev) => prev.filter((_, idx) => idx !== index))
-                          }
-                          className="text-rose-400 font-bold"
-                        >
-                          ×
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+      <ReturnModal
+        sale={returningSale}
+        onClose={() => setReturningSale(null)}
+        reason={returnReason}
+        onReasonChange={setReturnReason}
+        items={returnItems}
+        onItemsChange={setReturnItems}
+        submitting={returnSubmitting}
+        error={returnError}
+        onSubmit={handleConfirmReturn}
+      />
 
-              {quoteError && <p className="form-error text-xs" role="alert">{quoteError}</p>}
+      <PricingModal
+        isOpen={isPricingModalOpen}
+        onClose={() => setIsPricingModalOpen(false)}
+        name={newPricingName}
+        onNameChange={setNewPricingName}
+        items={newPricingItems}
+        onItemsChange={setNewPricingItems}
+        products={products}
+        submitting={pricingSubmitting}
+        error={pricingError}
+        onSubmit={handleSavePricingList}
+      />
 
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  className="button button--ghost"
-                  onClick={() => setIsQuoteModalOpen(false)}
-                  disabled={quoteSubmitting}
-                >
-                  Cancelar
-                </button>
-                <button type="submit" className="button button--primary" disabled={quoteSubmitting}>
-                  {quoteSubmitting ? "Gravando..." : "Salvar Orçamento"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <PromotionModal
+        isOpen={isPromoModalOpen}
+        onClose={() => setIsPromoModalOpen(false)}
+        name={promoName}
+        onNameChange={setPromoName}
+        startsAt={promoStartsAt}
+        onStartsAtChange={setPromoStartsAt}
+        endsAt={promoEndsAt}
+        onEndsAtChange={setPromoEndsAt}
+        items={promoItems}
+        onItemsChange={setPromoItems}
+        products={products}
+        submitting={promoSubmitting}
+        error={promoError}
+        onSubmit={handleSavePromotion}
+      />
 
-      {/* MODAL CONVERSÃO DE ORÇAMENTO */}
-      {convertingQuote && (
-        <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="modal-content panel max-w-md w-full space-y-4">
-            <h2 className="text-xl font-bold">Converter Orçamento</h2>
-            <p className="text-xs text-neutral-400">
-              Valor Total: <strong>{formatCurrency(Number(convertingQuote.total))}</strong> · Cliente: <strong>{convertingQuote.customer?.legalName || "Não informado"}</strong>
-            </p>
-            <form className="form-stack space-y-3" onSubmit={handleConfirmConvertQuote}>
-              <label className="field">
-                <span>Destino da Conversão *</span>
-                <select
-                  value={convertDestination}
-                  onChange={(e) => setConvertDestination(e.target.value as "SALE" | "ORDER")}
-                  className="input font-semibold text-primary-400"
-                >
-                  <option value="SALE">🛍️ Venda Direta / Balcão (Baixa imediata de estoque)</option>
-                  <option value="ORDER" disabled={!convertingQuote.customerId}>
-                    🎆 Ordem de Serviço (Espetáculo Pirotécnico & Blaster)
-                  </option>
-                </select>
-                {!convertingQuote.customerId && (
-                  <span className="text-[11px] text-amber-400 block mt-1">
-                    * Orçamentos sem cliente cadastrado só podem ser convertidos em Venda Balcão.
-                  </span>
-                )}
-              </label>
+      <FiscalModal
+        sale={fiscalSale}
+        onClose={() => setFiscalSale(null)}
+        type={fiscalType}
+        onTypeChange={setFiscalType}
+        nature={fiscalNature}
+        onNatureChange={setFiscalNature}
+        submitting={fiscalSubmitting}
+        error={fiscalError}
+        success={fiscalSuccess}
+        onSubmit={handleSubmitFiscal}
+      />
 
-              {convertDestination === "ORDER" ? (
-                <>
-                  <label className="field">
-                    <span>Local da Queima / Evento *</span>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Ex: Arena Municipal, Clube de Campo, Fazenda Santa Fé"
-                      value={convertEventLocation}
-                      onChange={(e) => setConvertEventLocation(e.target.value)}
-                    />
-                  </label>
-                  <label className="field">
-                    <span>Data e Hora do Evento *</span>
-                    <input
-                      type="datetime-local"
-                      required
-                      value={convertEventAt}
-                      onChange={(e) => setConvertEventAt(e.target.value)}
-                    />
-                  </label>
-                </>
-              ) : (
-                <>
-                  <label className="field">
-                    <span>Condição de Pagamento *</span>
-                    <select
-                      value={convertCondition}
-                      onChange={(e) => setConvertCondition(e.target.value as "IMEDIATO" | "PRAZO")}
-                      className="input"
-                    >
-                      <option value="IMEDIATO">Imediato (À vista)</option>
-                      <option value="PRAZO">A Prazo</option>
-                    </select>
-                  </label>
-
-                  {convertCondition === "IMEDIATO" ? (
-                    <label className="field">
-                      <span>Método de Pagamento *</span>
-                      <select
-                        value={convertPaymentMethod}
-                        onChange={(e) => setConvertPaymentMethod(e.target.value)}
-                        className="input"
-                      >
-                        <option value="PIX">PIX</option>
-                        <option value="DINHEIRO">Dinheiro</option>
-                        <option value="CARTAO_DEBITO">Cartão de Débito</option>
-                        <option value="CARTAO_CREDITO">Cartão de Crédito</option>
-                      </select>
-                    </label>
-                  ) : (
-                    <label className="field">
-                      <span>Data de Vencimento *</span>
-                      <input
-                        type="date"
-                        required
-                        value={convertDueDate}
-                        onChange={(e) => setConvertDueDate(e.target.value)}
-                      />
-                    </label>
-                  )}
-                </>
-              )}
-
-              {convertError && <p className="form-error text-xs" role="alert">{convertError}</p>}
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  className="button button--ghost"
-                  onClick={() => setConvertingQuote(null)}
-                  disabled={convertSubmitting}
-                >
-                  Cancelar
-                </button>
-                <button type="submit" className="button button--primary" disabled={convertSubmitting}>
-                  {convertSubmitting
-                    ? "Convertendo..."
-                    : convertDestination === "ORDER"
-                      ? "Gerar Ordem de Serviço"
-                      : "Confirmar Venda e Baixar Estoque"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL CHECKOUT VENDA DIRETA */}
-      {isSaleModalOpen && (
-        <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="modal-content panel max-w-xl w-full max-h-[90vh] overflow-y-auto space-y-4">
-            <h2 className="text-xl font-bold">Checkout de Venda (PDV)</h2>
-            <form className="form-stack space-y-3" onSubmit={handleSaveSale}>
-              <label className="field">
-                <span>Cliente (obrigatório para PCE ou vendas a prazo)</span>
-                <select
-                  value={saleCustomerId}
-                  onChange={(e) => setSaleCustomerId(e.target.value)}
-                  className="input"
-                >
-                  <option value="">Venda de balcão sem identificação</option>
-                  {customers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.legalName}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="field">
-                <span>Tabela de Preço *</span>
-                <select
-                  required
-                  value={salePricingListId}
-                  onChange={(e) => setSalePricingListId(e.target.value)}
-                  className="input"
-                >
-                  {pricingLists.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <div className="grid grid-cols-2 gap-3">
-                <label className="field">
-                  <span>Condição</span>
-                  <select
-                    value={saleCondition}
-                    onChange={(e) => setSaleCondition(e.target.value as "IMEDIATO" | "PRAZO")}
-                    className="input"
-                  >
-                    <option value="IMEDIATO">À vista</option>
-                    <option value="PRAZO">A Prazo</option>
-                  </select>
-                </label>
-                {saleCondition === "IMEDIATO" ? (
-                  <label className="field">
-                    <span>Método de Pagamento</span>
-                    <select
-                      value={salePaymentMethod}
-                      onChange={(e) => setSalePaymentMethod(e.target.value)}
-                      className="input"
-                    >
-                      <option value="PIX">PIX</option>
-                      <option value="DINHEIRO">Dinheiro</option>
-                      <option value="CARTAO_DEBITO">Débito</option>
-                      <option value="CARTAO_CREDITO">Crédito</option>
-                    </select>
-                  </label>
-                ) : (
-                  <label className="field">
-                    <span>Vencimento</span>
-                    <input
-                      type="date"
-                      required
-                      value={saleDueDate}
-                      onChange={(e) => setSaleDueDate(e.target.value)}
-                    />
-                  </label>
-                )}
-              </div>
-
-              <div className="space-y-2 pt-2 border-t border-neutral-800">
-                <span className="text-sm font-semibold block">Produtos e Lotes:</span>
-                {saleItems.map((item, index) => (
-                  <div
-                    key={index}
-                    className="grid grid-cols-12 gap-2 p-2 bg-neutral-900 border border-neutral-800 rounded items-center text-xs"
-                  >
-                    <div className="col-span-5">
-                      <select
-                        aria-label="Produto"
-                        value={item.productId}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setSaleItems((prev) =>
-                            prev.map((it, idx) =>
-                              idx === index ? { ...it, productId: val } : it,
-                            ),
-                          );
-                        }}
-                        className="input text-xs w-full"
-                      >
-                        {products.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="col-span-4">
-                      <select
-                        aria-label="Lote"
-                        value={item.productLotId}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setSaleItems((prev) =>
-                            prev.map((it, idx) =>
-                              idx === index ? { ...it, productLotId: val } : it,
-                            ),
-                          );
-                        }}
-                        className="input text-xs w-full"
-                      >
-                        {lots
-                          .filter((l) => l.product.id === item.productId || !item.productId)
-                          .map((l) => (
-                            <option key={l.id} value={l.id}>
-                              {l.lotNumber} ({l.quantity} disp.)
-                            </option>
-                          ))}
-                      </select>
-                    </div>
-                    <div className="col-span-2">
-                      <input
-                        type="number"
-                        min="1"
-                        placeholder="Qtd"
-                        aria-label="Quantidade"
-                        value={item.quantity}
-                        onChange={(e) => {
-                          const val = Number(e.target.value);
-                          setSaleItems((prev) =>
-                            prev.map((it, idx) =>
-                              idx === index ? { ...it, quantity: val } : it,
-                            ),
-                          );
-                        }}
-                        className="input text-xs w-full"
-                      />
-                    </div>
-                    <div className="col-span-1 text-center">
-                      {saleItems.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setSaleItems((prev) => prev.filter((_, idx) => idx !== index))
-                          }
-                          className="text-rose-400 font-bold"
-                        >
-                          ×
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {saleError && <p className="form-error text-xs" role="alert">{saleError}</p>}
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  className="button button--ghost"
-                  onClick={() => setIsSaleModalOpen(false)}
-                  disabled={saleSubmitting}
-                >
-                  Cancelar
-                </button>
-                <button type="submit" className="button button--primary" disabled={saleSubmitting}>
-                  {saleSubmitting ? "Finalizando..." : "Concluir Venda"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL DEVOLUÇÃO */}
-      {returningSale && (
-        <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="modal-content panel max-w-lg w-full space-y-4">
-            <h2 className="text-xl font-bold">Registrar Devolução de Mercadorias</h2>
-            <form className="form-stack space-y-3" onSubmit={handleConfirmReturn}>
-              <label className="field">
-                <span>Motivo da Devolução *</span>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ex: Produto avariado, desistência do cliente"
-                  value={returnReason}
-                  onChange={(e) => setReturnReason(e.target.value)}
-                />
-              </label>
-
-              <div className="space-y-2 pt-2 border-t border-neutral-800">
-                <span className="text-sm font-semibold block">Itens da Venda:</span>
-                {returnItems.map((item, index) => {
-                  const saleItem = returningSale.items.find((it) => it.id === item.saleItemId);
-                  return (
-                    <div
-                      key={index}
-                      className="p-2 bg-neutral-900 border border-neutral-800 rounded flex items-center justify-between text-xs"
-                    >
-                      <div>
-                        <span className="font-semibold">{saleItem?.product?.name || "Item"}</span>
-                        <div className="text-neutral-400">
-                          Preço unitário: {formatCurrency(Number(saleItem?.unitPrice || 0))}
-                        </div>
-                      </div>
-                      <div className="w-24">
-                        <input
-                          type="number"
-                          min="1"
-                          max={Number(saleItem?.quantity || 1)}
-                          aria-label={`Quantidade a devolver de ${saleItem?.product?.name || "item"}`}
-                          value={item.quantity}
-                          onChange={(e) => {
-                            const val = Number(e.target.value);
-                            setReturnItems((prev) =>
-                              prev.map((it, idx) =>
-                                idx === index ? { ...it, quantity: val } : it,
-                              ),
-                            );
-                          }}
-                          className="input text-xs w-full"
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {returnError && <p className="form-error text-xs" role="alert">{returnError}</p>}
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  className="button button--ghost"
-                  onClick={() => setReturningSale(null)}
-                  disabled={returnSubmitting}
-                >
-                  Cancelar
-                </button>
-                <button type="submit" className="button button--primary" disabled={returnSubmitting}>
-                  {returnSubmitting ? "Registrando..." : "Confirmar Devolução"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL TABELA DE PREÇO */}
-      {isPricingModalOpen && (
-        <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="modal-content panel max-w-lg w-full space-y-4 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold">Nova Tabela de Preços</h2>
-            <form className="form-stack space-y-4" onSubmit={handleSavePricingList}>
-              <label className="field">
-                <span>Nome da Tabela *</span>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ex: Tabela Varejo 2026, Atacado Revenda"
-                  value={newPricingName}
-                  onChange={(e) => setNewPricingName(e.target.value)}
-                />
-              </label>
-
-              <div className="space-y-2 border-t border-neutral-800 pt-3">
-                <span className="text-sm font-semibold block">Preços Unitários por Produto:</span>
-                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                  {newPricingItems.map((item, idx) => {
-                    const product = products.find((p) => p.id === item.productId);
-                    return (
-                      <div
-                        key={item.productId}
-                        className="p-2 bg-neutral-900 border border-neutral-800 rounded flex items-center justify-between text-xs"
-                      >
-                        <span className="font-semibold">{product?.name || "Produto"}</span>
-                        <div className="w-32 flex items-center gap-1">
-                          <span className="text-neutral-500">R$</span>
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            aria-label={`Preço de ${product?.name || "produto"}`}
-                            value={item.unitPrice}
-                            onChange={(e) => {
-                              const val = Number(e.target.value);
-                              setNewPricingItems((prev) =>
-                                prev.map((it, i) => (i === idx ? { ...it, unitPrice: val } : it)),
-                              );
-                            }}
-                            className="input text-xs w-full text-right"
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {pricingError && <p className="form-error text-xs" role="alert">{pricingError}</p>}
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  className="button button--ghost"
-                  onClick={() => setIsPricingModalOpen(false)}
-                  disabled={pricingSubmitting}
-                >
-                  Cancelar
-                </button>
-                <button type="submit" className="button button--primary" disabled={pricingSubmitting}>
-                  {pricingSubmitting ? "Salvando..." : "Salvar Tabela"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL CAMPANHA PROMOCIONAL */}
-      {isPromoModalOpen && (
-        <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="modal-content panel max-w-xl w-full space-y-4 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold">Nova Campanha Promocional</h2>
-            <form className="form-stack space-y-4" onSubmit={handleSavePromotion}>
-              <label className="field">
-                <span>Nome da Campanha *</span>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ex: Black Friday Pirotécnica, Junina 2026"
-                  value={promoName}
-                  onChange={(e) => setPromoName(e.target.value)}
-                />
-              </label>
-
-              <div className="grid grid-cols-2 gap-3">
-                <label className="field">
-                  <span>Data Início *</span>
-                  <input
-                    type="date"
-                    required
-                    value={promoStartsAt}
-                    onChange={(e) => setPromoStartsAt(e.target.value)}
-                  />
-                </label>
-                <label className="field">
-                  <span>Data Fim *</span>
-                  <input
-                    type="date"
-                    required
-                    value={promoEndsAt}
-                    onChange={(e) => setPromoEndsAt(e.target.value)}
-                  />
-                </label>
-              </div>
-
-              <div className="space-y-2 border-t border-neutral-800 pt-3">
-                <span className="text-sm font-semibold block">Descontos por Produto:</span>
-                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                  {promoItems.map((item, idx) => {
-                    const product = products.find((p) => p.id === item.productId);
-                    return (
-                      <div
-                        key={item.productId}
-                        className="p-2 bg-neutral-900 border border-neutral-800 rounded flex items-center justify-between gap-2 text-xs"
-                      >
-                        <span className="font-semibold truncate max-w-[140px]">{product?.name || "Produto"}</span>
-                        <div className="flex items-center gap-2">
-                          <select
-                            aria-label={`Tipo de desconto de ${product?.name || "produto"}`}
-                            value={item.discountType}
-                            onChange={(e) => {
-                              const t = e.target.value as PromotionDiscountType;
-                              setPromoItems((prev) =>
-                                prev.map((it, i) => (i === idx ? { ...it, discountType: t } : it)),
-                              );
-                            }}
-                            className="input text-xs py-1"
-                          >
-                            <option value="PERCENTUAL">Percentual (%)</option>
-                            <option value="VALOR_FIXO">Valor Fixo (R$)</option>
-                          </select>
-                          <input
-                            type="number"
-                            step={item.discountType === "PERCENTUAL" ? "1" : "0.01"}
-                            min="0"
-                            max={item.discountType === "PERCENTUAL" ? "100" : undefined}
-                            aria-label={`Valor do desconto de ${product?.name || "produto"}`}
-                            value={item.discountType === "PERCENTUAL" ? (item.discountPercent ?? 0) : (item.promotionalPrice ?? 0)}
-                            onChange={(e) => {
-                              const val = Number(e.target.value);
-                              setPromoItems((prev) =>
-                                prev.map((it, i) =>
-                                  i === idx
-                                    ? item.discountType === "PERCENTUAL"
-                                      ? { ...it, discountPercent: val, promotionalPrice: undefined }
-                                      : { ...it, promotionalPrice: val, discountPercent: undefined }
-                                    : it,
-                                ),
-                              );
-                            }}
-                            className="input text-xs w-20 text-right"
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {promoError && <p className="form-error text-xs" role="alert">{promoError}</p>}
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  className="button button--ghost"
-                  onClick={() => setIsPromoModalOpen(false)}
-                  disabled={promoSubmitting}
-                >
-                  Cancelar
-                </button>
-                <button type="submit" className="button button--primary" disabled={promoSubmitting}>
-                  {promoSubmitting ? "Salvando..." : "Criar Campanha"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL EMISSÃO FISCAL DA VENDA */}
-      {fiscalSale && (
-        <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div
-            className="modal-content panel max-w-lg w-full space-y-4 max-h-[90vh] overflow-y-auto"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="fiscal-sale-title"
-          >
-            <h2 id="fiscal-sale-title" className="text-xl font-bold flex items-center gap-2">
-              <span>📄</span> Emissão Fiscal de Venda
-            </h2>
-
-            <div className="p-3 bg-neutral-900 border border-neutral-800 rounded space-y-1 text-xs">
-              <div>
-                <strong>Destinatário:</strong>{" "}
-                {fiscalSale.customer
-                  ? `${fiscalSale.customer.legalName} (${fiscalSale.customer.taxId})`
-                  : "Consumidor Final (Venda de balcão)"}
-              </div>
-              <div>
-                <strong>Valor Total:</strong>{" "}
-                <span className="font-mono font-bold text-emerald-400">
-                  {formatCurrency(Number(fiscalSale.total))}
-                </span>
-              </div>
-              <div>
-                <strong>Itens:</strong> {fiscalSale.items.length} produto(s)
-              </div>
-            </div>
-
-            {fiscalSuccess ? (
-              <div className="p-4 bg-emerald-950/40 border border-emerald-600 rounded space-y-2 text-xs text-emerald-200">
-                <div className="font-bold text-sm text-emerald-300">
-                  ✅ Documento Fiscal Autorizado pela SEFAZ!
-                </div>
-                <div>
-                  <strong>Tipo:</strong> {fiscalSuccess.type} · <strong>Número:</strong> {fiscalSuccess.number} · <strong>Série:</strong> {fiscalSuccess.series}
-                </div>
-                {fiscalSuccess.accessKey && (
-                  <div className="p-2 bg-neutral-900 border border-neutral-800 rounded font-mono text-[11px] break-all select-all">
-                    Chave: {fiscalSuccess.accessKey}
-                  </div>
-                )}
-                {fiscalSuccess.xmlUrl && (
-                  <div>
-                    <a
-                      href={fiscalSuccess.xmlUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="button button--secondary text-xs inline-block mt-2"
-                    >
-                      Baixar XML Autorizado
-                    </a>
-                  </div>
-                )}
-                <div className="pt-2 text-right">
-                  <button
-                    type="button"
-                    className="button button--primary text-xs"
-                    onClick={() => setFiscalSale(null)}
-                  >
-                    Concluir
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <form className="form-stack space-y-3" onSubmit={handleSubmitFiscal}>
-                <label className="field">
-                  <span>Modelo de Documento Fiscal *</span>
-                  <select
-                    value={fiscalType}
-                    onChange={(e) => setFiscalType(e.target.value as "NFE" | "NFCE")}
-                    className="input"
-                  >
-                    <option value="NFE" disabled={!fiscalSale.customer}>
-                      NF-e — Modelo 55 (Nota Fiscal Eletrônica com Destinatário)
-                    </option>
-                    <option value="NFCE">
-                      NFC-e — Modelo 65 (Nota Fiscal de Consumidor Eletrônica)
-                    </option>
-                  </select>
-                  {!fiscalSale.customer && (
-                    <span className="text-[11px] text-amber-400 block mt-1">
-                      * Vendas sem cliente identificado emitem NFC-e (Cupom de Balcão).
-                    </span>
-                  )}
-                </label>
-
-                {fiscalType === "NFE" && (
-                  <label className="field">
-                    <span>Natureza da Operação *</span>
-                    <input
-                      type="text"
-                      required
-                      value={fiscalNature}
-                      onChange={(e) => setFiscalNature(e.target.value)}
-                    />
-                  </label>
-                )}
-
-                {fiscalError && (
-                  <p className="form-error text-xs" role="alert">
-                    {fiscalError}
-                  </p>
-                )}
-
-                <div className="flex justify-end gap-2 pt-2">
-                  <button
-                    type="button"
-                    className="button button--ghost"
-                    onClick={() => setFiscalSale(null)}
-                    disabled={fiscalSubmitting}
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="button button--primary"
-                    disabled={fiscalSubmitting}
-                  >
-                    {fiscalSubmitting ? "Emitindo..." : "Autorizar na SEFAZ"}
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* MODAL COBRANÇA PIX DA VENDA */}
       <PixModal
         isOpen={isPixModalOpen}
         onClose={() => setIsPixModalOpen(false)}
@@ -1779,6 +793,16 @@ export function CommercialWorkspace() {
           setActionSuccess("Pagamento PIX liquidado e compensado com sucesso!");
           setReloadTrigger((prev) => prev + 1);
         }}
+      />
+
+      <QuotePrintModal
+        quote={printQuote}
+        onClose={() => setPrintQuote(null)}
+      />
+
+      <SaleReceiptModal
+        sale={printSaleReceipt}
+        onClose={() => setPrintSaleReceipt(null)}
       />
     </div>
   );

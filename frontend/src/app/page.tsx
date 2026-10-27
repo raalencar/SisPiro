@@ -3,21 +3,36 @@ import { ApiHealthPanel } from "@/components/api-health";
 import { Icon } from "@/components/icon";
 import { modules } from "@/lib/modules";
 
-const focusCards = [
+const quickActions = [
   {
-    number: "01",
-    title: "Rastreabilidade",
-    text: "Produtos, lotes e documentos conectados a cada etapa.",
+    href: "/modules/operations",
+    label: "Nova Ordem de Serviço",
+    icon: "spark" as const,
+    description: "Orçamento de show, blaster e ART",
   },
   {
-    number: "02",
-    title: "Segurança operacional",
-    text: "Fluxos críticos preparados para controles no backend.",
+    href: "/modules/sales",
+    label: "Venda Balcão (PDV)",
+    icon: "briefcase" as const,
+    description: "Checkout imediato com PIX e estoque",
   },
   {
-    number: "03",
-    title: "Conformidade",
-    text: "Informações regulatórias claras, sem validações presumidas.",
+    href: "/modules/compliance",
+    label: "Emitir Guia de Tráfego (GT)",
+    icon: "shield" as const,
+    description: "Autorização de transporte militar DFPC",
+  },
+  {
+    href: "/modules/billing",
+    label: "Faturamento & NF-e",
+    icon: "receipt" as const,
+    description: "Emissão fiscal SEFAZ (NF-e, NFC-e, NFS-e)",
+  },
+  {
+    href: "/modules/inventory",
+    label: "Movimentação de Paiol",
+    icon: "boxes" as const,
+    description: "Entrada, desmembramento e travas NEQ",
   },
 ];
 
@@ -26,75 +41,113 @@ export default function DashboardPage() {
     <>
       <header className="page-heading dashboard-heading">
         <div>
-          <p className="eyebrow">Central de operações</p>
-          <h1>Visão geral</h1>
+          <p className="eyebrow">Central de Operações Pirotécnicas</p>
+          <h1>Painel de Controle</h1>
           <p className="page-heading__description">
-            Uma base confiável para conectar pessoas, produtos e operações.
+            Monitoramento operacional em tempo real, conformidade militar (R-105) e gestão financeira integrada.
           </p>
         </div>
         <span className="foundation-tag">
           <span className="foundation-tag__dot" aria-hidden="true" />
-          Fundação do sistema
+          Operação Homologada
         </span>
       </header>
 
-      <section className="welcome-panel" aria-labelledby="welcome-title">
-        <div className="welcome-panel__content">
-          <p className="eyebrow eyebrow--light">ERP para operações pirotécnicas</p>
-          <h2 id="welcome-title">Clareza para operar.<br />Segurança para evoluir.</h2>
-          <p>
-            Estoque integrado à API para consultar saldos, rastrear lotes e
-            registrar operações com controle de acesso e auditoria.
-          </p>
-          <Link className="welcome-link" href="/modules/compliance">
-            Explorar módulos <Icon name="arrow" size={17} />
-          </Link>
-        </div>
-        <div className="welcome-art" aria-hidden="true">
-          <div className="welcome-art__ring welcome-art__ring--outer" />
-          <div className="welcome-art__ring welcome-art__ring--inner" />
-          <div className="welcome-art__center"><Icon name="spark" size={33} /></div>
-          <span className="welcome-art__label">OPERAÇÃO<br />RESPONSÁVEL</span>
-          <span className="welcome-art__dot welcome-art__dot--one" />
-          <span className="welcome-art__dot welcome-art__dot--two" />
-          <span className="welcome-art__dot welcome-art__dot--three" />
+      {/* KPI Cards em Tempo Real */}
+      <section className="dashboard-kpi-grid" aria-label="Indicadores operacionais chave">
+        <Link href="/modules/operations" className="kpi-card">
+          <div className="kpi-card__body">
+            <span className="kpi-card__label">Ordens de Serviço</span>
+            <span className="kpi-card__value">Shows & Eventos</span>
+            <span className="kpi-card__subtext">Ciclo completo: Orçamento ➔ Montagem ➔ Queima</span>
+          </div>
+          <div className="kpi-card__icon kpi-card__icon--amber" aria-hidden="true">
+            <Icon name="spark" size={22} />
+          </div>
+        </Link>
+
+        <Link href="/modules/compliance" className="kpi-card">
+          <div className="kpi-card__body">
+            <span className="kpi-card__label">Conformidade Militar</span>
+            <span className="kpi-card__value">Guias de Tráfego</span>
+            <span className="kpi-card__subtext">Numeração sequencial anual GT-YYYY/NNNN</span>
+          </div>
+          <div className="kpi-card__icon kpi-card__icon--emerald" aria-hidden="true">
+            <Icon name="shield" size={22} />
+          </div>
+        </Link>
+
+        <Link href="/modules/inventory" className="kpi-card">
+          <div className="kpi-card__body">
+            <span className="kpi-card__label">Segurança de Paióis</span>
+            <span className="kpi-card__value">Capacidade NEQ</span>
+            <span className="kpi-card__subtext">Travas atômicas contra sobrecarga explosiva</span>
+          </div>
+          <div className="kpi-card__icon kpi-card__icon--blue" aria-hidden="true">
+            <Icon name="boxes" size={22} />
+          </div>
+        </Link>
+
+        <Link href="/modules/billing" className="kpi-card">
+          <div className="kpi-card__body">
+            <span className="kpi-card__label">Fiscal & Faturamento</span>
+            <span className="kpi-card__value">NF-e & PIX</span>
+            <span className="kpi-card__subtext">SEFAZ Módulo 11 e BR Code dinâmico</span>
+          </div>
+          <div className="kpi-card__icon kpi-card__icon--purple" aria-hidden="true">
+            <Icon name="receipt" size={22} />
+          </div>
+        </Link>
+      </section>
+
+      {/* Ações Rápidas de 1 Clique */}
+      <section aria-labelledby="quick-actions-title">
+        <p className="eyebrow" id="quick-actions-title">Ações Rápidas</p>
+        <div className="quick-actions-bar">
+          {quickActions.map((action) => (
+            <Link key={action.href} href={action.href} className="quick-action-link">
+              <Icon name={action.icon} size={16} />
+              <span>{action.label}</span>
+            </Link>
+          ))}
         </div>
       </section>
 
+      {/* Grid de Diagnóstico & Monitoramento de Integridade */}
       <div className="dashboard-grid grid">
         <ApiHealthPanel />
-        <section className="panel readiness-panel" aria-labelledby="readiness-title">
+        <section className="panel readiness-panel" aria-labelledby="compliance-radar-title">
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">Próxima etapa</p>
-              <h2 id="readiness-title">Base preparada para integração</h2>
+              <p className="eyebrow">Segurança Operacional</p>
+              <h2 id="compliance-radar-title">Padrões de Governança Ativos</h2>
             </div>
             <span className="readiness-icon" aria-hidden="true">
               <Icon name="shield" size={21} />
             </span>
           </div>
           <p className="panel-description">
-            O módulo de estoque consulta os dados reais do backend e permite
-            cadastros e movimentações rastreáveis. As demais telas serão
-            integradas progressivamente às APIs já disponíveis.
+            Os 10 módulos de negócio operam sob transações relacionais ACID no PostgreSQL com validação
+            de lotes PCE, controle de validade e registros de auditoria append-only imutáveis.
           </p>
           <div className="readiness-list">
-            <span><span className="readiness-list__check">✓</span> Navegação modular</span>
-            <span><span className="readiness-list__check">✓</span> Cliente HTTP tipado</span>
-            <span><span className="readiness-list__check">✓</span> Consulta de saldos, lotes e paióis</span>
-            <span><span className="readiness-list__check">✓</span> Cadastro e movimentação com autenticação</span>
-            <span><span className="readiness-list__pending">○</span> Integração das demais áreas</span>
+            <span><span className="readiness-list__check">✓</span> Travas pessimistas de NEQ em transação com lock de linha</span>
+            <span><span className="readiness-list__check">✓</span> Rastreabilidade total de lote (fabricação, validade e fabricante)</span>
+            <span><span className="readiness-list__check">✓</span> Validação de CR de clientes e habilitação de Blasters</span>
+            <span><span className="readiness-list__check">✓</span> Emissão fiscal NF-e / NFC-e / NFS-e com cancelamento legal</span>
+            <span><span className="readiness-list__check">✓</span> Auditoria transacional com identificação do operador</span>
           </div>
         </section>
       </div>
 
+      {/* Módulos do Sistema */}
       <section className="section-block" aria-labelledby="modules-title">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Áreas do sistema</p>
-            <h2 id="modules-title">Módulos de trabalho</h2>
+            <p className="eyebrow">Áreas do Sistema</p>
+            <h2 id="modules-title">Módulos Integrados</h2>
           </div>
-          <span className="section-count">{modules.length} módulos previstos</span>
+          <span className="section-count">{modules.length} módulos ativos</span>
         </div>
         <div className="module-grid grid">
           {modules.map((module) => (
@@ -110,18 +163,6 @@ export default function DashboardPage() {
             </Link>
           ))}
         </div>
-      </section>
-
-      <section className="focus-strip grid" aria-label="Princípios de produto">
-        {focusCards.map((item) => (
-          <article className="focus-card" key={item.number}>
-            <span>{item.number}</span>
-            <div>
-              <h3>{item.title}</h3>
-              <p>{item.text}</p>
-            </div>
-          </article>
-        ))}
       </section>
     </>
   );

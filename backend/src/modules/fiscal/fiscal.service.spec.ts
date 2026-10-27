@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { FiscalService } from './fiscal.service.js';
 import { FiscalSandboxAdapter } from './adapters/fiscal-sandbox.adapter.js';
-import { FiscalDocumentStatus, FiscalDocumentType } from '@prisma/client';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { FiscalDocumentStatus } from '@prisma/client';
+import { BadRequestException } from '@nestjs/common';
 
 describe('FiscalService', () => {
   let service: FiscalService;

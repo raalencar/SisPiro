@@ -30,9 +30,11 @@ body {
   min-height: 100vh;
   margin: 0;
   color: var(--ink);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   font-size: 14px;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 button,
@@ -1855,3 +1857,772 @@ h1, h2, h3, p {
     grid-template-columns: 1fr;
   }
 }
+
+/* ==========================================================================
+   Toast Notification System (UX Feedback)
+   ========================================================================== */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 420px;
+  width: calc(100vw - 48px);
+  pointer-events: none;
+}
+
+.toast-item {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  animation: toast-slide-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+@keyframes toast-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.toast-item__icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  flex: 0 0 auto;
+}
+
+.toast-item--success {
+  border-left: 4px solid #10b981;
+}
+.toast-item--success .toast-item__icon {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.toast-item--error {
+  border-left: 4px solid #ef4444;
+}
+.toast-item--error .toast-item__icon {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.toast-item--warning {
+  border-left: 4px solid #f59e0b;
+}
+.toast-item--warning .toast-item__icon {
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.toast-item--info {
+  border-left: 4px solid #3b82f6;
+}
+.toast-item--info .toast-item__icon {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.toast-item__content {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.toast-item__content strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+
+.toast-item__content p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #475569;
+}
+
+.toast-item__close {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  flex: 0 0 auto;
+  margin-top: -2px;
+  margin-right: -4px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.toast-item__close:hover {
+  color: #1e293b;
+  background: #f1f5f9;
+}
+
+/* ==========================================================================
+   Skeleton Shimmer Loading
+   ========================================================================== */
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #f1f5f3 0%, #e5ede8 50%, #f1f5f3 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton-table-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+
+.skeleton-table-header {
+  display: flex;
+  gap: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.skeleton-table-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skeleton-table-row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+/* ==========================================================================
+   Topbar Cockpit & User Profile
+   ========================================================================== */
+.topbar-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-left: 14px;
+  border-left: 1px solid var(--line);
+}
+
+.user-avatar {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #254b49 0%, #183b3c 100%);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 4px rgba(24, 59, 60, 0.15);
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.user-info__name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  line-height: 1.2;
+}
+
+.user-info__roles {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.user-role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  background: #f1f5f3;
+  color: #2b564a;
+  border: 1px solid #d4e2db;
+}
+
+.user-logout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #ffffff;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.user-logout-btn:hover {
+  background: #fef2f2;
+  color: #ef4444;
+  border-color: #fecaca;
+}
+
+/* ==========================================================================
+   Dashboard Central de Operações & KPI Cards
+   ========================================================================== */
+.dashboard-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.kpi-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 22px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px -2px rgba(24, 59, 60, 0.08);
+}
+
+.kpi-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kpi-card__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.kpi-card__value {
+  font-size: 26px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.5px;
+  line-height: 1.15;
+}
+
+.kpi-card__subtext {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.kpi-card__icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  flex: 0 0 auto;
+}
+
+.kpi-card__icon--blue {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.kpi-card__icon--emerald {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.kpi-card__icon--amber {
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.kpi-card__icon--purple {
+  background: #faf5ff;
+  color: #7c3aed;
+}
+
+/* Quick Actions Bar */
+.quick-actions-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding: 16px 20px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.quick-action-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+.quick-action-link:hover {
+  background: #254b49;
+  border-color: #254b49;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.quick-action-link svg {
+  color: inherit;
+}
+
+/* ==========================================================================
+   SISTEMA DE MODAIS E COMPONENTES INSTITUCIONAIS DE TELA
+   ========================================================================== */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  padding: 1.25rem;
+  overflow-y: auto;
+}
+
+.modal-content {
+  position: relative;
+  width: 100%;
+  max-width: 680px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background-color: #ffffff;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.15), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  padding: 1.5rem;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+/* Badge de Classes PCE de Alto Contraste */
+.badge-pce {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #142f31;
+  color: #ffffff;
+  border: 1px solid #0f2324;
+  letter-spacing: 0.2px;
+}
+
+/* Cards Executivos de Métricas e KPIs */
+.card-metric {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
+  transition: all 0.2s ease;
+}
+
+.card-metric:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.08);
+}
+
+.card-metric__label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+  margin-bottom: 0.35rem;
+}
+
+.card-metric__value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  font-family: var(--font-mono, monospace);
+  color: #0f172a;
+}
+
+/* ==========================================================================
+   PRINT-READY UNIVERSAL SYSTEM (@media print) & DOCUMENT TEMPLATES
+   ========================================================================== */
+
+.print-document {
+  background: #ffffff;
+  color: #111827;
+}
+
+.print-sheet {
+  padding: 1.5rem;
+  background: #ffffff;
+  color: #000000;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.print-sheet h1,
+.print-sheet h2,
+.print-sheet h3,
+.print-sheet h4 {
+  color: #000000;
+  margin: 0;
+}
+
+.print-header-military {
+  border-bottom: 2px solid #000000;
+  padding-bottom: 0.75rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.print-header-military .military-title {
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.print-header-military .military-subtitle {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.print-header-military .military-meta {
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.print-box {
+  border: 1px solid #000000;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.print-box-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0.25rem;
+  margin-bottom: 0.4rem;
+}
+
+.print-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+  font-size: 0.8rem;
+}
+
+.print-table th,
+.print-table td {
+  border: 1px solid #000000;
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+}
+
+.print-table th {
+  background: #f3f4f6;
+  font-weight: 700;
+}
+
+.print-barcode-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  border: 1px dashed #4b5563;
+  margin: 0.75rem 0;
+  background: #fafafa;
+}
+
+.print-barcode-simulation {
+  height: 38px;
+  width: 90%;
+  max-width: 420px;
+  background: repeating-linear-gradient(
+    90deg,
+    #000 0,
+    #000 2px,
+    #fff 2px,
+    #fff 4px,
+    #000 4px,
+    #000 7px,
+    #fff 7px,
+    #fff 9px
+  );
+  margin-bottom: 4px;
+}
+
+.print-signatures-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-top: 2rem;
+  text-align: center;
+  page-break-inside: avoid;
+}
+
+.print-signature-line {
+  border-top: 1px solid #000000;
+  padding-top: 0.5rem;
+  font-size: 0.8rem;
+}
+
+/* Regras Estritas de Mídia Impressa */
+@media print {
+  @page {
+    margin: 8mm 10mm;
+    size: portrait;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 10pt !important;
+    width: 100% !important;
+    min-width: 100% !important;
+    overflow: visible !important;
+  }
+
+  /* Ocultação estrita de todos os elementos de navegação e layout de tela */
+  aside.sidebar,
+  .sidebar,
+  .mobile-sidebar,
+  .mobile-scrim,
+  header.topbar,
+  .topbar,
+  .toast-container,
+  .quick-actions-bar,
+  .dashboard-grid,
+  .page-footer,
+  .no-print,
+  .modal-close,
+  .modal-footer,
+  .action-button,
+  .button,
+  .tabs,
+  .user-logout-btn,
+  .environment-label,
+  .api-health-indicator,
+  .mobile-menu-button,
+  .section-heading > div:last-child {
+    display: none !important;
+  }
+
+  /* Reset estrutural da coluna principal para ocupar 100% da folha sem recuo */
+  .main-column {
+    margin: 0 !important;
+    margin-left: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: auto !important;
+  }
+
+  .page-content {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* QUANDO HÁ UM DOCUMENTO FORMAL EM MODAL (Proposta, DANFE, SFPC, Ordem de Queima, Recibo) */
+  body:has(.print-document) .workspace,
+  body:has(.print-document) .topbar,
+  body:has(.print-document) .breadcrumbs {
+    display: none !important;
+  }
+
+  .modal-backdrop:has(.print-document),
+  .modal-backdrop {
+    position: static !important;
+    inset: auto !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+    overflow: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .modal-content.print-document,
+  .modal-content:has(.print-document),
+  .print-document {
+    position: static !important;
+    inset: auto !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    overflow: visible !important;
+  }
+
+  .print-sheet {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    page-break-inside: auto;
+  }
+
+  .print-header-military {
+    border-bottom: 2px solid #000000 !important;
+    margin-bottom: 0.75rem !important;
+    padding-bottom: 0.5rem !important;
+    text-align: center !important;
+  }
+
+  .print-header-military .military-title {
+    font-size: 1.15rem !important;
+    font-weight: 800 !important;
+    color: #000000 !important;
+  }
+
+  .print-header-military .military-subtitle {
+    font-size: 0.85rem !important;
+    color: #111827 !important;
+  }
+
+  .print-box {
+    border: 1px solid #000000 !important;
+    background: #ffffff !important;
+    padding: 0.5rem 0.6rem !important;
+    margin-bottom: 0.6rem !important;
+    page-break-inside: avoid;
+  }
+
+  .print-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  .print-table th,
+  .print-table td {
+    border: 1px solid #000000 !important;
+    color: #000000 !important;
+    padding: 0.35rem 0.45rem !important;
+    background: transparent !important;
+  }
+
+  .print-table th {
+    background: #f3f4f6 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .print-signatures-grid {
+    page-break-inside: avoid !important;
+    margin-top: 1.5rem !important;
+  }
+
+  .print-signature-line {
+    border-top: 1px solid #000000 !important;
+    color: #000000 !important;
+  }
+
+  /* Evitar quebras de página desagradáveis */
+  tr,
+  .print-box,
+  .card {
+    page-break-inside: avoid;
+  }
+}
+

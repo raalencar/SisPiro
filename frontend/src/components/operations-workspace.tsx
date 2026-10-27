@@ -18,220 +18,26 @@ import {
   type ServiceOrderReport,
   type ServiceOrderStatus,
 } from "@/lib/api";
+import { formatCurrency, formatDateOnly } from "@/lib/format";
+import { useToast } from "@/components/toast-provider";
 import {
-  formatCurrency,
-  formatDateOnly,
-  formatDateTime,
-  formatNumber,
-} from "@/lib/format";
-import { useEscapeToClose } from "@/lib/use-escape-to-close";
-import { useModalFocusTrap } from "@/lib/use-modal-focus-trap";
-
-type OrderAction = "create" | "edit" | "approve" | "start" | "cancel" | "close";
-type OrderDraftItem = { lotId: string; quantity: string };
-
-function isUsableLot(lot: OperationalLot): boolean {
-  const today = localDate(0);
-  return (
-    lot.product.type !== "SERVICO" &&
-    Number(lot.quantity) > 0 &&
-    lot.expiresAt.slice(0, 10) >= today &&
-    lot.magazine.active &&
-    lot.magazine.fireLicenseExpiresAt.slice(0, 10) >= today
-  );
-}
-
-const STATUS_LABELS: Record<ServiceOrderStatus, string> = {
-  ORCAMENTO: "Orçamento",
-  APROVADO: "Aprovada",
-  EM_MONTAGEM: "Em montagem",
-  CONCLUIDO: "Concluída",
-  CANCELADO: "Cancelada",
-};
-
-const STATUS_TONES: Record<ServiceOrderStatus, string> = {
-  ORCAMENTO: "neutral",
-  APROVADO: "available",
-  EM_MONTAGEM: "warning",
-  CONCLUIDO: "available",
-  CANCELADO: "error",
-};
+  BurningDossierModal,
+  GtModal,
+  localDate,
+  localDateTime,
+  monthRange,
+  NfseModal,
+  OrderActionCard,
+  OrderDetailsPane,
+  OrdersTable,
+  type OrderAction,
+  type OrderDraftItem,
+} from "./operations/index";
 
 function errorMessage(error: unknown): string {
   return error instanceof Error
     ? error.message
     : "Não foi possível concluir a operação.";
-}
-
-function localDateTime(daysAhead: number): string {
-  const date = new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000);
-  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
-  return date.toISOString().slice(0, 16);
-}
-
-function localDate(daysAhead = 0): string {
-  const date = new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000);
-  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
-  return date.toISOString().slice(0, 10);
-}
-
-function monthRange(): { from: string; to: string } {
-  const now = new Date();
-  return {
-    from: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`,
-    to: localDate(
-      new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() -
-        now.getDate(),
-    ),
-  };
-}
-
-function StatusPill({ status }: { status: ServiceOrderStatus }) {
-  return (
-    <span className={`status-pill status-pill--${STATUS_TONES[status]}`}>
-      {STATUS_LABELS[status]}
-    </span>
-  );
-}
-
-interface StepDef {
-  number: number;
-  label: string;
-  sublabel: string;
-  state: "completed" | "current" | "upcoming";
-}
-
-function getOrderSteps(order: ServiceOrder): StepDef[] {
-  const isCanceled = order.status === "CANCELADO";
-  const s = order.status;
-
-  const step1State: StepDef["state"] = isCanceled
-    ? "upcoming"
-    : s === "ORCAMENTO"
-      ? "current"
-      : "completed";
-
-  const step2State: StepDef["state"] = isCanceled || s === "ORCAMENTO"
-    ? "upcoming"
-    : s === "APROVADO"
-      ? "current"
-      : "completed";
-
-  const step3State: StepDef["state"] = isCanceled || s === "ORCAMENTO"
-    ? "upcoming"
-    : s === "APROVADO" || s === "EM_MONTAGEM"
-      ? "current"
-      : "completed";
-
-  const step4State: StepDef["state"] = isCanceled || s === "ORCAMENTO" || s === "APROVADO"
-    ? "upcoming"
-    : s === "EM_MONTAGEM"
-      ? "current"
-      : "completed";
-
-  const step5State: StepDef["state"] = s === "CONCLUIDO"
-    ? "current"
-    : "upcoming";
-
-  return [
-    {
-      number: 1,
-      label: "1. Orçamento",
-      sublabel: s === "ORCAMENTO" ? "Proposta em aberto" : "Lotes validados",
-      state: step1State,
-    },
-    {
-      number: 2,
-      label: "2. Aprovação & ART",
-      sublabel: order.responsibleBlaster ? order.responsibleBlaster.name : "Designar Blaster",
-      state: step2State,
-    },
-    {
-      number: 3,
-      label: "3. Guia de Tráfego",
-      sublabel: s === "CONCLUIDO" || s === "EM_MONTAGEM" ? "Transporte liberado" : "Emitir DFPC",
-      state: step3State,
-    },
-    {
-      number: 4,
-      label: "4. Montagem & Queima",
-      sublabel: s === "CONCLUIDO" ? "Detonação realizada" : "Execução no local",
-      state: step4State,
-    },
-    {
-      number: 5,
-      label: "5. Faturamento & PIX",
-      sublabel: s === "CONCLUIDO" ? "Pronto para cobrança" : "Pós-evento",
-      state: step5State,
-    },
-  ];
-}
-
-function OrderStepper({ order }: { order: ServiceOrder }) {
-  if (order.status === "CANCELADO") {
-    return (
-      <div className="p-3 my-4 bg-rose-950/30 border border-rose-800/60 rounded text-rose-300 text-xs flex items-center gap-2">
-        <span className="font-bold">⚠️ Ordem de Serviço Cancelada:</span>
-        <span>As reservas de estoque foram estornadas e o processo foi interrompido.</span>
-      </div>
-    );
-  }
-
-  const steps = getOrderSteps(order);
-
-  return (
-    <nav aria-label="Progresso da ordem de serviço" className="my-5 p-4 bg-neutral-900/70 border border-neutral-800 rounded-lg">
-      <ol className="grid grid-cols-1 sm:grid-cols-5 gap-3 relative">
-        {steps.map((st, idx) => {
-          const isCompleted = st.state === "completed";
-          const isCurrent = st.state === "current";
-
-          return (
-            <li key={st.number} className="flex flex-col items-center sm:items-start text-center sm:text-left gap-1.5 relative">
-              <div className="flex items-center gap-2 w-full">
-                <div
-                  className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-colors ${
-                    isCompleted
-                      ? "bg-emerald-600 text-white shadow-sm shadow-emerald-500/30"
-                      : isCurrent
-                        ? "bg-blue-600 text-white ring-2 ring-blue-400 ring-offset-2 ring-offset-neutral-900"
-                        : "bg-neutral-800 text-neutral-400 border border-neutral-700"
-                  }`}
-                  aria-current={isCurrent ? "step" : undefined}
-                >
-                  {isCompleted ? "✓" : st.number}
-                </div>
-                {idx < steps.length - 1 && (
-                  <div
-                    className={`hidden sm:block h-0.5 flex-1 ${
-                      isCompleted ? "bg-emerald-600/70" : "bg-neutral-800"
-                    }`}
-                    aria-hidden="true"
-                  />
-                )}
-              </div>
-              <div>
-                <span
-                  className={`text-xs font-semibold block ${
-                    isCurrent
-                      ? "text-blue-300 font-bold"
-                      : isCompleted
-                        ? "text-neutral-200"
-                        : "text-neutral-500"
-                  }`}
-                >
-                  {st.label}
-                </span>
-                <span className="text-[11px] text-neutral-400 block truncate max-w-[130px]">
-                  {st.sublabel}
-                </span>
-              </div>
-            </li>
-          );
-        })}
-      </ol>
-    </nav>
-  );
 }
 
 function Metric({
@@ -266,40 +72,40 @@ async function loadAllPages<T>(
       { length: Math.min(5, first.meta.totalPages - page + 1) },
       (_, index) => page + index,
     );
-    results.push(...(await Promise.all(pages.map(fetchPage))));
+    const chunk = await Promise.all(pages.map(fetchPage));
+    results.push(...chunk);
   }
-  return results.flatMap((result) => result.data);
+  return results.flatMap((entry) => entry.data);
 }
 
 export function OperationsWorkspace() {
-  const initialRange = monthRange();
+  const toast = useToast();
+  const defaultRange = monthRange();
   const [orders, setOrders] = useState<ServiceOrder[]>([]);
-  const [totalPages, setTotalPages] = useState(1);
   const [report, setReport] = useState<ServiceOrderReport | null>(null);
-  const [selected, setSelected] = useState<ServiceOrder | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<ServiceOrderStatus | "">("");
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
-  const [statusFilter, setStatusFilter] = useState<ServiceOrderStatus | "">("");
-  const [from, setFrom] = useState(initialRange.from);
-  const [to, setTo] = useState(initialRange.to);
+  const [from, setFrom] = useState(defaultRange.from);
+  const [to, setTo] = useState(defaultRange.to);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [revision, setRevision] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [action, setAction] = useState<OrderAction | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [customers, setCustomers] = useState<OperationalCustomer[]>([]);
   const [blasters, setBlasters] = useState<OperationalBlaster[]>([]);
   const [lots, setLots] = useState<OperationalLot[]>([]);
   const [referencesLoading, setReferencesLoading] = useState(false);
-  const [referencesLoaded, setReferencesLoaded] = useState(false);
+
+  // Form states
   const [customerId, setCustomerId] = useState("");
+  const [contractedAmount, setContractedAmount] = useState("");
   const [eventAt, setEventAt] = useState(localDateTime(7));
   const [eventLocation, setEventLocation] = useState("");
-  const [contractedAmount, setContractedAmount] = useState("");
   const [draftItems, setDraftItems] = useState<OrderDraftItem[]>([
     newOrderItem(),
   ]);
@@ -311,31 +117,254 @@ export function OperationsWorkspace() {
     Record<string, string>
   >({});
 
-  // --- FRENTE E2E: ELO 1 - GUIA DE TRÁFEGO ---
+  const selected = orders.find((order) => order.id === selectedId) ?? null;
+
+  const loadReferences = useCallback(async () => {
+    setReferencesLoading(true);
+    setActionError(null);
+    try {
+      const [nextCustomers, nextBlasters, nextLots] = await Promise.all([
+        loadAllPages(operationsApi.getCustomers),
+        loadAllPages(operationsApi.getBlasters),
+        loadAllPages(operationsApi.getLots),
+      ]);
+      setCustomers(nextCustomers);
+      setBlasters(nextBlasters);
+      setLots(nextLots);
+    } catch (cause) {
+      setActionError(errorMessage(cause));
+    } finally {
+      setReferencesLoading(false);
+    }
+  }, []);
+
+  const [reloadTrigger, setReloadTrigger] = useState(0);
+
+  const reload = useCallback(() => {
+    setLoading(true);
+    setReloadTrigger((v) => v + 1);
+  }, []);
+
+  useEffect(() => {
+    let current = true;
+    void Promise.all([
+      operationsApi.getOrders(page, search || undefined, statusFilter || undefined),
+      operationsApi.getReport(from, to),
+    ])
+      .then(([ordersResult, reportResult]) => {
+        if (!current) return;
+        setOrders(ordersResult.data);
+        setTotalPages(ordersResult.meta.totalPages);
+        setReport(reportResult);
+        setError(null);
+      })
+      .catch((cause: unknown) => {
+        if (current) setError(errorMessage(cause));
+      })
+      .finally(() => {
+        if (current) setLoading(false);
+      });
+
+    return () => {
+      current = false;
+    };
+  }, [page, statusFilter, search, from, to, reloadTrigger]);
+
+  function changeSelected(order: ServiceOrder) {
+    setSelectedId(order.id);
+    setAction(null);
+    setActionError(null);
+  }
+
+  function applyFilters(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPage(1);
+    setSearch(searchInput.trim());
+  }
+
+  function openAction(nextAction: OrderAction) {
+    setAction(nextAction);
+    setActionError(null);
+    if (nextAction === "create") {
+      setCustomerId("");
+      setContractedAmount("");
+      setEventAt(localDateTime(7));
+      setEventLocation("");
+      setDraftItems([newOrderItem()]);
+      void loadReferences();
+    }
+    if (nextAction === "approve") {
+      setBlasterId(selected?.responsibleBlasterId ?? "");
+      setArtNumber(selected?.artNumber ?? "");
+      void loadReferences();
+    }
+    if (nextAction === "close") {
+      setDueDate(localDate(30));
+      setReportNotes(selected?.reportNotes ?? "");
+    }
+  }
+
+  function openEditOrder(order: ServiceOrder) {
+    setSelectedId(order.id);
+    setAction("edit");
+    setActionError(null);
+    setCustomerId(order.customerId);
+    setContractedAmount(order.contractedAmount);
+    const date = new Date(order.eventAt);
+    date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+    setEventAt(date.toISOString().slice(0, 16));
+    setEventLocation(order.eventLocation);
+    setDraftItems(
+      order.items.map((it) => ({
+        lotId: it.productLotId,
+        quantity: it.plannedQuantity,
+      })),
+    );
+    void loadReferences();
+  }
+
+  function closeAction() {
+    setAction(null);
+    setActionError(null);
+  }
+
+  async function submitCreate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitting(true);
+    setActionError(null);
+    try {
+      const created = await operationsApi.createOrder({
+        customerId,
+        contractedAmount: Number(contractedAmount),
+        eventAt: new Date(eventAt).toISOString(),
+        eventLocation: eventLocation.trim(),
+        items: draftItems.map((item) => {
+          const lot = lots.find((candidate) => candidate.id === item.lotId);
+          return {
+            productId: lot?.product.id ?? "",
+            productLotId: item.lotId,
+            plannedQuantity: Number(item.quantity),
+          };
+        }),
+      });
+      closeAction();
+      reload();
+      setSelectedId(created.id);
+    } catch (cause) {
+      setActionError(errorMessage(cause));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function submitEdit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selected) return;
+    setSubmitting(true);
+    setActionError(null);
+    try {
+      const updated = await operationsApi.updateOrder(selected.id, {
+        customerId,
+        contractedAmount: Number(contractedAmount),
+        eventAt: new Date(eventAt).toISOString(),
+        eventLocation: eventLocation.trim(),
+        items: draftItems.map((item) => {
+          const lot = lots.find((candidate) => candidate.id === item.lotId);
+          return {
+            productId: lot?.product.id ?? "",
+            productLotId: item.lotId,
+            plannedQuantity: Number(item.quantity),
+          };
+        }),
+      });
+      closeAction();
+      reload();
+      setSelectedId(updated.id);
+    } catch (cause) {
+      setActionError(errorMessage(cause));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function submitApprove(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selected) return;
+    setSubmitting(true);
+    setActionError(null);
+    try {
+      const approved = await operationsApi.approveOrder(selected.id, {
+        responsibleBlasterId: blasterId,
+        artNumber: artNumber.trim() || undefined,
+      });
+      closeAction();
+      reload();
+      setSelectedId(approved.id);
+    } catch (cause) {
+      setActionError(errorMessage(cause));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function submitTransition(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selected || !action) return;
+    setSubmitting(true);
+    setActionError(null);
+    try {
+      let transitioned: ServiceOrder;
+      if (action === "start") {
+        transitioned = await operationsApi.startOrder(selected.id);
+      } else if (action === "cancel") {
+        transitioned = await operationsApi.cancelOrder(selected.id);
+      } else {
+        transitioned = await operationsApi.closeOrder(selected.id, {
+          dueDate,
+          reportNotes: reportNotes.trim() || undefined,
+          items: selected.items.map((item) => ({
+            itemId: item.id,
+            firedQuantity: Number(
+              firedQuantities[item.id] ?? item.plannedQuantity,
+            ),
+          })),
+        });
+      }
+      closeAction();
+      reload();
+      setSelectedId(transitioned.id);
+    } catch (cause) {
+      setActionError(errorMessage(cause));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  // Estados de Modais Auxiliares
   const [isGtModalOpen, setIsGtModalOpen] = useState(false);
-  const [gtPlate, setGtPlate] = useState("ABC-1234");
-  const [gtPlateState, setGtPlateState] = useState("SP");
-  const [gtDriverName, setGtDriverName] = useState("José da Silva");
+  const [gtOriginCity, setGtOriginCity] = useState("Fortaleza");
+  const [gtOriginState, setGtOriginState] = useState("CE");
+  const [gtDestCity, setGtDestCity] = useState("");
+  const [gtDestState, setGtDestState] = useState("CE");
+  const [gtPlate, setGtPlate] = useState("POX-9A12");
+  const [gtPlateState, setGtPlateState] = useState("CE");
+  const [gtDriverName, setGtDriverName] = useState("Raimundo Nonato Arruda");
   const [gtDriverCpf, setGtDriverCpf] = useState("123.456.789-00");
-  const [gtDriverLicense, setGtDriverLicense] = useState("98765432100");
-  const [gtOriginCity, setGtOriginCity] = useState("São Paulo");
-  const [gtOriginState, setGtOriginState] = useState("SP");
-  const [gtDestCity, setGtDestCity] = useState("Campinas");
-  const [gtDestState, setGtDestState] = useState("SP");
-  const [gtRoute, setGtRoute] = useState("Rodovia dos Bandeirantes km 50");
+  const [gtDriverLicense, setGtDriverLicense] = useState("987654321-CE");
+  const [gtRoute, setGtRoute] = useState("Partida Paiol Central -> BR-116 -> Destino");
   const [gtSubmitting, setGtSubmitting] = useState(false);
   const [gtError, setGtError] = useState<string | null>(null);
 
-  // --- FRENTE E2E: ELO 2 - EMISSÃO NFS-e ---
   const [isNfseModalOpen, setIsNfseModalOpen] = useState(false);
   const [nfseSubmitting, setNfseSubmitting] = useState(false);
   const [nfseError, setNfseError] = useState<string | null>(null);
   const [nfseSuccess, setNfseSuccess] = useState<FiscalDocument | null>(null);
 
-  // --- FRENTE E2E: ELO 3 - COBRANÇA PIX DINÂMICO ---
   const [isPixModalOpen, setIsPixModalOpen] = useState(false);
   const [pixData, setPixData] = useState<GeneratedPix | null>(null);
   const [pixLoading, setPixLoading] = useState(false);
+
+  const [isBurningOrderModalOpen, setIsBurningOrderModalOpen] = useState(false);
 
   function handleOpenGtModal() {
     if (!selected) return;
@@ -379,7 +408,8 @@ export function OperationsWorkspace() {
       });
 
       setIsGtModalOpen(false);
-      setNotice(`Guia de Tráfego #${gt.number} emitida com sucesso para o transporte militar!`);
+      toast.success(`Guia de Tráfego #${gt.number} emitida com sucesso para o transporte militar!`);
+      reload();
     } catch (err) {
       setGtError(errorMessage(err));
     } finally {
@@ -405,7 +435,8 @@ export function OperationsWorkspace() {
         serviceDescription: `Espetáculo Pirotécnico em ${selected.eventLocation}. Blaster: ${selected.responsibleBlaster?.name ?? "Técnico"} - ART: ${selected.artNumber ?? "S/N"}.`,
       });
       setNfseSuccess(doc);
-      setNotice(`NFS-e #${doc.number} autorizada com sucesso! Chave: ${doc.accessKey ?? doc.protocol}`);
+      toast.success(`NFS-e #${doc.number} emitida e autorizada com sucesso na Prefeitura!`);
+      reload();
       setTimeout(() => setIsNfseModalOpen(false), 2000);
     } catch (err) {
       setNfseError(errorMessage(err));
@@ -427,316 +458,38 @@ export function OperationsWorkspace() {
       setPixData(generated);
       setIsPixModalOpen(true);
     } catch (err) {
-      setNotice(`Aviso financeiro: ${errorMessage(err)}`);
+      toast.error(`Aviso financeiro: ${errorMessage(err)}`);
     } finally {
       setPixLoading(false);
     }
   }
 
-  useEscapeToClose(isGtModalOpen, () => !gtSubmitting && setIsGtModalOpen(false));
-  useModalFocusTrap(isGtModalOpen);
+  const selectedLotIds = draftItems
+    .map((item) => item.lotId)
+    .filter((lotId) => lotId.length > 0);
 
-  useEscapeToClose(isNfseModalOpen, () => !nfseSubmitting && setIsNfseModalOpen(false));
-  useModalFocusTrap(isNfseModalOpen);
-
-  const reload = useCallback(() => {
-    setLoading(true);
-    setError(null);
-    setRevision((current) => current + 1);
-  }, []);
-
-  useEffect(() => {
-    let current = true;
-    const requests: [
-      Promise<PageResult<ServiceOrder>>,
-      Promise<ServiceOrderReport>,
-    ] = [
-      operationsApi.getOrders(page, search, statusFilter || undefined),
-      operationsApi.getReport(from, to),
-    ];
-    void Promise.allSettled(requests)
-      .then(([ordersResult, reportResult]) => {
-        if (!current) return;
-        if (ordersResult.status === "rejected") {
-          setError(errorMessage(ordersResult.reason));
-          setOrders([]);
-          setTotalPages(1);
-        } else {
-          setOrders(ordersResult.value.data);
-          setTotalPages(ordersResult.value.meta.totalPages);
-        }
-        if (reportResult.status === "fulfilled") {
-          setReport(reportResult.value);
-        } else {
-          setReport(null);
-          if (ordersResult.status === "fulfilled") {
-            setError(
-              `Resumo do período indisponível: ${errorMessage(reportResult.reason)}`,
-            );
-          }
-        }
-      })
-      .finally(() => {
-        if (current) setLoading(false);
-      });
-    return () => {
-      current = false;
-    };
-  }, [page, search, statusFilter, from, to, revision]);
-
-  useEffect(() => {
-    if (!selectedId) return;
-    let current = true;
-    void operationsApi
-      .getOrder(selectedId)
-      .then((order) => {
-        if (current) setSelected(order);
-      })
-      .catch((reason: unknown) => {
-        if (current) setError(errorMessage(reason));
-      });
-    return () => {
-      current = false;
-    };
-  }, [selectedId, revision]);
-
-  const loadReferences = useCallback(async () => {
-    if (referencesLoaded) return;
-    setReferencesLoading(true);
-    setActionError(null);
-    try {
-      const [customerOptions, blasterOptions, lotOptions] = await Promise.all([
-        loadAllPages(operationsApi.getCustomers),
-        loadAllPages(operationsApi.getBlasters),
-        loadAllPages(operationsApi.getLots),
-      ]);
-      setCustomers(customerOptions);
-      setBlasters(blasterOptions);
-      setLots(lotOptions);
-      setReferencesLoaded(true);
-    } catch (reason) {
-      setActionError(errorMessage(reason));
-      throw reason;
-    } finally {
-      setReferencesLoading(false);
-    }
-  }, [referencesLoaded]);
-
-  async function openAction(nextAction: OrderAction) {
-    setActionError(null);
-    setNotice(null);
-    setAction(nextAction);
-    if (nextAction === "create" || nextAction === "edit" || nextAction === "approve") {
-      try {
-        await loadReferences();
-      } catch {
-        return;
-      }
-    }
-  }
-
-  async function openEditOrder(order: ServiceOrder) {
-    setActionError(null);
-    setNotice(null);
-    setCustomerId(order.customerId);
-    setContractedAmount(String(order.contractedAmount));
-    const evDate = new Date(order.eventAt);
-    evDate.setMinutes(evDate.getMinutes() - evDate.getTimezoneOffset());
-    setEventAt(evDate.toISOString().slice(0, 16));
-    setEventLocation(order.eventLocation);
-    setDraftItems(
-      order.items.map((it) => ({
-        lotId: it.productLotId,
-        quantity: String(it.plannedQuantity),
-      })),
-    );
-    setAction("edit");
-    try {
-      await loadReferences();
-    } catch {
-      return;
-    }
-  }
-
-  function closeAction() {
-    setAction(null);
-    setActionError(null);
-  }
-
-  async function completeAction(message: string) {
-    setAction(null);
-    setActionError(null);
-    setNotice(message);
-    reload();
-  }
-
-  async function submitCreate(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setSubmitting(true);
-    setActionError(null);
-    try {
-      const items = draftItems.map((item) => {
-        const lot = lots.find((entry) => entry.id === item.lotId);
-        if (!lot) throw new Error("Selecione um lote válido para cada item.");
-        return {
-          productId: lot.productId,
-          productLotId: lot.id,
-          plannedQuantity: Number(item.quantity),
-        };
-      });
-      const created = await operationsApi.createOrder({
-        customerId,
-        contractedAmount: Number(contractedAmount),
-        eventAt: new Date(eventAt).toISOString(),
-        eventLocation,
-        items,
-      });
-      setSelected(null);
-      setSelectedId(created.id);
-      await completeAction(
-        `Orçamento #${created.code} criado. O estoque ainda não foi reservado.`,
-      );
-      setCustomerId("");
-      setEventAt(localDateTime(7));
-      setEventLocation("");
-      setContractedAmount("");
-      setDraftItems([newOrderItem()]);
-    } catch (reason) {
-      setActionError(errorMessage(reason));
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function submitEdit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!selected) return;
-    setSubmitting(true);
-    setActionError(null);
-    try {
-      const items = draftItems.map((item) => {
-        const lot = lots.find((entry) => entry.id === item.lotId);
-        if (!lot) throw new Error("Selecione um lote válido para cada item.");
-        return {
-          productId: lot.productId,
-          productLotId: lot.id,
-          plannedQuantity: Number(item.quantity),
-        };
-      });
-      const updated = await operationsApi.updateOrder(selected.id, {
-        customerId,
-        contractedAmount: Number(contractedAmount),
-        eventAt: new Date(eventAt).toISOString(),
-        eventLocation,
-        items,
-      });
-      setSelected(updated);
-      setSelectedId(updated.id);
-      await completeAction(
-        `Orçamento #${updated.code} atualizado com sucesso.`,
-      );
-    } catch (reason) {
-      setActionError(errorMessage(reason));
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function submitApprove(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!selected) return;
-    setSubmitting(true);
-    setActionError(null);
-    try {
-      await operationsApi.approveOrder(selected.id, {
-        responsibleBlasterId: blasterId,
-        ...(artNumber.trim() ? { artNumber: artNumber.trim() } : {}),
-      });
-      await completeAction(
-        `Ordem #${selected.code} aprovada e estoque reservado.`,
-      );
-      setBlasterId("");
-      setArtNumber("");
-    } catch (reason) {
-      setActionError(errorMessage(reason));
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function submitTransition(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!selected) return;
-    setSubmitting(true);
-    setActionError(null);
-    try {
-      if (action === "start") {
-        await operationsApi.startOrder(selected.id);
-        await completeAction(`Montagem da ordem #${selected.code} iniciada.`);
-      } else if (action === "cancel") {
-        await operationsApi.cancelOrder(selected.id);
-        await completeAction(`Ordem #${selected.code} cancelada.`);
-      } else if (action === "close") {
-        await operationsApi.closeOrder(selected.id, {
-          dueDate,
-          ...(reportNotes.trim() ? { reportNotes: reportNotes.trim() } : {}),
-          items: selected.items.map((item) => ({
-            itemId: item.id,
-            firedQuantity: Number(
-              firedQuantities[item.id] ?? item.plannedQuantity,
-            ),
-          })),
-        });
-        await completeAction(
-          `Ordem #${selected.code} concluída e consumo registrado.`,
-        );
-      }
-    } catch (reason) {
-      setActionError(errorMessage(reason));
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  function applyFilters(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setPage(1);
-    setSearch(searchInput.trim());
-  }
-
-  function changeSelected(order: ServiceOrder) {
-    setAction(null);
-    setActionError(null);
-    setSelected(null);
-    setSelectedId(order.id);
-  }
-
-  const selectedLotIds = draftItems.map((item) => item.lotId).filter(Boolean);
   const selectedCustomer = customers.find(
     (customer) => customer.id === customerId,
   );
 
   return (
-    <div className="operations-workspace">
-      <header className="page-heading">
-        <div className="page-heading__identity">
-          <span className="page-heading__icon">
-            <Icon name="spark" size={24} />
-          </span>
-          <div>
-            <p className="eyebrow">Operações</p>
-            <h1>Ordens de serviço</h1>
-            <p className="page-heading__description">
-              Orçamentos, reservas de estoque, execução e fechamento de eventos.
-            </p>
-          </div>
+    <div className="workspace operations-workspace">
+      <header className="workspace-header">
+        <div>
+          <p className="eyebrow">Operações · Shows e serviços pirotécnicos</p>
+          <h1>Ordens de serviço</h1>
+          <p>
+            Ciclo de vida regulamentado: orçamento, aprovação com reserva
+            atômica, montagem e encerramento com apuração de consumo real e
+            sobras.
+          </p>
         </div>
         <button
           className="button button--primary"
           type="button"
-          onClick={() => void openAction("create")}
+          onClick={() => openAction("create")}
         >
-          <span aria-hidden="true">+</span> Nova ordem
+          <Icon name="spark" size={18} /> Novo orçamento
         </button>
       </header>
 
@@ -752,68 +505,54 @@ export function OperationsWorkspace() {
           </button>
         </div>
       )}
-      {notice && (
-        <div className="inventory-alert inventory-alert--success" role="status">
-          <span>{notice}</span>
-          <button
-            className="icon-button"
-            type="button"
-            aria-label="Fechar confirmação"
-            onClick={() => setNotice(null)}
-          >
-            <Icon name="close" size={16} />
-          </button>
-        </div>
-      )}
 
       {report && (
         <section
-          className="inventory-metrics"
-          aria-label="Resumo de ordens de serviço"
+          className="operations-summary"
+          aria-labelledby="operations-summary-heading"
         >
-          <Metric
-            label="Ordens no período"
-            value={formatNumber(report.totals.orderCount, 0)}
-            detail="Data considerada: evento"
-          />
-          <Metric
-            label="Valor contratado"
-            value={formatCurrency(Number(report.totals.contractedAmount))}
-            detail="Soma de todas as situações"
-          />
-          <Metric
-            label="Orçamentos"
-            value={formatNumber(
-              report.byStatus.find((row) => row.status === "ORCAMENTO")
-                ?.orderCount ?? 0,
-              0,
-            )}
-            detail="Aguardando aprovação"
-          />
-          <Metric
-            label="Em execução"
-            value={formatNumber(
-              report.byStatus.find((row) => row.status === "EM_MONTAGEM")
-                ?.orderCount ?? 0,
-              0,
-            )}
-            detail="Montagem iniciada"
-          />
+          <div className="operations-summary__heading">
+            <h2 id="operations-summary-heading">Indicadores do período</h2>
+            <p className="operations-summary__period">
+              De {formatDateOnly(report.period.from)} a{" "}
+              {formatDateOnly(report.period.to)} (base: data do evento)
+            </p>
+          </div>
+          <div className="operations-metrics">
+            <Metric
+              detail="Total registrado"
+              label="Ordens"
+              value={String(report.totals.orderCount)}
+            />
+            <Metric
+              detail="Receita contratada"
+              label="Contratado"
+              value={formatCurrency(Number(report.totals.contractedAmount))}
+            />
+            <Metric
+              detail="Pendentes de precificação"
+              label="Sem valor"
+              value={String(report.totals.ordersWithoutContractedAmount)}
+            />
+          </div>
         </section>
       )}
 
       <section
         className="operations-panel panel"
-        aria-labelledby="orders-heading"
+        aria-labelledby="orders-list-heading"
       >
         <div className="operations-toolbar">
           <div>
-            <p className="eyebrow">Gestão operacional</p>
-            <h2 id="orders-heading">Ordens cadastradas</h2>
+            <p className="eyebrow">Listagem</p>
+            <h2 id="orders-list-heading">Ordens cadastradas</h2>
           </div>
           <form
             className="operations-period"
-            onSubmit={(event) => event.preventDefault()}
+            onSubmit={(event) => {
+              event.preventDefault();
+              reload();
+            }}
           >
             <label>
               De
@@ -833,1026 +572,131 @@ export function OperationsWorkspace() {
             </label>
           </form>
         </div>
-        <form className="operations-filters" onSubmit={applyFilters}>
-          <label className="operations-search">
-            <span>Buscar ordem</span>
-            <input
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              placeholder="Código, cliente ou local"
-            />
-          </label>
-          <label>
-            <span>Situação</span>
-            <select
-              value={statusFilter}
-              onChange={(event) => {
-                setStatusFilter(event.target.value as ServiceOrderStatus | "");
-                setPage(1);
-              }}
-            >
-              <option value="">Todas as situações</option>
-              {Object.entries(STATUS_LABELS).map(([key, label]) => (
-                <option key={key} value={key}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button className="button button--quiet" type="submit">
-            Filtrar
-          </button>
-          <button
-            className="button button--quiet"
-            type="button"
-            onClick={reload}
-            aria-label="Atualizar ordens"
-          >
-            <Icon name="refresh" size={16} /> Atualizar
-          </button>
-        </form>
 
-        {loading && orders.length === 0 ? (
-          <p className="table-empty" role="status">
-            Carregando ordens de serviço...
-          </p>
-        ) : orders.length === 0 ? (
-          <p className="table-empty">
-            Nenhuma ordem de serviço encontrada para os filtros informados.
-          </p>
-        ) : (
-          <div className="table-scroll">
-            <table className="data-table operations-table">
-              <thead>
-                <tr>
-                  <th>Ordem</th>
-                  <th>Cliente</th>
-                  <th>Evento</th>
-                  <th>Valor contratado</th>
-                  <th>Situação</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map((order) => (
-                  <tr
-                    key={order.id}
-                    className={
-                      selectedId === order.id ? "operations-row--selected" : ""
-                    }
-                  >
-                    <td>
-                      <strong>#{order.code}</strong>
-                      <small>{order.eventLocation}</small>
-                    </td>
-                    <td>{order.customer.legalName}</td>
-                    <td>{formatDateTime(order.eventAt)}</td>
-                    <td>{formatCurrency(Number(order.contractedAmount))}</td>
-                    <td>
-                      <StatusPill status={order.status} />
-                    </td>
-                    <td>
-                      <button
-                        className="button button--quiet"
-                        type="button"
-                        onClick={() => changeSelected(order)}
-                      >
-                        Detalhes
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {(totalPages > 1 || page > 1) && (
-          <nav className="table-pagination" aria-label="Paginação de ordens">
-            <button
-              className="button button--quiet"
-              type="button"
-              disabled={page <= 1 || loading}
-              onClick={() => setPage(page - 1)}
-            >
-              Anterior
-            </button>
-            <span>
-              Página {page} de {totalPages}
-            </span>
-            <button
-              className="button button--quiet"
-              type="button"
-              disabled={page >= totalPages || loading}
-              onClick={() => setPage(page + 1)}
-            >
-              Próxima
-            </button>
-          </nav>
-        )}
+        <OrdersTable
+          orders={orders}
+          selectedId={selectedId}
+          loading={loading}
+          page={page}
+          totalPages={totalPages}
+          searchInput={searchInput}
+          onSearchInputChange={setSearchInput}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+          onPageChange={setPage}
+          onApplyFilters={applyFilters}
+          onReload={reload}
+          onChangeSelected={changeSelected}
+        />
       </section>
 
       {selected && (
-        <section
-          className="operations-panel panel operations-detail"
-          aria-labelledby="order-detail-heading"
-        >
-          <div className="operations-toolbar">
-            <div>
-              <p className="eyebrow">Detalhes da ordem</p>
-              <h2 id="order-detail-heading">Ordem #{selected.code}</h2>
-            </div>
-            <div className="operations-detail__actions">
-              <StatusPill status={selected.status} />
-              {selected.status === "ORCAMENTO" && (
-                <>
-                  <button
-                    className="button button--secondary"
-                    type="button"
-                    onClick={() => void openEditOrder(selected)}
-                  >
-                    Editar orçamento
-                  </button>
-                  <button
-                    className="button button--primary"
-                    type="button"
-                    onClick={() => void openAction("approve")}
-                  >
-                    Aprovar orçamento
-                  </button>
-                </>
-              )}
-              {selected.status === "APROVADO" && (
-                <button
-                  className="button button--primary"
-                  type="button"
-                  onClick={() => void openAction("start")}
-                >
-                  Iniciar montagem
-                </button>
-              )}
-              {(selected.status === "ORCAMENTO" ||
-                selected.status === "APROVADO" ||
-                selected.status === "EM_MONTAGEM") && (
-                <button
-                  className="button button--danger"
-                  type="button"
-                  onClick={() => void openAction("cancel")}
-                >
-                  Cancelar
-                </button>
-              )}
-              {selected.status === "EM_MONTAGEM" && (
-                <button
-                  className="button button--primary"
-                  type="button"
-                  onClick={() => {
-                    setFiredQuantities(
-                      Object.fromEntries(
-                        selected.items.map((item) => [
-                          item.id,
-                          item.plannedQuantity,
-                        ]),
-                      ),
-                    );
-                    void openAction("close");
-                  }}
-                >
-                  Concluir ordem
-                </button>
-              )}
-              {/* Elo 1: Emitir GT a partir de OS Aprovada ou em Montagem */}
-              {(selected.status === "APROVADO" ||
-                selected.status === "EM_MONTAGEM") && (
-                <button
-                  className="button button--secondary border-blue-500/40 text-blue-300 hover:bg-blue-500/10 flex items-center gap-1.5"
-                  type="button"
-                  onClick={handleOpenGtModal}
-                  title="Emitir Guia de Tráfego do Exército Brasileiro para transporte dos PCEs desta OS"
-                >
-                  <span>🚚</span> Emitir Guia de Tráfego (GT)
-                </button>
-              )}
-              {/* Elo 2 e 3: Faturamento e Liquidação de OS Concluída */}
-              {selected.status === "CONCLUIDO" && (
-                <>
-                  <button
-                    className="button button--secondary border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10 flex items-center gap-1.5"
-                    type="button"
-                    onClick={handleOpenNfseModal}
-                    title="Emitir Nota Fiscal de Serviços Pirotécnicos (NFS-e)"
-                  >
-                    <span>📄</span> Emitir NFS-e
-                  </button>
-                  <button
-                    className="button button--secondary border-teal-500/40 text-teal-300 hover:bg-teal-500/10 flex items-center gap-1.5"
-                    type="button"
-                    onClick={() => void handleOpenPix()}
-                    disabled={pixLoading}
-                    title="Cobrança Instantânea via QR Code PIX"
-                  >
-                    <span>📱</span> Receber via PIX
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-
-          <OrderStepper order={selected} />
-
-          <dl className="operations-detail__facts">
-            <div>
-              <dt>Cliente</dt>
-              <dd>{selected.customer.legalName}</dd>
-            </div>
-            <div>
-              <dt>Evento</dt>
-              <dd>{formatDateTime(selected.eventAt)}</dd>
-            </div>
-            <div>
-              <dt>Local</dt>
-              <dd>{selected.eventLocation}</dd>
-            </div>
-            <div>
-              <dt>Valor contratado</dt>
-              <dd>{formatCurrency(Number(selected.contractedAmount))}</dd>
-            </div>
-            <div>
-              <dt>Blaster responsável</dt>
-              <dd>
-                {selected.responsibleBlaster?.name ?? "Ainda não definido"}
-              </dd>
-            </div>
-            <div>
-              <dt>CR do cliente</dt>
-              <dd>
-                {selected.customer.hasCr
-                  ? `Cadastrado · validade ${
-                      selected.customer.crExpiresAt
-                        ? formatDateOnly(selected.customer.crExpiresAt)
-                        : "não informada"
-                    }`
-                  : "Não cadastrado"}
-              </dd>
-            </div>
-            {(selected.customer.authorizedPceClasses?.length ?? 0) > 0 && (
-              <div>
-                <dt>Classes PCE autorizadas</dt>
-                <dd>{selected.customer.authorizedPceClasses.join(", ")}</dd>
-              </div>
-            )}
-            <div>
-              <dt>Reserva NEQ</dt>
-              <dd>
-                {formatNumber(Number(selected.reservedNeqKg))} kg{" "}
-                {selected.reservationActive ? "· ativa" : "· inativa"}
-              </dd>
-            </div>
-            {selected.artNumber && (
-              <div>
-                <dt>ART</dt>
-                <dd>{selected.artNumber}</dd>
-              </div>
-            )}
-            {selected.dueDate && (
-              <div>
-                <dt>Vencimento</dt>
-                <dd>{formatDateOnly(selected.dueDate)}</dd>
-              </div>
-            )}
-          </dl>
-          <div className="table-scroll">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Produto / lote</th>
-                  <th>Paiol</th>
-                  <th>Planejado</th>
-                  <th>Disparado</th>
-                  <th>NEQ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {selected.items.map((item) => (
-                  <tr key={item.id}>
-                    <td>
-                      <strong>{item.product.name}</strong>
-                      <small>Lote {item.productLot.lotNumber}</small>
-                    </td>
-                    <td>{item.productLot.magazine.name}</td>
-                    <td>
-                      {formatNumber(Number(item.plannedQuantity))}{" "}
-                      {item.product.unit}
-                    </td>
-                    <td>
-                      {item.firedQuantity === null
-                        ? "—"
-                        : `${formatNumber(Number(item.firedQuantity))} ${item.product.unit}`}
-                    </td>
-                    <td>{formatNumber(Number(item.neqKg))} kg</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {selected.reportNotes && (
-            <p className="operations-notes">
-              <strong>Notas de encerramento:</strong> {selected.reportNotes}
-            </p>
-          )}
-        </section>
+        <OrderDetailsPane
+          order={selected}
+          pixLoading={pixLoading}
+          onOpenEditOrder={openEditOrder}
+          onOpenAction={openAction}
+          onOpenGtModal={handleOpenGtModal}
+          onOpenNfseModal={handleOpenNfseModal}
+          onOpenPixModal={handleOpenPix}
+          onOpenBurningOrderModal={() => setIsBurningOrderModalOpen(true)}
+          onSetFiredQuantities={setFiredQuantities}
+        />
       )}
 
-      {action && (
-        <section
-          className="operations-action panel"
-          aria-labelledby="operations-action-heading"
-        >
-          <div className="operations-toolbar">
-            <div>
-              <p className="eyebrow">Ação da ordem</p>
-              <h2 id="operations-action-heading">
-                {action === "create"
-                  ? "Criar orçamento de serviço"
-                  : action === "edit"
-                    ? `Editar orçamento #${selected?.code}`
-                    : action === "approve"
-                      ? `Aprovar ordem #${selected?.code}`
-                      : action === "start"
-                        ? `Iniciar montagem da ordem #${selected?.code}`
-                        : action === "cancel"
-                          ? `Cancelar ordem #${selected?.code}`
-                          : `Concluir ordem #${selected?.code}`}
-              </h2>
-            </div>
-            <button
-              className="icon-button"
-              type="button"
-              aria-label="Fechar formulário"
-              onClick={closeAction}
-            >
-              <Icon name="close" size={18} />
-            </button>
-          </div>
-          {referencesLoading && (
-            <p className="table-empty" role="status">
-              Carregando clientes, blasters e lotes...
-            </p>
-          )}
-          {actionError && (
-            <div
-              className="inventory-alert inventory-alert--error"
-              role="alert"
-            >
-              <span>{actionError}</span>
-              {(action === "create" || action === "edit" || action === "approve") && (
-                <button
-                  className="button button--quiet"
-                  type="button"
-                  onClick={() => void loadReferences()}
-                >
-                  Tentar novamente
-                </button>
-              )}
-            </div>
-          )}
-          {(action === "create" || action === "edit") && !referencesLoading && (
-            <form
-              className="operations-form"
-              onSubmit={(event) => void (action === "edit" ? submitEdit(event) : submitCreate(event))}
-            >
-              <div className="operations-form__grid">
-                <label className="operations-form__wide">
-                  Cliente
-                  <select
-                    required
-                    value={customerId}
-                    onChange={(event) => setCustomerId(event.target.value)}
-                  >
-                    <option value="">Selecione um cliente ativo</option>
-                    {customers
-                      .filter((customer) => customer.active)
-                      .map((customer) => (
-                        <option key={customer.id} value={customer.id}>
-                          {customer.legalName}
-                          {customer.hasCr ? " · CR cadastrado" : " · sem CR"}
-                        </option>
-                      ))}
-                  </select>
-                </label>
-                {selectedCustomer && (
-                  <p className="operations-form__wide operations-form__hint">
-                    {selectedCustomer.hasCr
-                      ? `CR cadastrado${
-                          selectedCustomer.crExpiresAt
-                            ? ` · válido até ${formatDateOnly(
-                                selectedCustomer.crExpiresAt,
-                              )}`
-                            : ""
-                        }. Classes autorizadas: ${
-                          selectedCustomer.authorizedPceClasses.join(", ") ||
-                          "não informadas"
-                        }.`
-                      : "Cliente sem CR cadastrado; o backend validará a elegibilidade antes de reservar itens PCE."}
-                  </p>
-                )}
-                <label>
-                  Valor contratado (R$)
-                  <input
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    required
-                    value={contractedAmount}
-                    onChange={(event) =>
-                      setContractedAmount(event.target.value)
-                    }
-                  />
-                </label>
-                <label>
-                  Data e hora do evento
-                  <input
-                    type="datetime-local"
-                    required
-                    min={localDateTime(0)}
-                    value={eventAt}
-                    onChange={(event) => setEventAt(event.target.value)}
-                  />
-                </label>
-                <label className="operations-form__wide">
-                  Local do evento
-                  <input
-                    maxLength={500}
-                    required
-                    value={eventLocation}
-                    onChange={(event) => setEventLocation(event.target.value)}
-                  />
-                </label>
-              </div>
-              <div className="operations-form__section">
-                <div className="operations-toolbar">
-                  <h3>Produtos e lotes</h3>
-                  <button
-                    className="button button--quiet"
-                    type="button"
-                    onClick={() =>
-                      setDraftItems((current) => [...current, newOrderItem()])
-                    }
-                  >
-                    Adicionar item
-                  </button>
-                </div>
-                {draftItems.map((item, index) => {
-                  const lot = lots.find((entry) => entry.id === item.lotId);
-                  return (
-                    <div
-                      className="operations-item-form"
-                      key={`draft-${index}`}
-                    >
-                      <label>
-                        Lote
-                        <select
-                          required
-                          value={item.lotId}
-                          onChange={(event) =>
-                            setDraftItems((current) =>
-                              current.map((line, row) =>
-                                row === index
-                                  ? { ...line, lotId: event.target.value }
-                                  : line,
-                              ),
-                            )
-                          }
-                        >
-                          <option value="">Selecione um lote</option>
-                          {lots
-                            .filter(
-                              (candidate) =>
-                                isUsableLot(candidate) &&
-                                (candidate.id === item.lotId ||
-                                  !selectedLotIds.includes(candidate.id)),
-                            )
-                            .map((candidate) => (
-                              <option key={candidate.id} value={candidate.id}>
-                                {candidate.product.name} · {candidate.lotNumber}{" "}
-                                · {candidate.magazine.name} · físico{" "}
-                                {formatNumber(Number(candidate.quantity))}{" "}
-                                {candidate.product.unit}
-                              </option>
-                            ))}
-                        </select>
-                        {lot && (
-                          <small>
-                            Quantidade física do lote. A aprovação validará o
-                            saldo realmente reservável e a validade.
-                          </small>
-                        )}
-                      </label>
-                      <label>
-                        Quantidade planejada
-                        <input
-                          type="number"
-                          min="0.01"
-                          max={lot?.quantity}
-                          step="0.01"
-                          required
-                          value={item.quantity}
-                          onChange={(event) =>
-                            setDraftItems((current) =>
-                              current.map((line, row) =>
-                                row === index
-                                  ? { ...line, quantity: event.target.value }
-                                  : line,
-                              ),
-                            )
-                          }
-                        />
-                      </label>
-                      {draftItems.length > 1 && (
-                        <button
-                          className="button button--quiet"
-                          type="button"
-                          aria-label={`Remover item ${index + 1}`}
-                          onClick={() =>
-                            setDraftItems((current) =>
-                              current.filter((_, row) => row !== index),
-                            )
-                          }
-                        >
-                          Remover
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="operations-form__footer">
-                <button
-                  className="button button--quiet"
-                  type="button"
-                  onClick={closeAction}
-                >
-                  Fechar
-                </button>
-                <button
-                  className="button button--primary"
-                  type="submit"
-                  disabled={submitting || referencesLoading}
-                >
-                  {submitting
-                    ? "Salvando..."
-                    : action === "edit"
-                      ? "Salvar alterações"
-                      : "Criar orçamento"}
-                </button>
-              </div>
-            </form>
-          )}
-          {action === "approve" && selected && !referencesLoading && (
-            <form
-              className="operations-form"
-              onSubmit={(event) => void submitApprove(event)}
-            >
-              <p>
-                A aprovação verifica elegibilidade do cliente e do blaster e
-                reserva os lotes de forma atômica.
-              </p>
-              <div className="operations-form__grid">
-                <label className="operations-form__wide">
-                  Blaster responsável
-                  <select
-                    required
-                    value={blasterId}
-                    onChange={(event) => setBlasterId(event.target.value)}
-                  >
-                    <option value="">Selecione um blaster ativo</option>
-                    {blasters
-                      .filter((blaster) => blaster.active)
-                      .map((blaster) => (
-                        <option key={blaster.id} value={blaster.id}>
-                          {blaster.name} · licença até{" "}
-                          {formatDateOnly(blaster.licenseExpiresAt)}
-                        </option>
-                      ))}
-                  </select>
-                </label>
-                <label className="operations-form__wide">
-                  Número da ART (opcional)
-                  <input
-                    maxLength={50}
-                    value={artNumber}
-                    onChange={(event) => setArtNumber(event.target.value)}
-                  />
-                </label>
-              </div>
-              <div className="operations-form__footer">
-                <button
-                  className="button button--quiet"
-                  type="button"
-                  onClick={closeAction}
-                >
-                  Fechar
-                </button>
-                <button
-                  className="button button--primary"
-                  type="submit"
-                  disabled={submitting}
-                >
-                  {submitting ? "Validando..." : "Aprovar e reservar"}
-                </button>
-              </div>
-            </form>
-          )}
-          {(action === "start" || action === "cancel") && selected && (
-            <form
-              className="operations-form"
-              onSubmit={(event) => void submitTransition(event)}
-            >
-              <p>
-                {action === "start"
-                  ? "A OS passará para montagem e manterá a reserva de estoque."
-                  : "A ordem será cancelada e, se houver reserva, o estoque será liberado."}
-              </p>
-              <div className="operations-form__footer">
-                <button
-                  className="button button--quiet"
-                  type="button"
-                  onClick={closeAction}
-                >
-                  Voltar
-                </button>
-                <button
-                  className={
-                    action === "cancel"
-                      ? "button button--danger"
-                      : "button button--primary"
-                  }
-                  type="submit"
-                  disabled={submitting}
-                >
-                  {submitting
-                    ? "Processando..."
-                    : action === "start"
-                      ? "Confirmar início"
-                      : "Confirmar cancelamento"}
-                </button>
-              </div>
-            </form>
-          )}
-          {action === "close" && selected && (
-            <form
-              className="operations-form"
-              onSubmit={(event) => void submitTransition(event)}
-            >
-              <p>
-                Informe a quantidade efetivamente disparada. O backend baixa o
-                consumo real, libera sobras e cria uma conta a receber pelo
-                valor contratado.
-              </p>
-              <div className="operations-form__grid">
-                <label>
-                  Vencimento da conta a receber
-                  <input
-                    type="date"
-                    required
-                    value={dueDate}
-                    onChange={(event) => setDueDate(event.target.value)}
-                  />
-                </label>
-                <label className="operations-form__wide">
-                  Notas do relatório
-                  <textarea
-                    maxLength={2000}
-                    rows={3}
-                    value={reportNotes}
-                    onChange={(event) => setReportNotes(event.target.value)}
-                  />
-                </label>
-              </div>
-              <div className="operations-form__section">
-                <h3>Quantidades disparadas</h3>
-                {selected.items.map((item) => (
-                  <label className="operations-close-item" key={item.id}>
-                    <span>
-                      <strong>{item.product.name}</strong>
-                      <small>
-                        Planejado: {formatNumber(Number(item.plannedQuantity))}{" "}
-                        {item.product.unit}
-                      </small>
-                    </span>
-                    <span>
-                      {item.product.unit}
-                      <input
-                        type="number"
-                        min="0"
-                        max={item.plannedQuantity}
-                        step="0.01"
-                        required
-                        value={firedQuantities[item.id] ?? item.plannedQuantity}
-                        onChange={(event) =>
-                          setFiredQuantities((current) => ({
-                            ...current,
-                            [item.id]: event.target.value,
-                          }))
-                        }
-                      />
-                    </span>
-                  </label>
-                ))}
-              </div>
-              <div className="operations-form__footer">
-                <button
-                  className="button button--quiet"
-                  type="button"
-                  onClick={closeAction}
-                >
-                  Fechar
-                </button>
-                <button
-                  className="button button--primary"
-                  type="submit"
-                  disabled={submitting}
-                >
-                  {submitting
-                    ? "Concluindo..."
-                    : "Concluir e registrar consumo"}
-                </button>
-              </div>
-            </form>
-          )}
-        </section>
-      )}
+      <OrderActionCard
+        action={action}
+        selected={selected}
+        onClose={closeAction}
+        referencesLoading={referencesLoading}
+        actionError={actionError}
+        onReloadReferences={loadReferences}
+        customerId={customerId}
+        onCustomerIdChange={setCustomerId}
+        selectedCustomer={selectedCustomer}
+        customers={customers}
+        contractedAmount={contractedAmount}
+        onContractedAmountChange={setContractedAmount}
+        eventAt={eventAt}
+        onEventAtChange={setEventAt}
+        eventLocation={eventLocation}
+        onEventLocationChange={setEventLocation}
+        draftItems={draftItems}
+        onDraftItemsChange={setDraftItems}
+        lots={lots}
+        selectedLotIds={selectedLotIds}
+        onSubmitCreate={submitCreate}
+        onSubmitEdit={submitEdit}
+        blasterId={blasterId}
+        onBlasterIdChange={setBlasterId}
+        blasters={blasters}
+        artNumber={artNumber}
+        onArtNumberChange={setArtNumber}
+        onSubmitApprove={submitApprove}
+        dueDate={dueDate}
+        onDueDateChange={setDueDate}
+        reportNotes={reportNotes}
+        onReportNotesChange={setReportNotes}
+        firedQuantities={firedQuantities}
+        onFiredQuantitiesChange={setFiredQuantities}
+        onSubmitTransition={submitTransition}
+        submitting={submitting}
+      />
 
-      {/* MODAL ELO 1: EMISSÃO DE GUIA DE TRÁFEGO MILITAR DIRETA DA OS */}
-      {isGtModalOpen && selected && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="gt-modal-title"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto"
-        >
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl p-6 shadow-2xl text-slate-100 max-h-[90vh] flex flex-col">
-            <div className="flex justify-between items-center pb-3 border-b border-slate-800">
-              <div className="flex items-center gap-2">
-                <span className="p-1.5 rounded-lg bg-blue-500/10 text-blue-400 font-bold text-xs tracking-wider border border-blue-500/20">
-                  R-105 / DFPC
-                </span>
-                <h2 id="gt-modal-title" className="text-lg font-bold text-slate-100">
-                  Emitir Guia de Tráfego para Ordem #{selected.code}
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsGtModalOpen(false)}
-                className="text-slate-400 hover:text-slate-200 text-lg font-bold p-1 rounded-lg"
-              >
-                ✕
-              </button>
-            </div>
+      <GtModal
+        isOpen={isGtModalOpen}
+        onClose={() => setIsGtModalOpen(false)}
+        order={selected}
+        originCity={gtOriginCity}
+        onOriginCityChange={setGtOriginCity}
+        originState={gtOriginState}
+        onOriginStateChange={setGtOriginState}
+        destCity={gtDestCity}
+        onDestCityChange={setGtDestCity}
+        destState={gtDestState}
+        onDestStateChange={setGtDestState}
+        plate={gtPlate}
+        onPlateChange={setGtPlate}
+        plateState={gtPlateState}
+        onPlateStateChange={setGtPlateState}
+        driverCpf={gtDriverCpf}
+        onDriverCpfChange={setGtDriverCpf}
+        driverLicense={gtDriverLicense}
+        onDriverLicenseChange={setGtDriverLicense}
+        driverName={gtDriverName}
+        onDriverNameChange={setGtDriverName}
+        route={gtRoute}
+        onRouteChange={setGtRoute}
+        submitting={gtSubmitting}
+        error={gtError}
+        onSubmit={handleSubmitGt}
+      />
 
-            {gtError && (
-              <div className="mt-3 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300">
-                {gtError}
-              </div>
-            )}
+      <NfseModal
+        isOpen={isNfseModalOpen}
+        onClose={() => setIsNfseModalOpen(false)}
+        order={selected}
+        submitting={nfseSubmitting}
+        error={nfseError}
+        success={nfseSuccess}
+        onSubmit={handleSubmitNfse}
+      />
 
-            <form onSubmit={handleSubmitGt} className="mt-4 flex flex-col gap-3 overflow-y-auto pr-1">
-              <div className="p-3 bg-slate-800/60 rounded-xl border border-slate-700/60 text-xs">
-                <p className="font-semibold text-slate-200">
-                  Destino: {selected.eventLocation} · Cliente: {selected.customer.legalName}
-                </p>
-                <p className="text-slate-400 mt-1">
-                  Blaster: {selected.responsibleBlaster?.name ?? "Definido na aprovação"} · Itens: {selected.items.length} produto(s) PCE
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <div>
-                  <label className="block text-slate-400 mb-1">Cidade de Origem (Paiol)</label>
-                  <input
-                    type="text"
-                    required
-                    value={gtOriginCity}
-                    onChange={(e) => setGtOriginCity(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-400 mb-1">UF Origem</label>
-                  <input
-                    type="text"
-                    maxLength={2}
-                    required
-                    value={gtOriginState}
-                    onChange={(e) => setGtOriginState(e.target.value.toUpperCase())}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200 uppercase"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <div>
-                  <label className="block text-slate-400 mb-1">Cidade Destino (Show)</label>
-                  <input
-                    type="text"
-                    required
-                    value={gtDestCity}
-                    onChange={(e) => setGtDestCity(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-400 mb-1">UF Destino</label>
-                  <input
-                    type="text"
-                    maxLength={2}
-                    required
-                    value={gtDestState}
-                    onChange={(e) => setGtDestState(e.target.value.toUpperCase())}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200 uppercase"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                <div>
-                  <label className="block text-slate-400 mb-1">Placa Veículo</label>
-                  <input
-                    type="text"
-                    required
-                    value={gtPlate}
-                    onChange={(e) => setGtPlate(e.target.value.toUpperCase())}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200 uppercase"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-400 mb-1">UF Placa</label>
-                  <input
-                    type="text"
-                    maxLength={2}
-                    required
-                    value={gtPlateState}
-                    onChange={(e) => setGtPlateState(e.target.value.toUpperCase())}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200 uppercase"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-400 mb-1">CPF Motorista</label>
-                  <input
-                    type="text"
-                    required
-                    value={gtDriverCpf}
-                    onChange={(e) => setGtDriverCpf(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-400 mb-1">CNH Motorista (MOPP)</label>
-                  <input
-                    type="text"
-                    required
-                    value={gtDriverLicense}
-                    onChange={(e) => setGtDriverLicense(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200"
-                  />
-                </div>
-              </div>
-
-              <div className="text-xs">
-                <label className="block text-slate-400 mb-1">Nome Completo do Condutor MOPP</label>
-                <input
-                  type="text"
-                  required
-                  value={gtDriverName}
-                  onChange={(e) => setGtDriverName(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200"
-                />
-              </div>
-
-              <div className="text-xs">
-                <label className="block text-slate-400 mb-1">Itinerário Rodoviário Detalhado</label>
-                <textarea
-                  required
-                  rows={2}
-                  value={gtRoute}
-                  onChange={(e) => setGtRoute(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setIsGtModalOpen(false)}
-                  className="button button--quiet"
-                  disabled={gtSubmitting}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="button button--primary"
-                  disabled={gtSubmitting}
-                >
-                  {gtSubmitting ? "Emitindo..." : "Autorizar Guia de Tráfego (GT)"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL ELO 2: EMISSÃO DIRETA DE NFS-e */}
-      {isNfseModalOpen && selected && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="nfse-modal-title"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto"
-        >
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg p-6 shadow-2xl text-slate-100 flex flex-col">
-            <div className="flex justify-between items-center pb-3 border-b border-slate-800">
-              <div className="flex items-center gap-2">
-                <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 font-bold text-xs tracking-wider border border-emerald-500/20">
-                  NFS-e PREFEITURA
-                </span>
-                <h2 id="nfse-modal-title" className="text-lg font-bold text-slate-100">
-                  Emitir Nota Fiscal de Serviços
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsNfseModalOpen(false)}
-                className="text-slate-400 hover:text-slate-200 text-lg font-bold p-1 rounded-lg"
-              >
-                ✕
-              </button>
-            </div>
-
-            {nfseError && (
-              <div className="mt-3 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300">
-                {nfseError}
-              </div>
-            )}
-
-            {nfseSuccess ? (
-              <div className="mt-4 p-4 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-center">
-                <p className="text-sm font-bold text-emerald-300">✓ NFS-e Emitida com Sucesso!</p>
-                <p className="text-xs text-slate-300 mt-1">Número: #{nfseSuccess.number}</p>
-                <p className="text-xs font-mono text-slate-400 mt-1">Chave: {nfseSuccess.accessKey ?? nfseSuccess.protocol}</p>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmitNfse} className="mt-4 flex flex-col gap-3 text-xs">
-                <div className="p-3 bg-slate-800/60 rounded-xl border border-slate-700/60 space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Tomador:</span>
-                    <span className="font-semibold text-slate-200">{selected.customer.legalName}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Local do Show:</span>
-                    <span className="text-slate-200">{selected.eventLocation}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Blaster / ART:</span>
-                    <span className="text-slate-200">{selected.responsibleBlaster?.name ?? "Técnico"} · ART {selected.artNumber ?? "S/N"}</span>
-                  </div>
-                  <div className="flex justify-between border-t border-slate-700/50 pt-1 font-bold">
-                    <span className="text-slate-300">Valor Total:</span>
-                    <span className="text-emerald-400">{formatCurrency(Number(selected.contractedAmount))}</span>
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
-                  <button
-                    type="button"
-                    onClick={() => setIsNfseModalOpen(false)}
-                    className="button button--quiet"
-                    disabled={nfseSubmitting}
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="button button--primary"
-                    disabled={nfseSubmitting}
-                  >
-                    {nfseSubmitting ? "Autorizando..." : "Autorizar NFS-e na Prefeitura"}
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* MODAL ELO 3: COBRANÇA PIX DINÂMICO */}
       <PixModal
         isOpen={isPixModalOpen}
-        pixData={pixData}
         onClose={() => setIsPixModalOpen(false)}
+        pixData={pixData}
         onPaymentConfirmed={() => {
-          setNotice("Pagamento PIX confirmado e liquidado com sucesso!");
+          setIsPixModalOpen(false);
+          toast.success("Pagamento da OS liquidado com sucesso via PIX!");
           reload();
         }}
+      />
+
+      <BurningDossierModal
+        isOpen={isBurningOrderModalOpen}
+        onClose={() => setIsBurningOrderModalOpen(false)}
+        order={selected}
       />
     </div>
   );

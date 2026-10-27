@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TrafficGuidesService } from './traffic-guides.service.js';
-import { TrafficGuideStatus, FiscalDocumentStatus } from '@prisma/client';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { TrafficGuideStatus } from '@prisma/client';
 
 describe('TrafficGuidesService', () => {
   let service: TrafficGuidesService;

@@ -127,20 +127,35 @@ fases já concluídas, veja [`Plano_Backend.md`](../Plano_Backend.md) e
 - Smoke tests E2E executados com sucesso real contra o banco PostgreSQL para o Módulo Fiscal (Frente 1), Guia de Tráfego (Frente 2) e PIX/OFX (Frente 3).
 - Total geral: 126 testes automatizados passando com 100% de sucesso.
 
+### Engenharia de Produção, SRE & Resiliência (Frente 4)
+- Orquestração com Docker Compose produtivo (`docker-compose.prod.yml`) unindo PostgreSQL 16, Redis 7, Backend NestJS, Frontend Next.js Standalone e Nginx com compressão e headers de segurança.
+- Scripts operacionais testados em `scripts/`: deploy (`deploy.sh`), backup consistente gzip com SHA-256 (`backup.sh`), restauração segura (`restore.sh`) e verificação de saúde (`healthcheck.sh`).
+- Runbook completo de produção em [`RUNBOOK-IMPLANTACAO-PRODUCAO.md`](./RUNBOOK-IMPLANTACAO-PRODUCAO.md).
+
+### Padronização de UX/UI & Design System (Frente 5)
+- Tipografia moderna `Inter` (`next/font/google`) e eliminação de micro-textos ilegíveis (piso mínimo em 12px para badges e 14px-15px para conteúdo).
+- Sistema de feedback tátil universal com `ToastProvider` flutuante no canto superior direito (auto-dismiss de 4s, acessível `role="status"` e variantes semânticas). Erradicação total de `alert()` do navegador.
+- Skeletons de carregamento pulsantes (*shimmer*) em tabelas e cards.
+- Cockpit do AppShell: identidade do operador na topbar superior direita e remoção da faixa estática `.auth-notice` (ganho de 40px de área nobre de tela).
+- Central de Operações Pirotécnicas renovada (`/`): 4 KPI Cards vivos, barra de ações rápidas em 1 clique e radar regulatório militar.
+
 ---
 
 ## ⏳ Pendente — desbloqueado, não feito ainda
 
-| Item | Observação | No sprint atual? |
-| --- | --- | --- |
-| **Frente 4: SRE, Automação de Produção & Disaster Recovery** | Scripts de backup automatizado do PostgreSQL com dump consistente, compressão e upload em S3/MinIO, rotação e teste de restauração, health check avançado e docker-compose produtivo. | **Próxima frente sequencial** |
-| Validação de sessão expirada/refresh em Firefox e Safari | Validado em Chrome contra o backend real; Firefox/Safari não testados — sem ferramenta de automação disponível. | Secundário |
+| Item | Observação | Prioridade |
+| :--- | :--- | :--- |
+| Validação cross-browser (Firefox e Safari) | Validado em Chrome/Chromium; Firefox e Safari sem ferramenta automatizada local nesta rodada. | Baixa |
+| Exportação em PDF do Mapa Mensal SFPC (R-105) | Tabela já funcional na tela; geração de documento para entrega formal física ao Exército. | Média |
+| Automação E2E Playwright da Jornada Operacional | Pipeline automatizado de testes de ponta a ponta no CI para o Golden Path completo. | Alta |
 
 ---
 
 ## 🔒 Bloqueado — requer decisão explícita antes de iniciar
 
-Nada bloqueia as próximas frentes técnicas. Frentes 1, 2 e 3 foram concluídas com êxito e validadas de ponta a ponta.
+- **Emissão de MDF-e (Manifesto Eletrônico de Documentos Fiscais):** Depende de definição se a empresa opera com transporte rodoviário interestadual em frota própria.
+- **Importação bancária via formato CNAB (240/400):** Bloqueado até aprovação explícita (hoje o sistema já atende com PIX dinâmico e conciliação OFX).
+- **Edição/exclusão destrutiva de cadastros:** A API deliberadamente proíbe exclusão de produtos, paióis e lotes para garantir compliance militar perante o SFPC/R-105.
 
 ---
 

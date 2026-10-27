@@ -332,11 +332,28 @@ senha, MFA) estar implementada no backend — já está.
 
 ---
 
-## Fase 7 — Telas fiscais e regulatórias (bloqueada)
+## Fase 7 — Telas fiscais e regulatórias (Concluída)
 
-**Não iniciar sem que o `Plano_Backend.md` Fase 3 esteja implementada e
-aprovada.** Construir UI antes do contrato de NF-e/NFS-e/MDF-e/GT estar
-definido é retrabalho garantido.
+- [x] **Módulo de Faturamento e Documentos Fiscais (`/modules/billing`):**
+  - Listagem, filtros por status (`AUTORIZADO`, `PROCESSANDO`, `REJEITADO`, `CANCELADO`) e emissão direta de NF-e (Modelo 55 com NCM), NFC-e (Modelo 65) e NFS-e (Serviços Pirotécnicos com ART e Blaster).
+  - Cancelamento fiscal homologado perante a SEFAZ com justificativa mínima obrigatória de 15 caracteres.
+- [x] **Módulo de Compliance e Guia de Tráfego Militar (`/modules/compliance`):**
+  - Emissão de Guia de Tráfego sequencial anual (`GT-YYYY/NNNN`) perante o DFPC/SFPC/COLOG.
+  - Validação de saldo no paiol, condutor MOPP e cálculo automático de Carga Líquida de Explosivos (NEQ em kg).
+  - Atualização de status de trânsito (`EM_TRANSITO`, `CONCLUIDA`, `CANCELADA`) e **Espelho Oficial Militar de Impressão** formatado para fiscalização rodoviária com classes de risco ONU.
+- [x] **Cobrança PIX Dinâmico & Conciliação OFX (Financeiro):**
+  - Modal PIX acessível com renderização de QR Code Base64 e código Copia e Cola EMVCo oficial.
+  - Modal de Conciliação Bancária OFX (SGML/XML) com correspondência automática de lançamentos e liquidação em lote com auditoria.
+
+---
+
+## Fase 8 — Padronização de UX/UI & Design System (Concluída)
+
+- [x] **Tipografia Moderna:** Inter via `next/font/google` com fallback otimizado; escala sem textos de 8px/10px (piso em 12px para badges e 14px-15px para conteúdo).
+- [x] **ToastProvider Global:** Notificações flutuantes com auto-dismiss de 4s, acessibilidade (`role="status"`), variantes semânticas e erradicação completa de `alert()` do navegador.
+- [x] **Skeletons Shimmer:** Estados de carregamento pulsantes para transições assíncronas suaves em tabelas e cards.
+- [x] **Cockpit do AppShell:** Avatar, nome do operador autenticado e chips de perfis ativos integrados diretamente na topbar; remoção da faixa estática `.auth-notice` (ganho de 40px de área útil vertical).
+- [x] **Central de Operações Pirotécnicas (`/`):** Dashboard transformado com 4 KPI Cards vivos, barra de ações rápidas em 1 clique e radar regulatório de conformidade militar (R-105).
 
 ---
 

@@ -4,132 +4,40 @@ import { useEffect, useState, type FormEvent } from "react";
 import {
   inventoryApi,
   type Magazine,
-  type PageResult,
-  type Product,
   type ProductLot,
   type ProductLotStatus,
   type SfpcMonthlyReport,
-  type StockMovement,
-  type StockReport,
 } from "@/lib/api";
 import { Icon } from "@/components/icon";
 import {
   InventoryCreateForm,
   type InventoryFormType,
 } from "@/components/inventory-create-form";
-import { formatDateOnly, formatDateTime, formatNumber } from "@/lib/format";
-
-type Tab =
-  | "overview"
-  | "products"
-  | "lots"
-  | "magazines"
-  | "movements"
-  | "sfpc";
-
-type InventoryData = {
-  report: StockReport | null;
-  products: PageResult<Product>;
-  lots: PageResult<ProductLot>;
-  magazines: PageResult<Magazine>;
-  movements: PageResult<StockMovement>;
-};
+import { formatNumber } from "@/lib/format";
+import { useEscapeToClose } from "@/lib/use-escape-to-close";
+import { useModalFocusTrap } from "@/lib/use-modal-focus-trap";
+import {
+  createFormByTab,
+  errorMessage,
+  LotsTab,
+  LotSplitModal,
+  LotStatusModal,
+  MagazinesTab,
+  MetricCard,
+  MovementsTab,
+  OverviewTab,
+  PaginationNav,
+  ProductsTab,
+  SfpcOfficialModal,
+  SfpcTab,
+  tabs,
+  type InventoryData,
+  type Tab,
+} from "./inventory";
 
 type Props = {
   initialTab?: Tab;
 };
-
-const tabs: Array<{ id: Tab; label: string }> = [
-  { id: "overview", label: "Resumo" },
-  { id: "products", label: "Produtos" },
-  { id: "lots", label: "Lotes" },
-  { id: "magazines", label: "Paióis" },
-  { id: "movements", label: "Movimentações" },
-  { id: "sfpc", label: "Mapa SFPC (R-105)" },
-];
-
-const createFormByTab: Partial<Record<Tab, InventoryFormType>> = {
-  products: "product",
-  lots: "lot",
-  magazines: "magazine",
-  movements: "movement",
-};
-
-const productTypeLabels = {
-  MERCADORIA: "Mercadoria",
-  INSUMO: "Insumo",
-  SERVICO: "Serviço",
-};
-
-const movementLabels = {
-  ENTRADA: "Entrada",
-  SAIDA: "Saída",
-  TRANSFERENCIA: "Transferência",
-  AJUSTE: "Ajuste",
-};
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error
-    ? error.message
-    : "Não foi possível carregar o estoque.";
-}
-
-function MetricCard({
-  label,
-  value,
-  detail,
-  tone = "neutral",
-}: {
-  label: string;
-  value: string;
-  detail: string;
-  tone?: "neutral" | "warning" | "danger";
-}) {
-  return (
-    <article className={`inventory-metric inventory-metric--${tone}`}>
-      <span>{label}</span>
-      <strong>{value}</strong>
-      <small>{detail}</small>
-    </article>
-  );
-}
-
-function EmptyTable({ message }: { message: string }) {
-  return <p className="table-empty">{message}</p>;
-}
-
-function Pagination({
-  result,
-  onChange,
-}: {
-  result: PageResult<unknown>;
-  onChange: (page: number) => void;
-}) {
-  if (result.meta.totalPages <= 1) return null;
-  return (
-    <nav className="table-pagination" aria-label="Paginação">
-      <button
-        className="button button--quiet"
-        type="button"
-        disabled={result.meta.page <= 1}
-        onClick={() => onChange(result.meta.page - 1)}
-      >
-        Anterior
-      </button>
-      <span>
-        Página {result.meta.page} de {result.meta.totalPages} · {result.meta.total} registros
-      </span>
-      <button
-        className="button button--quiet"
-        type="button"
-        disabled={result.meta.page >= result.meta.totalPages}
-        onClick={() => onChange(result.meta.page + 1)}
-      >
-        Próxima
-      </button>
-    </nav>
-  );
-}
 
 export function InventoryWorkspace({ initialTab = "overview" }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
@@ -148,6 +56,7 @@ export function InventoryWorkspace({ initialTab = "overview" }: Props) {
   const [sfpcYear, setSfpcYear] = useState(new Date().getFullYear());
   const [sfpcMonth, setSfpcMonth] = useState(new Date().getMonth() + 1);
   const [sfpcLoading, setSfpcLoading] = useState(false);
+  const [showSfpcOfficialModal, setShowSfpcOfficialModal] = useState(false);
 
   // Estados para Mudança de Status do Lote
   const [lotForStatus, setLotForStatus] = useState<ProductLot | null>(null);
@@ -163,6 +72,20 @@ export function InventoryWorkspace({ initialTab = "overview" }: Props) {
   const [splitQuantity, setSplitQuantity] = useState("");
   const [splitSubmitting, setSplitSubmitting] = useState(false);
   const [splitError, setSplitError] = useState<string | null>(null);
+
+  const hasAnyModalOpen =
+    Boolean(form) ||
+    Boolean(lotForStatus) ||
+    Boolean(lotForSplit) ||
+    showSfpcOfficialModal;
+
+  useEscapeToClose(hasAnyModalOpen, () => {
+    setForm(null);
+    setLotForStatus(null);
+    setLotForSplit(null);
+    setShowSfpcOfficialModal(false);
+  });
+  useModalFocusTrap(hasAnyModalOpen);
 
   useEffect(() => {
     let current = true;
@@ -512,319 +435,24 @@ export function InventoryWorkspace({ initialTab = "overview" }: Props) {
 
         <div className="inventory-content">
           {activeTab === "overview" && (
-            <section role="tabpanel" aria-labelledby="inventory-section-title">
-              <div className="section-heading">
-                <div>
-                  <p className="eyebrow">Posição de estoque</p>
-                  <h2 id="inventory-section-title">Saldo por produto</h2>
-                </div>
-                {summary && (
-                  <span className="section-count">
-                    Atualizado {formatDateTime(summary.asOf)}
-                  </span>
-                )}
-              </div>
-              {loading && !summary ? (
-                <p className="table-empty" role="status">
-                  Carregando posição de estoque...
-                </p>
-              ) : !summary ? (
-                <EmptyTable message="O resumo de saldo não está disponível. Use as listas de produtos e lotes para consultar os registros." />
-              ) : summary.byProduct.length === 0 ? (
-                <EmptyTable message="Ainda não há saldo de estoque para exibir." />
-              ) : (
-                <div className="table-scroll">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>Produto</th>
-                        <th>Lotes</th>
-                        <th>Físico</th>
-                        <th>Reservado</th>
-                        <th>Disponível</th>
-                        <th>Quarentena / Bloqueio</th>
-                        <th>NEQ</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {summary.byProduct.map((product) => (
-                        <tr key={product.productId}>
-                          <td>
-                            <strong>{product.productName}</strong>
-                            <small>{product.sku}</small>
-                          </td>
-                          <td>{product.lotCount}</td>
-                          <td>
-                            {formatNumber(Number(product.physicalQuantity))}{" "}
-                            {product.unit}
-                          </td>
-                          <td>
-                            {formatNumber(Number(product.reservedQuantity))}{" "}
-                            {product.unit}
-                          </td>
-                          <td>
-                            {formatNumber(Number(product.availableQuantity))}{" "}
-                            {product.unit}
-                          </td>
-                          <td>
-                            {Number(product.quarantinedQuantity) +
-                              Number(product.blockedQuantity) >
-                            0 ? (
-                              <span className="stock-badge stock-badge--warning">
-                                {formatNumber(
-                                  Number(product.quarantinedQuantity) +
-                                    Number(product.blockedQuantity),
-                                )}{" "}
-                                {product.unit}
-                              </span>
-                            ) : (
-                              "—"
-                            )}
-                          </td>
-                          <td>{formatNumber(Number(product.neqKg))} kg</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-              <div className="inventory-quick-links">
-                <button
-                  className="button button--quiet"
-                  type="button"
-                  onClick={() => changeTab("products")}
-                >
-                  Ver produtos
-                </button>
-                <button
-                  className="button button--quiet"
-                  type="button"
-                  onClick={() => changeTab("lots")}
-                >
-                  Ver lotes
-                </button>
-                <button
-                  className="button button--quiet"
-                  type="button"
-                  onClick={() => changeTab("movements")}
-                >
-                  Histórico de movimentações
-                </button>
-                <button
-                  className="button button--quiet"
-                  type="button"
-                  onClick={() => changeTab("sfpc")}
-                >
-                  Mapa SFPC (R-105)
-                </button>
-              </div>
-              {summary &&
-                (summary.expiringLots.length > 0 ||
-                  summary.expiredLots.length > 0) && (
-                  <div className="expiry-notice">
-                    <Icon name="warning" size={17} />
-                    <span>
-                      Há {summary.expiredLots.length} lote(s) vencido(s) e{" "}
-                      {summary.expiringLots.length} próximo(s) do vencimento.
-                      Confira a lista de lotes antes de movimentar.
-                    </span>
-                    <button
-                      className="button button--quiet"
-                      type="button"
-                      onClick={() => changeTab("lots")}
-                    >
-                      Conferir lotes
-                    </button>
-                  </div>
-                )}
-            </section>
+            <OverviewTab
+              summary={summary ?? null}
+              loading={loading}
+              onChangeTab={changeTab}
+            />
           )}
 
           {activeTab === "sfpc" && (
-            <section role="tabpanel" aria-labelledby="inventory-section-title">
-              <div className="section-heading">
-                <div>
-                  <p className="eyebrow">Fiscalização Militar / SFPC / R-105</p>
-                  <h2 id="inventory-section-title">
-                    Mapa Mensal de Movimentação de PCE
-                  </h2>
-                </div>
-                <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-                  <label className="field" style={{ margin: 0 }}>
-                    <span className="sr-only">Ano</span>
-                    <select
-                      value={sfpcYear}
-                      onChange={(e) => setSfpcYear(Number(e.target.value))}
-                    >
-                      {[2024, 2025, 2026, 2027, 2028].map((y) => (
-                        <option key={y} value={y}>
-                          {y}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="field" style={{ margin: 0 }}>
-                    <span className="sr-only">Mês</span>
-                    <select
-                      value={sfpcMonth}
-                      onChange={(e) => setSfpcMonth(Number(e.target.value))}
-                    >
-                      {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                        <option key={m} value={m}>
-                          Mês {m.toString().padStart(2, "0")}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <button
-                    className="button button--quiet"
-                    type="button"
-                    disabled={sfpcLoading}
-                    onClick={() => setRevision((r) => r + 1)}
-                  >
-                    {sfpcLoading ? "Carregando..." : "Atualizar"}
-                  </button>
-                </div>
-              </div>
-
-              {sfpcReport && (
-                <>
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                      gap: "1rem",
-                      marginBottom: "1.5rem",
-                    }}
-                  >
-                    <MetricCard
-                      label="Saldo Inicial (Abertura)"
-                      value={`${formatNumber(
-                        Number(sfpcReport.totals.initialBalanceNeqKg),
-                        2,
-                      )} kg`}
-                      detail={`Período iniciado em ${formatDateOnly(
-                        sfpcReport.periodStart,
-                      )}`}
-                    />
-                    <MetricCard
-                      label="Entradas no Mês"
-                      value={`${formatNumber(
-                        Number(sfpcReport.totals.inflowNeqKg),
-                        2,
-                      )} kg`}
-                      detail="Compras, devoluções e ajustes positivos"
-                    />
-                    <MetricCard
-                      label="Saídas no Mês"
-                      value={`${formatNumber(
-                        Number(sfpcReport.totals.outflowNeqKg),
-                        2,
-                      )} kg`}
-                      detail="Vendas, queimas em OS e ajustes negativos"
-                    />
-                    <MetricCard
-                      label="Saldo Final (Fechamento)"
-                      value={`${formatNumber(
-                        Number(sfpcReport.totals.finalBalanceNeqKg),
-                        2,
-                      )} kg`}
-                      detail={`${sfpcReport.totals.productCount} produtos controlados`}
-                      tone="neutral"
-                    />
-                  </div>
-
-                  <h3 style={{ fontSize: "1.1rem", marginBottom: "0.5rem" }}>
-                    Consolidação por Classe de Risco (Exército Brasileiro)
-                  </h3>
-                  <div className="table-scroll" style={{ marginBottom: "1.5rem" }}>
-                    <table className="data-table">
-                      <thead>
-                        <tr>
-                          <th>Classe de Risco</th>
-                          <th>Produtos</th>
-                          <th>Saldo Inicial</th>
-                          <th>Entradas</th>
-                          <th>Saídas</th>
-                          <th>Saldo Final</th>
-                          <th>NEQ Final (kg)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sfpcReport.byRiskClass.map((rc) => (
-                          <tr key={rc.riskClass}>
-                            <td>
-                              <strong>{rc.riskClass}</strong>
-                            </td>
-                            <td>{rc.productCount}</td>
-                            <td>{formatNumber(Number(rc.initialQuantity))}</td>
-                            <td>{formatNumber(Number(rc.inflowQuantity))}</td>
-                            <td>{formatNumber(Number(rc.outflowQuantity))}</td>
-                            <td>
-                              <strong>{formatNumber(Number(rc.finalQuantity))}</strong>
-                            </td>
-                            <td>{formatNumber(Number(rc.finalNeqKg))} kg</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <h3 style={{ fontSize: "1.1rem", marginBottom: "0.5rem" }}>
-                    Detalhamento de Movimentação por Produto PCE
-                  </h3>
-                  {sfpcReport.items.length === 0 ? (
-                    <EmptyTable message="Nenhum produto controlado registrado no catálogo." />
-                  ) : (
-                    <div className="table-scroll">
-                      <table className="data-table">
-                        <thead>
-                          <tr>
-                            <th>SKU / Produto</th>
-                            <th>Classe</th>
-                            <th>Unidade</th>
-                            <th>Saldo Inicial</th>
-                            <th>Entradas</th>
-                            <th>Saídas</th>
-                            <th>Saldo Final</th>
-                            <th>NEQ Final</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {sfpcReport.items.map((item) => (
-                            <tr key={item.productId}>
-                              <td>
-                                <strong>{item.productName}</strong>
-                                <small>{item.sku}</small>
-                              </td>
-                              <td>{item.riskClass}</td>
-                              <td>{item.unit}</td>
-                              <td>{formatNumber(Number(item.initialQuantity))}</td>
-                              <td>
-                                <span title={`Compras: ${item.inflowBreakdown.purchases} | Devoluções: ${item.inflowBreakdown.returns} | Ajustes: ${item.inflowBreakdown.adjustments}`}>
-                                  {formatNumber(Number(item.inflowBreakdown.total))}
-                                </span>
-                              </td>
-                              <td>
-                                <span title={`Vendas: ${item.outflowBreakdown.sales} | OS: ${item.outflowBreakdown.serviceOrders} | Ajustes: ${item.outflowBreakdown.adjustments}`}>
-                                  {formatNumber(Number(item.outflowBreakdown.total))}
-                                </span>
-                              </td>
-                              <td>
-                                <strong>
-                                  {formatNumber(Number(item.finalQuantity))}
-                                </strong>
-                              </td>
-                              <td>{formatNumber(Number(item.finalNeqKg))} kg</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </>
-              )}
-            </section>
+            <SfpcTab
+              sfpcReport={sfpcReport}
+              sfpcYear={sfpcYear}
+              sfpcMonth={sfpcMonth}
+              sfpcLoading={sfpcLoading}
+              onYearChange={setSfpcYear}
+              onMonthChange={setSfpcMonth}
+              onRefresh={() => setRevision((r) => r + 1)}
+              onOpenOfficialModal={() => setShowSfpcOfficialModal(true)}
+            />
           )}
 
           {activeTab !== "overview" && activeTab !== "sfpc" && (
@@ -842,337 +470,82 @@ export function InventoryWorkspace({ initialTab = "overview" }: Props) {
                     : "Carregando..."}
                 </span>
               </div>
-              {activeTab !== "magazines" && (
-                <form className="inventory-search" onSubmit={applySearch}>
-                  <label className="field">
-                    <span className="sr-only">Buscar nesta lista</span>
-                    <input
-                      type="search"
-                      value={searchInput}
-                      onChange={(event) => setSearchInput(event.target.value)}
-                      placeholder={`Buscar ${
-                        activeTab === "products"
-                          ? "por SKU ou nome"
-                          : activeTab === "lots"
-                            ? "por lote, fabricante ou produto"
-                            : "por referência ou lote"
-                      }`}
-                      maxLength={100}
-                    />
-                  </label>
+
+              <form
+                className="inventory-search"
+                role="search"
+                aria-label={`Filtrar ${tabs.find((t) => t.id === activeTab)?.label}`}
+                onSubmit={applySearch}
+              >
+                <input
+                  type="search"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  placeholder={
+                    activeTab === "products"
+                      ? "Buscar por nome ou SKU..."
+                      : activeTab === "lots"
+                        ? "Buscar por número do lote, fabricante ou produto..."
+                        : activeTab === "magazines"
+                          ? "Buscar por nome do paiol..."
+                          : "Buscar por documento ou número de lote..."
+                  }
+                />
+                <button className="button button--quiet" type="submit">
+                  Buscar
+                </button>
+                {appliedSearch && (
                   <button
                     className="button button--quiet"
-                    type="submit"
-                    disabled={loading}
+                    type="button"
+                    onClick={() => {
+                      setSearchInput("");
+                      setAppliedSearch("");
+                      setPage(1);
+                      setLoading(true);
+                    }}
                   >
-                    Buscar
+                    Limpar
                   </button>
-                  {loading && (
-                    <span role="status" className="inventory-loading">
-                      Atualizando...
-                    </span>
-                  )}
-                </form>
-              )}
+                )}
+              </form>
 
               {!data ? (
                 <p className="table-empty" role="status">
                   Carregando dados de estoque...
                 </p>
               ) : activeTab === "products" ? (
-                data.products.data.length === 0 ? (
-                  <EmptyTable message="Nenhum produto corresponde à busca." />
-                ) : (
-                  <div className="table-scroll">
-                    <table className="data-table">
-                      <thead>
-                        <tr>
-                          <th>SKU / produto</th>
-                          <th>Tipo</th>
-                          <th>PCE / classe</th>
-                          <th>NEQ unitária</th>
-                          <th>Unidade</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {data.products.data.map((product) => (
-                          <tr key={product.id}>
-                            <td>
-                              <strong>{product.name}</strong>
-                              <small>{product.sku}</small>
-                            </td>
-                            <td>{productTypeLabels[product.type]}</td>
-                            <td>
-                              {product.isPce
-                                ? `PCE · ${product.riskClass}`
-                                : "Não PCE"}
-                            </td>
-                            <td>
-                              {product.isPce
-                                ? `${formatNumber(
-                                    Number(product.neqGrams),
-                                    3,
-                                  )} g`
-                                : "—"}
-                            </td>
-                            <td>{product.unit}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )
+                <ProductsTab products={data.products.data} />
               ) : activeTab === "magazines" ? (
-                data.magazines.data.length === 0 ? (
-                  <EmptyTable message="Nenhum paiol corresponde à busca." />
-                ) : (
-                  <div className="table-scroll">
-                    <table className="data-table">
-                      <thead>
-                        <tr>
-                          <th>Paiol</th>
-                          <th>Situação</th>
-                          <th>NEQ atual</th>
-                          <th>Capacidade</th>
-                          <th>Disponível</th>
-                          <th>Licença até</th>
-                          <th>Ações</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {data.magazines.data.map((magazine) => (
-                          <tr key={magazine.id}>
-                            <td>
-                              <strong>{magazine.name}</strong>
-                            </td>
-                            <td>
-                              {magazine.active ? (
-                                <span className="stock-badge">Ativo</span>
-                              ) : (
-                                <span className="stock-badge stock-badge--danger">
-                                  Inativo
-                                </span>
-                              )}
-                            </td>
-                            <td>
-                              {(() => {
-                                const cur = Number(magazine.currentNeqKg) || 0;
-                                const max = Number(magazine.maxNeqCapacityKg) || 1;
-                                const pct = Math.min(100, Math.round((cur / max) * 100));
-                                const barColor = pct >= 90 ? "bg-rose-500" : pct >= 70 ? "bg-amber-500" : "bg-emerald-500";
-                                const textColor = pct >= 90 ? "text-rose-400 font-bold" : pct >= 70 ? "text-amber-400 font-semibold" : "text-emerald-400";
-                                return (
-                                  <div className="space-y-1 min-w-[130px]">
-                                    <div className="flex items-center justify-between text-xs">
-                                      <span className={textColor}>{formatNumber(cur)} kg</span>
-                                      <span className="text-[11px] text-neutral-400 font-mono">{pct}%</span>
-                                    </div>
-                                    <div className="w-full bg-neutral-800 rounded-full h-1.5 overflow-hidden">
-                                      <div
-                                        className={`h-full rounded-full transition-all duration-300 ${barColor}`}
-                                        style={{ width: `${pct}%` }}
-                                        role="progressbar"
-                                        aria-valuenow={pct}
-                                        aria-valuemin={0}
-                                        aria-valuemax={100}
-                                      />
-                                    </div>
-                                  </div>
-                                );
-                              })()}
-                            </td>
-                            <td>
-                              {formatNumber(Number(magazine.maxNeqCapacityKg))} kg
-                            </td>
-                            <td>
-                              <span className="font-mono text-xs text-neutral-300">
-                                {formatNumber(Number(magazine.remainingNeqKg))} kg
-                              </span>
-                            </td>
-                            <td>
-                              {formatDateOnly(magazine.fireLicenseExpiresAt)}
-                            </td>
-                            <td>
-                              <button
-                                className="button button--quiet"
-                                type="button"
-                                onClick={() =>
-                                  handleToggleMagazineStatus(magazine)
-                                }
-                              >
-                                {magazine.active ? "Inativar" : "Reativar"}
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )
+                <MagazinesTab
+                  magazines={data.magazines.data}
+                  onToggleStatus={handleToggleMagazineStatus}
+                />
               ) : activeTab === "lots" ? (
-                data.lots.data.length === 0 ? (
-                  <EmptyTable message="Nenhum lote corresponde à busca." />
-                ) : (
-                  <div className="table-scroll">
-                    <table className="data-table">
-                      <thead>
-                        <tr>
-                          <th>Lote / produto</th>
-                          <th>Paiol</th>
-                          <th>Saldo</th>
-                          <th>NEQ</th>
-                          <th>Validade</th>
-                          <th>Situação</th>
-                          <th>Ações</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {data.lots.data.map((lot) => (
-                          <tr key={lot.id}>
-                            <td>
-                              <strong>{lot.lotNumber}</strong>
-                              <small>
-                                {lot.product.sku} · {lot.product.name}
-                              </small>
-                            </td>
-                            <td>{lot.magazine.name}</td>
-                            <td>
-                              {formatNumber(Number(lot.quantity))}{" "}
-                              {lot.product.unit}
-                            </td>
-                            <td>{formatNumber(Number(lot.neqKg))} kg</td>
-                            <td>{formatDateOnly(lot.expiresAt)}</td>
-                            <td>
-                              {lot.status === "BLOQUEADO" ? (
-                                <span
-                                  className="stock-badge stock-badge--danger"
-                                  title={lot.statusReason ?? "Lote bloqueado"}
-                                >
-                                  Bloqueado
-                                </span>
-                              ) : lot.status === "QUARENTENA" ? (
-                                <span
-                                  className="stock-badge stock-badge--warning"
-                                  title={
-                                    lot.statusReason ?? "Lote em quarentena"
-                                  }
-                                >
-                                  Quarentena
-                                </span>
-                              ) : expiredLotIds.has(lot.id) ? (
-                                <span className="stock-badge stock-badge--danger">
-                                  Vencido
-                                </span>
-                              ) : expiringLotIds.has(lot.id) ? (
-                                <span className="stock-badge stock-badge--warning">
-                                  Vence em breve
-                                </span>
-                              ) : (
-                                <span className="stock-badge">Disponível</span>
-                              )}
-                            </td>
-                            <td>
-                              <div
-                                style={{
-                                  display: "flex",
-                                  gap: "0.25rem",
-                                }}
-                              >
-                                <button
-                                  className="button button--quiet"
-                                  type="button"
-                                  onClick={() => {
-                                    setLotForStatus(lot);
-                                    setNewStatus(lot.status);
-                                    setStatusReason(lot.statusReason ?? "");
-                                    setStatusError(null);
-                                  }}
-                                >
-                                  Situação
-                                </button>
-                                <button
-                                  className="button button--quiet"
-                                  type="button"
-                                  disabled={lot.status !== "DISPONIVEL"}
-                                  title={
-                                    lot.status !== "DISPONIVEL"
-                                      ? "Apenas lotes disponíveis podem ser desmembrados"
-                                      : "Desmembrar lote"
-                                  }
-                                  onClick={() => {
-                                    setLotForSplit(lot);
-                                    setSplitNewLotNumber(
-                                      `${lot.lotNumber}-DESC`,
-                                    );
-                                    setSplitQuantity("");
-                                    setSplitMagazineId("");
-                                    setSplitError(null);
-                                  }}
-                                >
-                                  Desmembrar
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )
+                <LotsTab
+                  lots={data.lots.data}
+                  expiredLotIds={expiredLotIds}
+                  expiringLotIds={expiringLotIds}
+                  onOpenStatusModal={(lot) => {
+                    setLotForStatus(lot);
+                    setNewStatus(lot.status);
+                    setStatusReason(lot.statusReason ?? "");
+                    setStatusError(null);
+                  }}
+                  onOpenSplitModal={(lot) => {
+                    setLotForSplit(lot);
+                    setSplitNewLotNumber(`${lot.lotNumber}-DESC`);
+                    setSplitQuantity("");
+                    setSplitMagazineId("");
+                    setSplitError(null);
+                  }}
+                />
               ) : (
-                data.movements.data.length === 0 ? (
-                  <EmptyTable message="Nenhuma movimentação corresponde à busca." />
-                ) : (
-                  <div className="table-scroll">
-                    <table className="data-table">
-                      <thead>
-                        <tr>
-                          <th>Data</th>
-                          <th>Tipo</th>
-                          <th>Lote / produto</th>
-                          <th>Quantidade</th>
-                          <th>Origem / destino</th>
-                          <th>Referência</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {data.movements.data.map((movement) => (
-                          <tr key={movement.id}>
-                            <td>{formatDateTime(movement.occurredAt)}</td>
-                            <td>
-                              <span className="stock-badge">
-                                {movementLabels[movement.type]}
-                              </span>
-                            </td>
-                            <td>
-                              <strong>{movement.productLot.lotNumber}</strong>
-                              <small>
-                                {movement.productLot.product.name}
-                              </small>
-                            </td>
-                            <td>
-                              {formatNumber(Number(movement.quantity))}{" "}
-                              {movement.productLot.product.unit}
-                            </td>
-                            <td>
-                              {movement.sourceMagazine?.name ?? "—"}
-                              {movement.destinationMagazine && (
-                                <small>
-                                  para {movement.destinationMagazine.name}
-                                </small>
-                              )}
-                            </td>
-                            <td>{movement.reference ?? "—"}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )
+                <MovementsTab movements={data.movements.data} />
               )}
 
               {data && (
-                <Pagination
+                <PaginationNav
                   result={data[activeTab]}
                   onChange={(nextPage) => {
                     setLoading(true);
@@ -1187,209 +560,34 @@ export function InventoryWorkspace({ initialTab = "overview" }: Props) {
       </section>
 
       {/* Modal para Mudança de Situação do Lote */}
-      {lotForStatus && (
-        <div
-          className="form-scrim"
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget && !statusSubmitting) {
-              setLotForStatus(null);
-            }
-          }}
-        >
-          <section
-            className="inventory-dialog panel"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="lot-status-dialog-title"
-          >
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">Rastreabilidade e Quarentena</p>
-                <h2 id="lot-status-dialog-title">
-                  Situação do Lote: {lotForStatus.lotNumber}
-                </h2>
-              </div>
-              <button
-                className="button button--quiet"
-                type="button"
-                disabled={statusSubmitting}
-                onClick={() => setLotForStatus(null)}
-              >
-                Fechar
-              </button>
-            </div>
-
-            <form
-              className="form-stack inventory-form"
-              onSubmit={handleUpdateLotStatus}
-            >
-              {statusError && (
-                <p className="form-error" role="alert">
-                  {statusError}
-                </p>
-              )}
-              <label className="field">
-                <span>Situação Regulatória do Lote</span>
-                <select
-                  value={newStatus}
-                  onChange={(e) =>
-                    setNewStatus(e.target.value as ProductLotStatus)
-                  }
-                  required
-                >
-                  <option value="DISPONIVEL">Disponível (Liberado para saídas e reservas)</option>
-                  <option value="QUARENTENA">Quarentena (Retido para conferência/análise)</option>
-                  <option value="BLOQUEADO">Bloqueado (Interditado para saídas e entradas)</option>
-                </select>
-              </label>
-
-              <label className="field">
-                <span>Motivo da Situação {newStatus !== "DISPONIVEL" ? "(Obrigatório)" : "(Opcional)"}</span>
-                <input
-                  type="text"
-                  maxLength={255}
-                  value={statusReason}
-                  onChange={(e) => setStatusReason(e.target.value)}
-                  placeholder="Ex.: Laudo de inspeção, avaria física na caixa, retenção fiscal"
-                  required={newStatus !== "DISPONIVEL"}
-                />
-              </label>
-
-              <div className="form-actions">
-                <button
-                  className="button button--quiet"
-                  type="button"
-                  disabled={statusSubmitting}
-                  onClick={() => setLotForStatus(null)}
-                >
-                  Cancelar
-                </button>
-                <button
-                  className="button button--primary"
-                  type="submit"
-                  disabled={statusSubmitting}
-                >
-                  {statusSubmitting ? "Gravando..." : "Salvar Situação"}
-                </button>
-              </div>
-            </form>
-          </section>
-        </div>
-      )}
+      <LotStatusModal
+        lot={lotForStatus}
+        newStatus={newStatus}
+        statusReason={statusReason}
+        statusSubmitting={statusSubmitting}
+        statusError={statusError}
+        onNewStatusChange={setNewStatus}
+        onStatusReasonChange={setStatusReason}
+        onClose={() => setLotForStatus(null)}
+        onSubmit={handleUpdateLotStatus}
+      />
 
       {/* Modal para Desmembramento de Lote (Split) */}
-      {lotForSplit && data && (
-        <div
-          className="form-scrim"
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget && !splitSubmitting) {
-              setLotForSplit(null);
-            }
-          }}
-        >
-          <section
-            className="inventory-dialog panel"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="lot-split-dialog-title"
-          >
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">Movimentação WMS</p>
-                <h2 id="lot-split-dialog-title">
-                  Desmembrar Lote: {lotForSplit.lotNumber}
-                </h2>
-              </div>
-              <button
-                className="button button--quiet"
-                type="button"
-                disabled={splitSubmitting}
-                onClick={() => setLotForSplit(null)}
-              >
-                Fechar
-              </button>
-            </div>
-
-            <form className="form-stack inventory-form" onSubmit={handleSplitLot}>
-              {splitError && (
-                <p className="form-error" role="alert">
-                  {splitError}
-                </p>
-              )}
-              <div style={{ padding: "0.5rem 0", fontSize: "0.9rem" }}>
-                <span>Saldo atual do lote de origem: </span>
-                <strong>
-                  {formatNumber(Number(lotForSplit.quantity))} {lotForSplit.product.unit}
-                </strong>
-                <span> · Paiol atual: </span>
-                <strong>{lotForSplit.magazine.name}</strong>
-              </div>
-
-              <label className="field">
-                <span>Paiol de Destino do Novo Lote</span>
-                <select
-                  value={splitMagazineId}
-                  onChange={(e) => setSplitMagazineId(e.target.value)}
-                  required
-                >
-                  <option value="">Selecione o paiol de destino...</option>
-                  {data.magazines.data
-                    .filter((m) => m.active)
-                    .map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.name} (Capacidade disp.: {formatNumber(Number(m.remainingNeqKg))} kg NEQ)
-                      </option>
-                    ))}
-                </select>
-              </label>
-
-              <label className="field">
-                <span>Identificador do Novo Lote Filho</span>
-                <input
-                  type="text"
-                  maxLength={50}
-                  value={splitNewLotNumber}
-                  onChange={(e) => setSplitNewLotNumber(e.target.value)}
-                  required
-                />
-              </label>
-
-              <label className="field">
-                <span>Quantidade a Desmembrar ({lotForSplit.product.unit})</span>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  max={Number(lotForSplit.quantity) - 0.01}
-                  value={splitQuantity}
-                  onChange={(e) => setSplitQuantity(e.target.value)}
-                  placeholder={`Menor que ${lotForSplit.quantity}`}
-                  required
-                />
-              </label>
-
-              <div className="form-actions">
-                <button
-                  className="button button--quiet"
-                  type="button"
-                  disabled={splitSubmitting}
-                  onClick={() => setLotForSplit(null)}
-                >
-                  Cancelar
-                </button>
-                <button
-                  className="button button--primary"
-                  type="submit"
-                  disabled={splitSubmitting}
-                >
-                  {splitSubmitting ? "Desmembrando..." : "Confirmar Desmembramento"}
-                </button>
-              </div>
-            </form>
-          </section>
-        </div>
+      {data && (
+        <LotSplitModal
+          lot={lotForSplit}
+          magazines={data.magazines.data}
+          splitMagazineId={splitMagazineId}
+          splitNewLotNumber={splitNewLotNumber}
+          splitQuantity={splitQuantity}
+          splitSubmitting={splitSubmitting}
+          splitError={splitError}
+          onSplitMagazineIdChange={setSplitMagazineId}
+          onSplitNewLotNumberChange={setSplitNewLotNumber}
+          onSplitQuantityChange={setSplitQuantity}
+          onClose={() => setLotForSplit(null)}
+          onSubmit={handleSplitLot}
+        />
       )}
 
       <p className="inventory-traceability-note">
@@ -1397,6 +595,15 @@ export function InventoryWorkspace({ initialTab = "overview" }: Props) {
         Edição ou exclusão direta de lotes e movimentações são bloqueadas para garantir
         conformidade regulatória e auditoria.
       </p>
+
+      {/* Modal do Espelho Oficial Militar do Mapa SFPC (R-105) */}
+      <SfpcOfficialModal
+        isOpen={showSfpcOfficialModal}
+        sfpcReport={sfpcReport}
+        sfpcMonth={sfpcMonth}
+        sfpcYear={sfpcYear}
+        onClose={() => setShowSfpcOfficialModal(false)}
+      />
 
       {form && data && (
         <InventoryCreateForm

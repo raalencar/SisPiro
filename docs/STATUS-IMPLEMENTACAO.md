@@ -20,8 +20,7 @@ implantada da API.
   - Parcelamento financeiro nativo (`POST /financial/entries`): lançamentos parcelados com número de parcelas, intervalo em dias ou datas customizadas, rateio exato de centavos (resto alocado na 1ª parcela), agrupamento (`installmentGroup`) e auditoria individual por parcela.
 - Auditoria transacional para operações de negócio e autenticação, incluindo
   identidade do operador autenticado em novos registros.
-- Seed DEMO local idempotente, com dados fictícios para os módulos e guardas
-  contra execução fora de ambiente de desenvolvimento/loopback.
+- Seed Corporativo e Profissional para demonstração e homologação: dados oficiais e realistas da **CASA DE FOGOS SÃO JOÃO LTDA** (CNPJ 05.922.101/0001-33 - Fortaleza/CE, SFPC / 10ª RM), contemplando estrutura de paióis de grande capacidade (Mondubim e Maracanaú), blasters encarregados, clientes regionais (Prefeitura de Fortaleza - Réveillon da Praia de Iracema, Marina Park Hotel, Beach Park), fornecedores do polo de Sto. Antônio do Monte/MG, catálogo completo de artigos 1.3G/1.4G/insumos com rastreabilidade total de lotes, ordens de serviço pirotécnicas, Guias de Tráfego militar, emissão fiscal e faturamento com PIX dinâmico e parcelamento.
 - Estoque/WMS: produtos PCE, lotes rastreáveis com controle de quarentena/bloqueio físico
   (`DISPONIVEL`, `QUARENTENA`, `BLOQUEADO`), desmembramento rastreável (`split`), paióis com
   capacidade NEQ e ativação/inativação com trava de saldo zero, recebimentos e movimentos de
@@ -210,7 +209,13 @@ Diagnóstico concluído (Fase 0): O controlador declara `GET /inventory/reports/
   reservas, consistência transacional e auditoria.
 
 - Backend: `npm run lint` (oxlint, 0 erros), `npm test` (48 testes unitários), `npm run test:e2e` (46 testes) e `npm run build` passaram com código 0.
-- Frontend: `npm run lint` (0 avisos), `npm run typecheck` (0 erros), `npm test` (78 testes em 19 suítes) e `npm run build` (20 rotas SSG/SSR) passaram com sucesso total.
+- Frontend: `npm run lint` (0 avisos), `npm run typecheck` (0 erros), `npm test` (81 testes em 20 suítes) e `npm run build` (20 rotas SSG/SSR otimizadas) passaram com sucesso total.
+- Padronização e Elevação de UX/UI (Frente 5):
+  - Tipografia moderna `Inter` via `next/font/google` com escala tipográfica calibrada (piso mínimo em 12px para badges e 14px-15px para conteúdo), eliminando textos minúsculos de 8px/10px.
+  - Sistema universal de notificações `ToastProvider` flutuante com auto-dismiss suave (4s), acessibilidade (`role="status"`, `aria-live="polite"`) e variantes semânticas (`success`, `error`, `warning`, `info`). Chamadas residuais a `alert()` do navegador foram 100% eliminadas.
+  - Skeletons de loading com animação pulsante (*shimmer*) para transições assíncronas suaves em tabelas e cards.
+  - Redesenho do AppShell/Topbar: identidade do operador (Avatar, nome, chips de perfis ativos e logout) integrada diretamente na topbar, com remoção da faixa estática `.auth-notice` e ganho de 40px úteis de altura vertical em todos os módulos.
+  - Redesenho da Central de Operações (`/`): dashboard transformado em cockpit operacional com 4 KPI Cards vivos (Ordens de Serviço, Guias de Tráfego, Capacidade NEQ e Faturamento/PIX), barra de ações rápidas em 1 clique e radar regulatório de conformidade militar (R-105).
 - Módulo Fiscal & Faturamento (Frente 1):
   - Modelo `FiscalDocument` no Prisma com enums `FiscalDocumentType` (`NFE`, `NFCE`, `NFSE`) e `FiscalDocumentStatus` (`PROCESSANDO`, `AUTORIZADO`, `REJEITADO`, `CANCELADO`).
   - Arquitetura Adapter/Strategy no NestJS com gateway agnóstico e provedores `FiscalSandboxAdapter` e `FocusNfeAdapter`.
@@ -238,6 +243,32 @@ Diagnóstico concluído (Fase 0): O controlador declara `GET /inventory/reports/
   - Script de diagnóstico e observabilidade (`scripts/healthcheck.sh`) cobrindo liveness, readiness, portas e recursos do host.
   - Runbook de operação e implantação documentado em [`docs/RUNBOOK-IMPLANTACAO-PRODUCAO.md`](RUNBOOK-IMPLANTACAO-PRODUCAO.md).
   - Jornada Operacional E2E formalizada em [`docs/JORNADA-OPERACIONAL-E2E.md`](JORNADA-OPERACIONAL-E2E.md) com elos diretos na tela de Operações para Guia de Tráfego, NFS-e e Cobrança PIX.
+
+- Completude Funcional & Espelhos Oficiais Físicos Print-Ready (Frente 6):
+  - Sistema universal print-ready com regras `@media print` estritas em `globals.css` (folha A4 calibrada, margens 10mm/12mm, fundo branco `#ffffff`, texto preto puro `#000000`, e ocultação completa de barras de navegação, topbars e botões de interface).
+  - **Espelho Oficial Militar do Mapa Mensal SFPC (R-105)** em `inventory-workspace.tsx` para protocolo na Fiscalização Militar (DFPC/COLOG do Exército Brasileiro), contendo identificação da empresa com CR, período de apuração, balanço geral de NEQ, tabela consolidada por classe de risco ONU (1.1G, 1.3G, 1.4G), detalhamento físico por produto PCE, termo formal de responsabilidade técnica e campos de assinatura do Responsável Técnico/Blaster e Diretor.
+  - **Visualizador e Espelho de DANFE Simplificada (NF-e/NFC-e)** em `fiscal-workspace.tsx` com chave de acesso de 44 dígitos formatada em blocos, código de barras simulado em CSS legível, protocolo de autorização SEFAZ, discriminação de impostos/totais e observações fiscais de Simples Nacional e controle de PCE.
+  - **Ordem de Queima & Ficha Técnica de Montagem em Campo da OS** em `operations-workspace.tsx` para o Blaster Encarregado e equipe levarem ao local do show, com identificação do contratante, local, ART vinculada, relação de explosivos alocados com colunas de anotação de disparos e sobras, checklist de segurança e assinaturas.
+  - **Espelho de Proposta Comercial & Comprovante de Balcão (PDV)** em `commercial-workspace.tsx`, permitindo emissão de propostas formais com validade de 7 dias e recibos de balcão no ato da entrega física da mercadoria.
+
+- Modularização Arquitetural & Erradicação de Monólitos (Frente 7):
+  - **Erradicação de arquivos > 1.000 linhas:** 100% dos arquivos gigantes do monorepo foram decompostos e refatorados com reduções de até 95% em volume de código:
+    - `CommercialService` (backend): reduzido de 2.345 para 128 linhas através do padrão Facade delegando para 6 sub-serviços sob `src/modules/commercial/services/` (`CommercialPricingService`, `CommercialQuotesService`, `CommercialSalesService`, `CommercialReturnsService`, `CommercialReportsService`, `CommercialPceValidationService`).
+    - `InventoryService` (backend): reduzido de 1.641 para 106 linhas através do padrão Facade delegando para 5 sub-serviços sob `src/modules/inventory/services/` (`InventoryMagazinesService`, `InventoryLotsService`, `InventoryMovementsService`, `InventoryReceiptsService`, `InventoryReportsService`).
+    - `AuthService` (backend): reduzido de 1.059 para 124 linhas através do padrão Facade delegando para 4 sub-serviços sob `src/modules/auth/services/` (`AuthSessionsService`, `UsersManagementService`, `AuthMfaService`, `PasswordResetService`), mantendo construtor dual para compatibilidade instantânea com injeção NestJS e suítes de testes legadas.
+    - `api.ts` (frontend): reduzido de 1.686 para 13 linhas como barrel export agregador de clientes de API especializados sob `src/lib/api/` (`auth`, `inventory`, `commercial`, `operations`, `finance`, `procurement`, `customers`, `teams`, `fiscal`, `compliance`).
+    - Workspaces frontend > 1.000 linhas modularizados em pastas dedicadas (`src/components/{modulo}/`):
+      - `commercial-workspace.tsx`: reduzido de 2.105 para 809 linhas (subcomponentes em `components/commercial/`).
+      - `operations-workspace.tsx`: reduzido de 2.095 para 703 linhas (subcomponentes em `components/operations/`).
+      - `inventory-workspace.tsx`: reduzido de 1.657 para 620 linhas (subcomponentes em `components/inventory/`).
+      - `compliance-workspace.tsx`: reduzido de 1.083 para 476 linhas (subcomponentes em `components/compliance/`).
+      - `fiscal-workspace.tsx`: reduzido de 1.083 para 498 linhas (subcomponentes em `components/fiscal/`).
+      - `finance-workspace.tsx`: reduzido de 1.016 para 482 linhas (subcomponentes em `components/finance/`).
+  - **Modularização de componentes secundários > 400 linhas:**
+    - `purchases-workspace.tsx`: reduzido de 969 para 398 linhas com subcomponentes modulares sob `components/purchases/` (`orders-tab`, `suppliers-tab`, `supplier-modal`, `create-order-modal`, `receive-order-modal`).
+    - `customers-workspace.tsx`: reduzido de 522 para 225 linhas com subcomponentes sob `components/customers/` (`customers-table`, `customer-modal`, `customer-eligibility-modal`).
+    - `inventory-create-form.tsx`: reduzido de 450 para 200 linhas com subcomponentes de formulário especializados sob `components/inventory/` (`create-product-form`, `create-magazine-form`, `create-lot-form`, `create-movement-form`).
+  - **Garantia de integridade e qualidade:** Zero breaking changes em rotas, DTOs ou APIs; preservação estrita de todas as invariantes de domínio PCE (trava atômica de NEQ, locks `FOR UPDATE`, rastreabilidade por lote, auditoria append-only, uso de `Decimal`); 100% dos testes passando no backend (48 testes) e no frontend (81 testes em 20 suítes); builds de produção e checagens de tipos 100% aprovados.
 
 Para requisitos de execução, endpoints e regras detalhadas, consulte
 [`backend/README.md`](../backend/README.md),
