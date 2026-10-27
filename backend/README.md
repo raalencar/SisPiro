@@ -6,29 +6,33 @@ API modular em NestJS/TypeScript, com PostgreSQL 16, Prisma, Redis e BullMQ.
 Os módulos refletem os contextos da especificação: compliance, estoque/WMS,
 operações, comercial e financeiro.
 
-## Arquitetura de Serviços e Padrão Facade
+## Arquitetura de Serviços, Padrão Facade e Modularização (< 400 linhas)
 
-Para garantir manutenibilidade, legibilidade e conformidade com limites de complexidade (< 300 linhas por arquivo de serviço), os módulos de maior densidade de regras de negócio utilizam o **padrão Facade**:
+Para garantir máxima manutenibilidade, legibilidade e conformidade com limites de complexidade (**0 arquivos com mais de 400 linhas em todo o `backend/src`**, mantendo teto de ~150–350 linhas por arquivo), os módulos utilizam o **padrão Facade** e decomposição em sub-serviços e helpers especializados:
 - **`AuthService`**: Delega operações para sub-serviços especializados em `src/modules/auth/services/`:
-  - `AuthSessionsService`: Login, emissão de tokens JWT, rotação e logout.
+  - `AuthSessionsService`: Login, refresh e logout.
+  - `AuthMfaVerificationService`: Validação matemática de TOTP e códigos de backup.
+  - `AuthTokenService`: Emissão, assinatura e revogação de tokens JWT.
   - `UsersManagementService`: Gestão de usuários, alteração de senha e RBAC.
-  - `AuthMfaService`: Pareamento TOTP RFC 6238 e validação de códigos de emergência.
+  - `AuthMfaService`: Pareamento TOTP RFC 6238 e recuperação.
   - `PasswordResetService`: Recuperação com tokens opacos de uso único e lock relacional.
 - **`CommercialService`**: Delega operações para sub-serviços em `src/modules/commercial/services/`:
   - `CommercialPricingService`: Tabelas de preços e campanhas promocionais.
-  - `CommercialQuotesService`: Ciclo de vida de orçamentos, edição e envio por e-mail.
-  - `CommercialSalesService`: Checkout PDV e conversão de orçamentos com lock pessimista.
+  - `CommercialQuotesService` & `sales-quotes.helper.ts`: Ciclo de vida de orçamentos, edição, cancelamento com limpeza de reservas e envio por e-mail.
+  - `CommercialSalesService` & `sales.helper.ts`: Checkout PDV, validação de linhas de venda, baixa física em lote com lock pessimista.
   - `CommercialReturnsService`: Devoluções físicas com reentrada de lotes e ajuste financeiro.
   - `CommercialReportsService`: Indicadores de conversão e ticket médio.
   - `CommercialPceValidationService`: Validação de CR e habilitação para PCE.
 - **`InventoryService`**: Delega operações para sub-serviços em `src/modules/inventory/services/`:
   - `InventoryMagazinesService`: Capacidade NEQ, ativação/inativação de paióis.
-  - `InventoryLotsService`: Rastreabilidade, quarentena, bloqueio e desmembramento (`split`).
+  - `InventoryLotsService` & `product-lots-operations.service.ts`: Rastreabilidade, quarentena, bloqueio físico e desmembramento (`split`).
   - `InventoryMovementsService`: Entradas, saídas, transferências e ajustes com trava atômica.
-  - `InventoryReceiptsService`: Recebimento físico de pedidos de compra com conferência de NEQ.
-  - `InventoryReportsService`: Consolidação do Mapa Mensal SFPC (R-105) para o Exército.
+  - `InventoryReceiptsService` & `purchases-receipt.helper.ts`: Recebimento físico de pedidos de compra com conferência de NEQ.
+  - `InventoryReportsService` & `inventory-sfpc-report.service.ts`: Consolidação do Mapa Mensal SFPC (R-105) para o Exército.
+- **`OperationsService`**:
+  - `service-orders-lifecycle.service.ts` & `service-orders-close.helper.ts`: Encerramento com relatório de queima e estorno de sobras.
 
-Os facades mantêm 100% de retrocompatibilidade com os controllers e suítes de testes existentes, preservando transações e bloqueios relacionais (`FOR UPDATE`).
+Os facades e sub-serviços mantêm 100% de retrocompatibilidade com os controllers e suítes de testes existentes, preservando transações e bloqueios relacionais (`FOR UPDATE`).
 
 ## Requisitos
 

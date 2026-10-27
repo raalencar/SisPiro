@@ -29,17 +29,22 @@ do backend. Entre com `demo.admin@local.test` e com a senha configurada em
 `DEV_SEED_ADMIN_PASSWORD`. Se o MFA estiver ativado, utilize o aplicativo autenticador
 (Google Authenticator, Authy, etc.) ou o código de backup correspondente.
 
-## Arquitetura de Componentes e Clientes de API
+## Arquitetura de Componentes, Hooks e Clientes de API (< 400 linhas)
 
-Para assegurar facilidade de manutenção e eliminar arquivos monolíticos (> 1.000 linhas), a base de código do frontend adota duas camadas bem delimitadas:
+Para assegurar facilidade de manutenção, testabilidade e conformidade com o teto de complexidade (**0 arquivos com mais de 400 linhas em todo o `frontend/src`**, mantendo média de ~150–350 linhas por arquivo), a base de código do frontend adota camadas desacopladas:
 
 1. **Clientes de API Especializados (`src/lib/api/`):**
    - A biblioteca de comunicação com a API foi dividida em clientes desacoplados: `auth.api.ts`, `inventory.api.ts`, `commercial.api.ts`, `operations.api.ts`, `finance.api.ts`, `procurement.api.ts`, `customers.api.ts`, `teams.api.ts`, `fiscal.api.ts` e `compliance.api.ts`.
    - O arquivo `src/lib/api.ts` atua como barrel export unificado, preservando as importações em toda a aplicação sem impacto retroativo.
 
-2. **Workspaces Componentizados (`src/components/{modulo}/`):**
-   - Os workspaces principais (`commercial-workspace.tsx`, `operations-workspace.tsx`, `inventory-workspace.tsx`, `compliance-workspace.tsx`, `fiscal-workspace.tsx`, `finance-workspace.tsx`, `purchases-workspace.tsx`, `customers-workspace.tsx`) atuam primariamente como **orquestradores de estado e ciclo de vida**.
-   - Cada modal, formulário complexo, tabela e aba especializada foi extraído para componentes dedicados com responsabilidade única sob suas respectivas pastas (`components/commercial/`, `components/operations/`, `components/inventory/`, `components/compliance/`, `components/fiscal/`, `components/finance/`, `components/purchases/`, `components/customers/`).
+2. **Hooks de Orquestração Desacoplados (`src/components/{modulo}/`):**
+   - O gerenciamento de estado complexo foi decomposto em hooks focados de responsabilidade única:
+     - `use-operations-state.ts` (368l) auxiliado por `use-operations-modals.ts` (200l) para modais de emissão de Guia de Tráfego, faturamento NFS-e e cobrança PIX.
+     - `use-commercial-state.ts` (242l) auxiliado por `use-commercial-quotes.ts` (190l) para ciclo de orçamentos e conversão, e `use-commercial-modals.ts` (299l) para tabelas de preço, promoções, devoluções, faturamento fiscal e PIX.
+
+3. **Workspaces e Subcomponentes Modulares (`src/components/{modulo}/`):**
+   - Os workspaces principais (`commercial-workspace.tsx`, `operations-workspace.tsx`, `inventory-workspace.tsx`, `compliance-workspace.tsx`, `fiscal-workspace.tsx`, `finance-workspace.tsx`, `purchases-workspace.tsx`, `customers-workspace.tsx`) atuam primariamente como orquestradores enxutos (< 350 linhas).
+   - Cada modal, formulário complexo, tabela e aba especializada reside em componentes dedicados com responsabilidade única sob suas respectivas pastas (`components/commercial/`, `components/operations/`, `components/inventory/`, `components/compliance/`, `components/fiscal/`, `components/finance/`, `components/purchases/`, `components/customers/`).
 
 ## Módulos e Integrações Disponíveis (V1.0)
 

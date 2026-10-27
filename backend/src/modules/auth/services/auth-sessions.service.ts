@@ -1,12 +1,14 @@
 import {
   ConflictException,
+  Inject,
   Injectable,
+  Optional,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Prisma, UserRole } from '@prisma/client';
-import { randomBytes, randomUUID } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { createAuditLog } from '../../../common/audit-log.js';
 import { PrismaService } from '../../../database/prisma.service.js';
 import {
@@ -18,6 +20,8 @@ import {
 import { LoginRateLimiterService } from '../login-rate-limiter.service.js';
 import { PasswordHasher } from '../password-hasher.js';
 import { TotpService } from '../totp.service.js';
+import { AuthMfaVerificationService } from './auth-mfa-verification.service.js';
+import { AuthTokenService } from './auth-token.service.js';
 import {
   ADMIN_CHANGE_LOCK_ID,
   UserSummary,
@@ -29,14 +33,38 @@ import {
 
 @Injectable()
 export class AuthSessionsService {
+  private readonly mfaVerification: AuthMfaVerificationService;
+  private readonly tokenService: AuthTokenService;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly jwt: JwtService,
     private readonly passwordHasher: PasswordHasher,
     private readonly rateLimiter: LoginRateLimiterService,
-    private readonly totp: TotpService,
-  ) {}
+    @Optional()
+    @Inject(AuthMfaVerificationService)
+    mfaVerificationOrTotp?: AuthMfaVerificationService | TotpService,
+    @Optional()
+    @Inject(AuthTokenService)
+    tokenService?: AuthTokenService,
+  ) {
+    this.tokenService = tokenService ?? new AuthTokenService(config, jwt);
+    if (mfaVerificationOrTotp instanceof AuthMfaVerificationService) {
+      this.mfaVerification = mfaVerificationOrTotp;
+    } else {
+      const totp =
+        mfaVerificationOrTotp instanceof TotpService
+          ? mfaVerificationOrTotp
+          : new TotpService(config);
+      this.mfaVerification = new AuthMfaVerificationService(
+        prisma,
+        jwt,
+        rateLimiter,
+        totp,
+      );
+    }
+  }
 
   async bootstrap(dto: CreateAdminDto, ip?: string) {
     const clientIp = ip?.trim() || '';
@@ -140,49 +168,7 @@ export class AuthSessionsService {
         };
       }
 
-      let validMfa = false;
-      let usedBackupIndex = -1;
-
-      if (
-        user.mfaSecret &&
-        this.totp.verifyCode(
-          dto.mfaCode,
-          this.totp.decryptSecret(user.mfaSecret),
-        )
-      ) {
-        validMfa = true;
-      } else if (user.mfaBackupCodes.length > 0) {
-        usedBackupIndex = this.totp.verifyAndConsumeBackupCode(
-          dto.mfaCode,
-          user.mfaBackupCodes,
-        );
-        if (usedBackupIndex !== -1) {
-          validMfa = true;
-        }
-      }
-
-      if (!validMfa) {
-        throw new UnauthorizedException(
-          'Código de autenticação em dois fatores inválido.',
-        );
-      }
-
-      if (usedBackupIndex !== -1) {
-        const remainingBackupCodes = [...user.mfaBackupCodes];
-        remainingBackupCodes.splice(usedBackupIndex, 1);
-        await this.prisma.user.update({
-          where: { id: user.id },
-          data: { mfaBackupCodes: remainingBackupCodes },
-        });
-        await createAuditLog(this.prisma, {
-          data: {
-            actorId: user.id,
-            action: 'auth.mfa.backup_code_used',
-            aggregateType: 'User',
-            aggregateId: user.id,
-          },
-        });
-      }
+      await this.mfaVerification.verifyTotpOrBackup(user, dto.mfaCode);
     }
 
     await this.rateLimiter.recordSuccess(rateLimitKeys);
@@ -299,7 +285,7 @@ export class AuthSessionsService {
         accessToken,
         refreshToken,
         tokenType: 'Bearer',
-        expiresIn: this.accessTokenTtlSeconds(),
+        expiresIn: this.tokenService.accessTokenTtlSeconds(),
         refreshExpiresAt: expiresAt.toISOString(),
         user: userSummary(session.user),
       };
@@ -354,96 +340,21 @@ export class AuthSessionsService {
   }
 
   async verifyMfaLogin(dto: MfaVerifyLoginDto, ip?: string) {
-    let payload: { sub: string; purpose?: string };
-    try {
-      payload = await this.jwt.verifyAsync(dto.mfaToken);
-    } catch {
-      throw new UnauthorizedException('Desafio MFA inválido ou expirado.');
-    }
+    const summary = await this.mfaVerification.resolveMfaChallenge(
+      dto.mfaToken,
+      dto.code,
+      ip,
+    );
 
-    if (payload.purpose !== 'mfa_challenge' || !payload.sub) {
-      throw new UnauthorizedException('Desafio MFA inválido.');
-    }
-
-    const clientIp = ip?.trim() || '';
-    const rateLimitKeys = [
-      clientIp ? `ip:${clientIp}` : '',
-      `mfa:${payload.sub}`,
-    ].filter(Boolean);
-
-    await this.rateLimiter.assertNotRateLimited(rateLimitKeys);
-
-    const user = await this.prisma.user.findUnique({
-      where: { id: payload.sub },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        roles: true,
-        active: true,
-        mfaEnabled: true,
-        mfaSecret: true,
-        mfaBackupCodes: true,
-      },
-    });
-
-    if (!user || !user.active || !user.mfaEnabled) {
-      throw new UnauthorizedException('Usuário inválido ou MFA não ativo.');
-    }
-
-    let validMfa = false;
-    let usedBackupIndex = -1;
-
-    if (
-      user.mfaSecret &&
-      this.totp.verifyCode(dto.code, this.totp.decryptSecret(user.mfaSecret))
-    ) {
-      validMfa = true;
-    } else if (user.mfaBackupCodes.length > 0) {
-      usedBackupIndex = this.totp.verifyAndConsumeBackupCode(
-        dto.code,
-        user.mfaBackupCodes,
-      );
-      if (usedBackupIndex !== -1) {
-        validMfa = true;
-      }
-    }
-
-    if (!validMfa) {
-      throw new UnauthorizedException(
-        'Código de autenticação em dois fatores inválido.',
-      );
-    }
-
-    await this.rateLimiter.recordSuccess(rateLimitKeys);
-
-    if (usedBackupIndex !== -1) {
-      const remainingBackupCodes = [...user.mfaBackupCodes];
-      remainingBackupCodes.splice(usedBackupIndex, 1);
-      await this.prisma.user.update({
-        where: { id: user.id },
-        data: { mfaBackupCodes: remainingBackupCodes },
-      });
-      await createAuditLog(this.prisma, {
-        data: {
-          actorId: user.id,
-          action: 'auth.mfa.backup_code_used',
-          aggregateType: 'User',
-          aggregateId: user.id,
-        },
-      });
-    }
-
-    const summary = userSummary(user);
     return this.prisma.$transaction(async (tx) => {
       const tokens = await this.createSession(tx, summary);
       await createAuditLog(tx, {
         data: {
-          actorId: user.id,
+          actorId: summary.id,
           action: 'auth.session.created',
           aggregateType: 'AuthSession',
           aggregateId: tokens.sessionId,
-          after: { userId: user.id },
+          after: { userId: summary.id },
         },
       });
       const { sessionId: _sessionId, ...publicTokens } = tokens;
@@ -452,47 +363,10 @@ export class AuthSessionsService {
   }
 
   async createSession(tx: Prisma.TransactionClient, user: UserSummary) {
-    await tx.authSession.deleteMany({
-      where: { userId: user.id, expiresAt: { lt: new Date() } },
-    });
-    const sessionId = randomUUID();
-    const refreshSecret = randomBytes(48).toString('base64url');
-    const refreshToken = `${sessionId}.${refreshSecret}`;
-    const expiresAt = this.refreshExpiresAt();
-    await tx.authSession.create({
-      data: {
-        id: sessionId,
-        userId: user.id,
-        refreshTokenHash: hashRefreshSecret(refreshSecret),
-        expiresAt,
-      },
-    });
-    return {
-      sessionId,
-      accessToken: await this.signAccessToken(user.id, sessionId),
-      refreshToken,
-      tokenType: 'Bearer',
-      expiresIn: this.accessTokenTtlSeconds(),
-      refreshExpiresAt: expiresAt.toISOString(),
-    };
+    return this.tokenService.createSession(tx, user);
   }
 
   async signAccessToken(userId: string, sessionId: string) {
-    return this.jwt.signAsync(
-      { sid: sessionId },
-      {
-        subject: userId,
-        expiresIn: this.accessTokenTtlSeconds(),
-      },
-    );
-  }
-
-  private accessTokenTtlSeconds() {
-    return this.config.getOrThrow<number>('AUTH_ACCESS_TOKEN_TTL_SECONDS');
-  }
-
-  private refreshExpiresAt() {
-    const days = this.config.getOrThrow<number>('AUTH_REFRESH_TOKEN_TTL_DAYS');
-    return new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+    return this.tokenService.signAccessToken(userId, sessionId);
   }
 }

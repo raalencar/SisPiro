@@ -1,4 +1,4 @@
-import { Injectable, Optional } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -37,10 +37,17 @@ export class AuthService {
   private readonly passwordResetService: PasswordResetService;
 
   constructor(
+    @Inject(AuthSessionsService)
     sessionsOrPrisma: AuthSessionsService | PrismaService,
-    @Optional() usersOrConfig?: UsersManagementService | ConfigService,
-    @Optional() mfaOrJwt?: AuthMfaService | JwtService,
-    @Optional() passwordResetOrHasher?: PasswordResetService | PasswordHasher,
+    @Optional()
+    @Inject(UsersManagementService)
+    usersOrConfig?: UsersManagementService | ConfigService,
+    @Optional()
+    @Inject(AuthMfaService)
+    mfaOrJwt?: AuthMfaService | JwtService,
+    @Optional()
+    @Inject(PasswordResetService)
+    passwordResetOrHasher?: PasswordResetService | PasswordHasher,
     @Optional() rateLimiter?: LoginRateLimiterService,
     @Optional() totp?: TotpService,
     @Optional() @InjectQueue('background') queue?: Queue,

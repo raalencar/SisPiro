@@ -9,9 +9,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import {
   Prisma,
-  ProductLotStatus,
   SalesQuoteStatus,
-  ServiceOrderStatus,
 } from '@prisma/client';
 import { createAuditLog } from '../../../common/audit-log.js';
 import { PrismaService } from '../../../database/prisma.service.js';
@@ -22,10 +20,6 @@ import {
   UpdateSalesQuoteDto,
 } from '../commercial.dto.js';
 import {
-  assertCustomerActive,
-  assertCustomerCanPurchasePce,
-  assertNotExpired,
-  assertPriceListActive,
   effectiveQuoteStatus,
   lockLots,
   paginated,
@@ -33,6 +27,10 @@ import {
   withEffectiveQuoteStatus,
 } from '../commercial.common.js';
 import { ProductPromotionsService } from './product-promotions.service.js';
+import {
+  cancelQuoteInTransaction,
+  prepareQuoteItemsAndTotal,
+} from './sales-quotes.helper.js';
 
 @Injectable()
 export class SalesQuotesService {
@@ -101,7 +99,7 @@ export class SalesQuotesService {
       this.prisma.salesQuote.count({ where }),
     ]);
     return paginated(
-      quotes.map((quote) => withEffectiveQuoteStatus(quote, now)),
+      quotes.map((quote) => withEffectiveQuoteStatus(quote)),
       total,
       query,
     );
@@ -124,143 +122,41 @@ export class SalesQuotesService {
   }
 
   async createSalesQuote(dto: CreateSalesQuoteDto) {
-    const lotIds = dto.items.map((item) => item.productLotId).sort();
+    const lotIds = dto.items.map((item) => item.productLotId);
     return this.prisma.$transaction(
       async (tx) => {
         await lockLots(tx, lotIds);
-        const [priceList, lots, customer] = await Promise.all([
-          tx.priceList.findUnique({
-            where: { id: dto.priceListId },
-            include: { items: true },
-          }),
-          tx.productLot.findMany({
-            where: { id: { in: lotIds } },
-            include: { product: true },
-          }),
-          dto.customerId
-            ? tx.customer.findUnique({ where: { id: dto.customerId } })
-            : Promise.resolve(null),
-        ]);
-        if (!priceList) {
-          throw new NotFoundException('Tabela de preço não encontrada.');
-        }
-        assertPriceListActive(priceList);
-        assertCustomerActive(customer, dto.customerId);
-        if (lots.length !== lotIds.length) {
-          throw new NotFoundException(
-            'Um ou mais lotes não foram encontrados.',
-          );
-        }
-        const lotById = new Map(lots.map((lot) => [lot.id, lot]));
-        const priceByProduct = new Map(
-          priceList.items.map((item) => [item.productId, item.unitPrice]),
+        const { quoteLines, total } = await prepareQuoteItemsAndTotal(
+          tx,
+          this.promotionsService,
+          {
+            items: dto.items,
+            priceListId: dto.priceListId,
+            customerId: dto.customerId,
+          },
         );
-        const now = new Date();
-        const promotionPriceByProduct =
-          await this.promotionsService.getActivePromotionalPrices(
-            tx,
-            lots.map((lot) => lot.productId),
-            now,
-          );
-        const pceClasses = new Set<string>();
-        const quoteLines: Array<{
-          productId: string;
-          productLotId: string;
-          quantity: Prisma.Decimal;
-          unitPrice: Prisma.Decimal;
-          subtotal: Prisma.Decimal;
-        }> = [];
 
-        for (const item of dto.items) {
-          const lot = lotById.get(item.productLotId)!;
-          const unitPrice = this.promotionsService.resolveUnitPrice(
-            priceByProduct.get(lot.productId),
-            promotionPriceByProduct.get(lot.productId),
-          );
-          if (!unitPrice) {
-            throw new ConflictException(
-              `Produto ${lot.product.name} não possui preço nesta tabela.`,
-            );
-          }
-          if (lot.status !== ProductLotStatus.DISPONIVEL) {
-            throw new ConflictException(
-              `Lote ${lot.lotNumber} está em situação ${lot.status.toLowerCase()} e não pode ser orçado.`,
-            );
-          }
-          assertNotExpired(lot.expiresAt);
-          if (lot.product.isPce) {
-            if (!lot.product.riskClass) {
-              throw new ConflictException(
-                `Produto PCE ${lot.product.name} sem classe de risco não pode ser orçado.`,
-              );
-            }
-            pceClasses.add(lot.product.riskClass);
-          }
+        const expiresAt = new Date();
+        expiresAt.setUTCDate(
+          expiresAt.getUTCDate() + SALES_QUOTE_VALIDITY_DAYS,
+        );
 
-          const quantity = new Prisma.Decimal(item.quantity);
-          const serviceReservations = await tx.serviceOrderItem.aggregate({
-            where: {
-              productLotId: lot.id,
-              serviceOrder: {
-                status: {
-                  in: [
-                    ServiceOrderStatus.APROVADO,
-                    ServiceOrderStatus.EM_MONTAGEM,
-                  ],
-                },
-              },
-            },
-            _sum: { plannedQuantity: true },
-          });
-          const quoteReservations = await tx.salesQuoteItem.aggregate({
-            where: {
-              productLotId: lot.id,
-              quote: {
-                status: SalesQuoteStatus.EMITIDO,
-                expiresAt: { gt: now },
-              },
-            },
-            _sum: { quantity: true },
-          });
-          const serviceReserved =
-            serviceReservations._sum.plannedQuantity ?? new Prisma.Decimal(0);
-          const quoteReserved =
-            quoteReservations._sum.quantity ?? new Prisma.Decimal(0);
-          const reserved = serviceReserved.plus(quoteReserved);
-          const available = lot.quantity.minus(reserved);
-          if (available.lt(quantity)) {
-            throw new ConflictException({
-              message: `Estoque disponível insuficiente para orçar o lote ${lot.lotNumber}.`,
-              lotId: lot.id,
-              physicalQuantity: lot.quantity.toString(),
-              alreadyReserved: reserved.toString(),
-              requested: quantity.toString(),
-              available: available.toString(),
-            });
-          }
-          quoteLines.push({
-            productId: lot.productId,
-            productLotId: lot.id,
-            quantity,
-            unitPrice,
-            subtotal: unitPrice.mul(quantity).toDecimalPlaces(2),
-          });
-        }
-        assertCustomerCanPurchasePce(customer, pceClasses);
-        const total = quoteLines.reduce(
-          (sum, line) => sum.plus(line.subtotal),
-          new Prisma.Decimal(0),
-        );
-        const expiresAt = new Date(
-          now.getTime() + SALES_QUOTE_VALIDITY_DAYS * 24 * 60 * 60 * 1000,
-        );
         const quote = await tx.salesQuote.create({
           data: {
-            customerId: customer?.id ?? null,
-            priceListId: priceList.id,
-            total,
+            customerId: dto.customerId ?? null,
+            priceListId: dto.priceListId,
+            status: SalesQuoteStatus.EMITIDO,
             expiresAt,
-            items: { create: quoteLines },
+            total,
+            items: {
+              create: quoteLines.map((line) => ({
+                productId: line.productId,
+                productLotId: line.productLotId,
+                quantity: line.quantity,
+                unitPrice: line.unitPrice,
+                subtotal: line.subtotal,
+              })),
+            },
           },
           include: {
             customer: true,
@@ -268,9 +164,10 @@ export class SalesQuotesService {
             items: { include: { product: true, productLot: true } },
           },
         });
+
         await createAuditLog(tx, {
           data: {
-            action: 'sales-quote.created',
+            action: 'commercial.quote.created',
             aggregateType: 'SalesQuote',
             aggregateId: quote.id,
             after: {
@@ -284,14 +181,17 @@ export class SalesQuotesService {
             },
           },
         });
-        return quote;
+
+        return withEffectiveQuoteStatus(quote);
       },
-      { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+      },
     );
   }
 
   async updateSalesQuote(id: string, dto: UpdateSalesQuoteDto) {
-    const lotIds = dto.items.map((item) => item.productLotId).sort();
+    const lotIds = dto.items.map((item) => item.productLotId);
     return this.prisma.$transaction(
       async (tx) => {
         const rows = await tx.$queryRaw<Array<{ id: string }>>`
@@ -326,155 +226,36 @@ export class SalesQuotesService {
             ? dto.priceListId
             : existingQuote.priceListId;
 
-        const [priceList, lots, customer] = await Promise.all([
-          tx.priceList.findUnique({
-            where: { id: targetPriceListId },
-            include: { items: true },
-          }),
-          tx.productLot.findMany({
-            where: { id: { in: lotIds } },
-            include: { product: true },
-          }),
-          targetCustomerId
-            ? tx.customer.findUnique({ where: { id: targetCustomerId } })
-            : Promise.resolve(null),
-        ]);
-
-        if (!priceList) {
-          throw new NotFoundException('Tabela de preço não encontrada.');
-        }
-        assertPriceListActive(priceList);
-        assertCustomerActive(customer, targetCustomerId ?? undefined);
-        if (lots.length !== lotIds.length) {
-          throw new NotFoundException(
-            'Um ou mais lotes não foram encontrados.',
-          );
-        }
-
-        const lotById = new Map(lots.map((lot) => [lot.id, lot]));
-        const priceByProduct = new Map(
-          priceList.items.map((item) => [item.productId, item.unitPrice]),
-        );
-        const now = new Date();
-        const activePromotions =
-          await this.promotionsService.getActivePromotionalPrices(
-            tx,
-            lots.map((lot) => lot.productId),
-            now,
-          );
-
-        const pceClasses = new Set<string>();
-        const quoteLines: Array<{
-          productId: string;
-          productLotId: string;
-          quantity: Prisma.Decimal;
-          unitPrice: Prisma.Decimal;
-          subtotal: Prisma.Decimal;
-        }> = [];
-
-        for (const item of dto.items) {
-          const lot = lotById.get(item.productLotId)!;
-          const unitPrice = this.promotionsService.resolveUnitPrice(
-            priceByProduct.get(lot.productId),
-            activePromotions.get(lot.productId),
-          );
-          if (!unitPrice) {
-            throw new ConflictException(
-              `Produto ${lot.product.name} não possui preço nesta tabela.`,
-            );
-          }
-          if (lot.status !== ProductLotStatus.DISPONIVEL) {
-            throw new ConflictException(
-              `Lote ${lot.lotNumber} está em situação ${lot.status.toLowerCase()} e não pode ser orçado.`,
-            );
-          }
-          assertNotExpired(lot.expiresAt);
-          if (lot.product.isPce) {
-            if (!lot.product.riskClass) {
-              throw new ConflictException(
-                `Produto PCE ${lot.product.name} sem classe de risco não pode ser orçado.`,
-              );
-            }
-            pceClasses.add(lot.product.riskClass);
-          }
-
-          const quantity = new Prisma.Decimal(item.quantity);
-          const serviceReservations = await tx.serviceOrderItem.aggregate({
-            where: {
-              productLotId: lot.id,
-              serviceOrder: {
-                status: {
-                  in: [
-                    ServiceOrderStatus.APROVADO,
-                    ServiceOrderStatus.EM_MONTAGEM,
-                  ],
-                },
-              },
-            },
-            _sum: { plannedQuantity: true },
-          });
-
-          // Exclui o orçamento atual que está sendo editado para não reservar contra si mesmo
-          const quoteReservations = await tx.salesQuoteItem.aggregate({
-            where: {
-              productLotId: lot.id,
-              quote: {
-                id: { not: id },
-                status: SalesQuoteStatus.EMITIDO,
-                expiresAt: { gt: now },
-              },
-            },
-            _sum: { quantity: true },
-          });
-
-          const serviceReserved =
-            serviceReservations._sum.plannedQuantity ?? new Prisma.Decimal(0);
-          const quoteReserved =
-            quoteReservations._sum.quantity ?? new Prisma.Decimal(0);
-          const reserved = serviceReserved.plus(quoteReserved);
-          const available = lot.quantity.minus(reserved);
-          if (available.lt(quantity)) {
-            throw new ConflictException({
-              message: `Estoque disponível insuficiente para orçar o lote ${lot.lotNumber}.`,
-              lotId: lot.id,
-              physicalQuantity: lot.quantity.toString(),
-              alreadyReserved: reserved.toString(),
-              requested: quantity.toString(),
-              available: available.toString(),
-            });
-          }
-
-          quoteLines.push({
-            productId: lot.productId,
-            productLotId: lot.id,
-            quantity,
-            unitPrice,
-            subtotal: unitPrice.mul(quantity).toDecimalPlaces(2),
-          });
-        }
-
-        assertCustomerCanPurchasePce(customer, pceClasses);
-
-        const total = quoteLines.reduce(
-          (sum, line) => sum.plus(line.subtotal),
-          new Prisma.Decimal(0),
-        );
-        const expiresAt = new Date(
-          now.getTime() + SALES_QUOTE_VALIDITY_DAYS * 24 * 60 * 60 * 1000,
+        const { quoteLines, total } = await prepareQuoteItemsAndTotal(
+          tx,
+          this.promotionsService,
+          {
+            items: dto.items,
+            priceListId: targetPriceListId,
+            customerId: targetCustomerId,
+            excludeQuoteId: id,
+          },
         );
 
         await tx.salesQuoteItem.deleteMany({
           where: { quoteId: id },
         });
 
-        const updatedQuote = await tx.salesQuote.update({
+        const updated = await tx.salesQuote.update({
           where: { id },
           data: {
-            customerId: customer?.id ?? null,
-            priceListId: priceList.id,
+            customerId: targetCustomerId,
+            priceListId: targetPriceListId,
             total,
-            expiresAt,
-            items: { create: quoteLines },
+            items: {
+              create: quoteLines.map((line) => ({
+                productId: line.productId,
+                productLotId: line.productLotId,
+                quantity: line.quantity,
+                unitPrice: line.unitPrice,
+                subtotal: line.subtotal,
+              })),
+            },
           },
           include: {
             customer: true,
@@ -485,28 +266,29 @@ export class SalesQuotesService {
 
         await createAuditLog(tx, {
           data: {
-            action: 'sales-quote.updated',
+            action: 'commercial.quote.updated',
             aggregateType: 'SalesQuote',
             aggregateId: id,
             before: {
-              total: existingQuote.total.toString(),
               customerId: existingQuote.customerId,
               priceListId: existingQuote.priceListId,
+              total: existingQuote.total.toString(),
               itemCount: existingQuote.items.length,
             },
             after: {
-              total: updatedQuote.total.toString(),
-              customerId: updatedQuote.customerId,
-              priceListId: updatedQuote.priceListId,
-              expiresAt: updatedQuote.expiresAt.toISOString(),
-              itemCount: updatedQuote.items.length,
+              customerId: updated.customerId,
+              priceListId: updated.priceListId,
+              total: updated.total.toString(),
+              itemCount: updated.items.length,
             },
           },
         });
 
-        return withEffectiveQuoteStatus(updatedQuote);
+        return withEffectiveQuoteStatus(updated);
       },
-      { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+      },
     );
   }
 
@@ -579,45 +361,11 @@ export class SalesQuotesService {
   }
 
   async cancelSalesQuote(id: string) {
-    return this.prisma.$transaction(async (tx) => {
-      const rows = await tx.$queryRaw<Array<{ id: string }>>`
-        SELECT "id" FROM "orcamentos_venda" WHERE "id" = ${id}::uuid FOR UPDATE
-      `;
-      if (!rows.length) {
-        throw new NotFoundException('Orçamento comercial não encontrado.');
-      }
-      const quote = await tx.salesQuote.findUnique({ where: { id } });
-      if (!quote) {
-        throw new NotFoundException('Orçamento comercial não encontrado.');
-      }
-      const currentEffectiveStatus = effectiveQuoteStatus(quote);
-      if (currentEffectiveStatus !== SalesQuoteStatus.EMITIDO) {
-        throw new ConflictException(
-          'Somente orçamentos emitidos e dentro da validade podem ser cancelados.',
-        );
-      }
-      const cancelled = await tx.salesQuote.update({
-        where: { id },
-        data: {
-          status: SalesQuoteStatus.CANCELADO,
-          cancelledAt: new Date(),
-        },
-        include: {
-          customer: true,
-          priceList: true,
-          items: { include: { product: true, productLot: true } },
-        },
-      });
-      await createAuditLog(tx, {
-        data: {
-          action: 'sales-quote.cancelled',
-          aggregateType: 'SalesQuote',
-          aggregateId: id,
-          before: { status: quote.status },
-          after: { status: cancelled.status },
-        },
-      });
-      return cancelled;
-    });
+    return this.prisma.$transaction(
+      (tx) => cancelQuoteInTransaction(tx, id),
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+      },
+    );
   }
 }

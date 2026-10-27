@@ -6,12 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service.js';
-import type {
-  FiscalGateway,
-  NFeEmissionData,
-  NFCeEmissionData,
-  NFSeEmissionData,
-} from './fiscal.types.js';
+import type { FiscalGateway } from './fiscal.types.js';
 import { FISCAL_GATEWAY } from './fiscal.types.js';
 import {
   EmitSaleNFeDto,
@@ -21,6 +16,11 @@ import {
   FiscalDocumentsQueryDto,
 } from './fiscal.dto.js';
 import { FiscalDocumentStatus, FiscalDocumentType, Prisma } from '@prisma/client';
+import {
+  buildNFeEmissionData,
+  buildNFCeEmissionData,
+  buildNFSeEmissionData,
+} from './helpers/fiscal-payload-builder.js';
 
 @Injectable()
 export class FiscalService {
@@ -76,31 +76,7 @@ export class FiscalService {
 
     const series = dto.series ?? 1;
     const number = await this.getNextNumber(FiscalDocumentType.NFE, series);
-
-    const emissionData: NFeEmissionData = {
-      number,
-      series,
-      natureOfOperation: dto.natureOfOperation || 'Venda de mercadoria adquirida de terceiros',
-      notes: dto.notes,
-      totalAmount: Number(sale.total),
-      recipient: {
-        taxId: sale.customer.taxId,
-        legalName: sale.customer.legalName,
-        crNumber: sale.customer.crNumber || undefined,
-        hasCr: Boolean(sale.customer.crNumber),
-      },
-      items: sale.items.map((item: any) => ({
-        code: item.product.code,
-        description: item.product.name,
-        ncm: '3604.10.00', // NCM Padrão Pirotecnia
-        cfop: '5102',
-        quantity: Number(item.quantity),
-        unit: 'UN',
-        unitPrice: Number(item.unitPrice),
-        totalPrice: Number(item.subtotal),
-      })),
-    };
-
+    const emissionData = buildNFeEmissionData(sale, dto, number, series);
     const result = await this.fiscalGateway.emitNFe(emissionData);
 
     const fiscalDoc = await this.prisma.fiscalDocument.create({
@@ -155,30 +131,7 @@ export class FiscalService {
 
     const series = dto.series ?? 1;
     const number = await this.getNextNumber(FiscalDocumentType.NFCE, series);
-
-    const emissionData: NFCeEmissionData = {
-      number,
-      series,
-      paymentMethod: 'DINHEIRO',
-      totalAmount: Number(sale.total),
-      recipient: sale.customer
-        ? {
-            taxId: sale.customer.taxId,
-            legalName: sale.customer.legalName,
-          }
-        : undefined,
-      items: sale.items.map((item: any) => ({
-        code: item.product.code,
-        description: item.product.name,
-        ncm: '3604.10.00',
-        cfop: '5102',
-        quantity: Number(item.quantity),
-        unit: 'UN',
-        unitPrice: Number(item.unitPrice),
-        totalPrice: Number(item.subtotal),
-      })),
-    };
-
+    const emissionData = buildNFCeEmissionData(sale, dto, number, series);
     const result = await this.fiscalGateway.emitNFCe(emissionData);
 
     const fiscalDoc = await this.prisma.fiscalDocument.create({
@@ -233,23 +186,7 @@ export class FiscalService {
 
     const series = dto.series ?? 1;
     const number = await this.getNextNumber(FiscalDocumentType.NFSE, series);
-
-    const emissionData: NFSeEmissionData = {
-      number,
-      series,
-      recipient: {
-        taxId: order.customer.taxId,
-        legalName: order.customer.legalName,
-      },
-      serviceDescription:
-        dto.serviceDescription ||
-        `Prestação de serviços pirotécnicos e queima de fogos de artifício no local: ${order.eventLocation}. Blaster Responsável: ${order.responsibleBlaster?.name || 'SisPiro Equipe'}. ART Nº: ${order.artNumber || 'N/A'}.`,
-      totalAmount: Number(order.contractedAmount),
-      eventLocation: order.eventLocation,
-      artNumber: order.artNumber || undefined,
-      blasterName: order.responsibleBlaster?.name,
-    };
-
+    const emissionData = buildNFSeEmissionData(order, dto, number, series);
     const result = await this.fiscalGateway.emitNFSe(emissionData);
 
     const fiscalDoc = await this.prisma.fiscalDocument.create({

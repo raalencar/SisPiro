@@ -251,24 +251,36 @@ Diagnóstico concluído (Fase 0): O controlador declara `GET /inventory/reports/
   - **Ordem de Queima & Ficha Técnica de Montagem em Campo da OS** em `operations-workspace.tsx` para o Blaster Encarregado e equipe levarem ao local do show, com identificação do contratante, local, ART vinculada, relação de explosivos alocados com colunas de anotação de disparos e sobras, checklist de segurança e assinaturas.
   - **Espelho de Proposta Comercial & Comprovante de Balcão (PDV)** em `commercial-workspace.tsx`, permitindo emissão de propostas formais com validade de 7 dias e recibos de balcão no ato da entrega física da mercadoria.
 
-- Modularização Arquitetural & Erradicação de Monólitos (Frente 7):
-  - **Erradicação de arquivos > 1.000 linhas:** 100% dos arquivos gigantes do monorepo foram decompostos e refatorados com reduções de até 95% em volume de código:
+- Modularização Arquitetural & Erradicação de Monólitos (Frente 7 e Frente 8):
+  - **Erradicação de arquivos > 1.000 linhas (Frente 7):** 100% dos arquivos gigantes do monorepo foram decompostos e refatorados com reduções de até 95% em volume de código:
     - `CommercialService` (backend): reduzido de 2.345 para 128 linhas através do padrão Facade delegando para 6 sub-serviços sob `src/modules/commercial/services/` (`CommercialPricingService`, `CommercialQuotesService`, `CommercialSalesService`, `CommercialReturnsService`, `CommercialReportsService`, `CommercialPceValidationService`).
     - `InventoryService` (backend): reduzido de 1.641 para 106 linhas através do padrão Facade delegando para 5 sub-serviços sob `src/modules/inventory/services/` (`InventoryMagazinesService`, `InventoryLotsService`, `InventoryMovementsService`, `InventoryReceiptsService`, `InventoryReportsService`).
     - `AuthService` (backend): reduzido de 1.059 para 124 linhas através do padrão Facade delegando para 4 sub-serviços sob `src/modules/auth/services/` (`AuthSessionsService`, `UsersManagementService`, `AuthMfaService`, `PasswordResetService`), mantendo construtor dual para compatibilidade instantânea com injeção NestJS e suítes de testes legadas.
     - `api.ts` (frontend): reduzido de 1.686 para 13 linhas como barrel export agregador de clientes de API especializados sob `src/lib/api/` (`auth`, `inventory`, `commercial`, `operations`, `finance`, `procurement`, `customers`, `teams`, `fiscal`, `compliance`).
-    - Workspaces frontend > 1.000 linhas modularizados em pastas dedicadas (`src/components/{modulo}/`):
-      - `commercial-workspace.tsx`: reduzido de 2.105 para 809 linhas (subcomponentes em `components/commercial/`).
-      - `operations-workspace.tsx`: reduzido de 2.095 para 703 linhas (subcomponentes em `components/operations/`).
-      - `inventory-workspace.tsx`: reduzido de 1.657 para 620 linhas (subcomponentes em `components/inventory/`).
-      - `compliance-workspace.tsx`: reduzido de 1.083 para 476 linhas (subcomponentes em `components/compliance/`).
-      - `fiscal-workspace.tsx`: reduzido de 1.083 para 498 linhas (subcomponentes em `components/fiscal/`).
-      - `finance-workspace.tsx`: reduzido de 1.016 para 482 linhas (subcomponentes em `components/finance/`).
-  - **Modularização de componentes secundários > 400 linhas:**
-    - `purchases-workspace.tsx`: reduzido de 969 para 398 linhas com subcomponentes modulares sob `components/purchases/` (`orders-tab`, `suppliers-tab`, `supplier-modal`, `create-order-modal`, `receive-order-modal`).
-    - `customers-workspace.tsx`: reduzido de 522 para 225 linhas com subcomponentes sob `components/customers/` (`customers-table`, `customer-modal`, `customer-eligibility-modal`).
-    - `inventory-create-form.tsx`: reduzido de 450 para 200 linhas com subcomponentes de formulário especializados sob `components/inventory/` (`create-product-form`, `create-magazine-form`, `create-lot-form`, `create-movement-form`).
-  - **Garantia de integridade e qualidade:** Zero breaking changes em rotas, DTOs ou APIs; preservação estrita de todas as invariantes de domínio PCE (trava atômica de NEQ, locks `FOR UPDATE`, rastreabilidade por lote, auditoria append-only, uso de `Decimal`); 100% dos testes passando no backend (48 testes) e no frontend (81 testes em 20 suítes); builds de produção e checagens de tipos 100% aprovados.
+    - Workspaces frontend modularizados em componentes especializados sob `src/components/{modulo}/`.
+  - **Erradicação Total de Arquivos com mais de 400 Linhas em Todo o Monorepo (Frente 8):**
+    - **Backend (`backend/src`): 0 arquivos acima de 400 linhas:**
+      - `inventory-reports.service.ts` (506l -> 238l): geração do Mapa Mensal SFPC R-105 extraída para `inventory-sfpc-report.service.ts` (260l).
+      - `auth-sessions.service.ts` (498l -> 345l): validação TOTP/MFA extraída para `auth-mfa-verification.service.ts` e emissão/assinatura de tokens JWT extraída para `auth-token.service.ts`.
+      - `product-lots.service.ts` (490l -> 249l): operações de divisão de lotes (`splitLot`) e quarentena/bloqueio (`updateLotStatus`) extraídas para `product-lots-operations.service.ts`.
+      - `sales.service.ts` (432l -> 267l): validação de itens de venda e movimentações de saída de estoque extraídas para `sales.helper.ts`.
+      - `sales-quotes.service.ts` (408l -> 372l): cancelamento de orçamentos e limpeza de reservas extraídos para `sales-quotes.helper.ts`.
+      - `purchases.service.ts` (442l -> 175l): rotina transacional de recebimento físico de pedidos e conferência de NEQ extraída para `purchases-receipt.helper.ts`.
+      - `service-orders-lifecycle.service.ts` (485l -> 298l): encerramento de OS e relatório de queima extraídos para `service-orders-close.helper.ts`.
+    - **Frontend (`frontend/src`): 0 arquivos acima de 400 linhas:**
+      - `login-panel.tsx` (450l -> 207l) com subcomponentes de MFA e recuperação de senha.
+      - `compliance/create-gt-modal.tsx` (662l -> 238l) com subcomponentes de rota, seleção de veículo/motorista e alocação de itens.
+      - `operations/order-action-card.tsx` (523l -> 219l) com cards desacoplados para aprovação, queima e faturamento.
+      - `purchases-workspace.tsx` (410l -> 225l) com tabs e modais especializados.
+      - `compliance-workspace.tsx` (477l -> 250l).
+      - `finance-workspace.tsx` (483l -> 235l).
+      - `fiscal-workspace.tsx` (499l -> 257l).
+      - `inventory-workspace.tsx` (520l -> 354l).
+      - `operations-workspace.tsx` (704l -> 298l).
+      - `commercial-workspace.tsx` (810l -> 238l).
+      - `use-operations-state.ts` (550l -> 368l) extraindo `use-operations-modals.ts` (200l) para modais de GT, NFS-e e PIX.
+      - `use-commercial-state.ts` (694l -> 242l) extraindo `use-commercial-modals.ts` (299l) para modais de tabelas, promoções, devolução, fiscal e PIX, e `use-commercial-quotes.ts` (190l) para ciclo de orçamentos e conversão.
+  - **Garantia de integridade e qualidade:** Zero breaking changes em rotas, DTOs ou APIs; preservação estrita de todas as invariantes de domínio PCE (trava atômica de NEQ via `assertCapacity` com lock `FOR UPDATE` em paióis, rastreabilidade de lote com fabricante/datas, bloqueio de lotes vencidos e auditoria append-only); 100% dos testes passando no backend (48 testes unitários + 46 testes e2e) e no frontend (81 testes unitários em 20 suítes); builds de produção e checagens de tipos 100% aprovados.
 
 Para requisitos de execução, endpoints e regras detalhadas, consulte
 [`backend/README.md`](../backend/README.md),

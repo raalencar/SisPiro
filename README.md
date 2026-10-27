@@ -49,8 +49,8 @@ Monorepositório da plataforma **SisPiro ERP**, com API NestJS em `backend/` e i
    - Scripts operacionais automatizados em `scripts/`: deploy (`deploy.sh`), backup consistente com SHA-256 (`backup.sh`), restore com confirmação segura (`restore.sh`) e diagnóstico de saúde (`healthcheck.sh`).
    - Runbook detalhado em [`docs/RUNBOOK-IMPLANTACAO-PRODUCAO.md`](./docs/RUNBOOK-IMPLANTACAO-PRODUCAO.md).
 9. **Arquitetura Modular Limpa & Erradicação de Monólitos:**
-   - Zero arquivos acima de 1.000 linhas no monorepo inteiro.
-   - Padrão **Facade** no backend delegando para sub-serviços especializados de responsabilidade única (`commercial/services/`, `inventory/services/`, `auth/services/`).
+   - **Zero arquivos acima de 400 linhas em todo o monorepo:** teto estrito de ~150–350 linhas por arquivo tanto no backend quanto no frontend.
+   - Padrão **Facade** no backend delegando para sub-serviços especializados de responsabilidade única (`commercial/services/`, `inventory/services/`, `auth/services/`, helpers modulares).
    - Clientes de API desacoplados em `src/lib/api/` e workspaces componentizados em subpastas dedicadas em `src/components/{modulo}/`.
 
 ---
@@ -94,7 +94,7 @@ A interface web responde em `http://localhost:3001`. Entre com as credenciais ad
 cd backend
 npm run lint       # Oxlint estrito (0 erros, 0 avisos)
 npm test           # Testes unitários com Vitest (48 testes passando)
-npm run test:e2e   # Testes ponta a ponta
+npm run test:e2e   # Testes ponta a ponta (46 testes passando em 8 suítes)
 npm run build      # Build NestJS de produção
 ```
 

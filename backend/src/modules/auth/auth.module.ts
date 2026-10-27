@@ -14,8 +14,10 @@ import { TotpService } from './totp.service.js';
 import { UsersController } from './users.controller.js';
 import {
   AuthSessionsService,
+  AuthTokenService,
   UsersManagementService,
   AuthMfaService,
+  AuthMfaVerificationService,
   PasswordResetService,
 } from './services/index.js';
 
@@ -36,8 +38,10 @@ import {
     redisClientProvider,
     AuthService,
     AuthSessionsService,
+    AuthTokenService,
     UsersManagementService,
     AuthMfaService,
+    AuthMfaVerificationService,
     PasswordResetService,
     PasswordHasher,
     LoginRateLimiterService,
@@ -48,8 +52,10 @@ import {
   exports: [
     AuthService,
     AuthSessionsService,
+    AuthTokenService,
     UsersManagementService,
     AuthMfaService,
+    AuthMfaVerificationService,
     PasswordResetService,
     LoginRateLimiterService,
     TotpService,

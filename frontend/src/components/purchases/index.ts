@@ -4,3 +4,4 @@ export * from "./suppliers-tab";
 export * from "./supplier-modal";
 export * from "./create-order-modal";
 export * from "./receive-order-modal";
+export * from "./use-purchases-state";

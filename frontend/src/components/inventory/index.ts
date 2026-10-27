@@ -13,3 +13,4 @@ export * from "./create-product-form";
 export * from "./create-magazine-form";
 export * from "./create-lot-form";
 export * from "./create-movement-form";
+export * from "./use-inventory-state";

@@ -5,3 +5,4 @@ export * from "./emit-nfce-modal";
 export * from "./emit-nfse-modal";
 export * from "./cancel-fiscal-modal";
 export * from "./danfe-view-modal";
+export * from "./use-fiscal-state";

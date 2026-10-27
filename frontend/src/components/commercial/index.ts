@@ -11,3 +11,4 @@ export * from "./promotion-modal";
 export * from "./fiscal-modal";
 export * from "./quote-print-modal";
 export * from "./sale-receipt-modal";
+export * from "./use-commercial-state";

@@ -701,7 +701,7 @@ describe('Service order APIs (e2e)', () => {
     expect(blaster).not.toHaveProperty('taxId');
 
     const lots = await operationalRequest
-      .get('/api/v1/inventory/operational-lots')
+      .get('/api/v1/inventory/operational-lots?limit=100')
       .expect(200);
     const lot = lots.body.data.find(
       (entry: { id: string }) => entry.id === lotIds[0],

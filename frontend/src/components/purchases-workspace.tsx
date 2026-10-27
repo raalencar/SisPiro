@@ -1,17 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
 import { Icon } from "@/components/icon";
-import {
-  inventoryApi,
-  procurementApi,
-  type Magazine,
-  type PageResult,
-  type Product,
-  type Purchase,
-  type PurchaseStatus,
-  type Supplier,
-} from "@/lib/api";
 import { useEscapeToClose } from "@/lib/use-escape-to-close";
 import { useModalFocusTrap } from "@/lib/use-modal-focus-trap";
 import {
@@ -20,228 +9,68 @@ import {
   SupplierModal,
   CreateOrderModal,
   ReceiveOrderModal,
-  type ReceiveBatchItem,
-  errorMessage,
-  receivedQuantity,
+  usePurchasesState,
 } from "./purchases";
 
 export function PurchasesWorkspace() {
-  const [tab, setTab] = useState<"purchases" | "suppliers">("purchases");
-
-  // Dados de Compras
-  const [purchases, setPurchases] = useState<PageResult<Purchase> | null>(null);
-  const [suppliers, setSuppliers] = useState<PageResult<Supplier> | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [magazines, setMagazines] = useState<Magazine[]>([]);
-
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<PurchaseStatus | "">("");
-  const [page, setPage] = useState(1);
-  const [error, setError] = useState<string | null>(null);
-  const [reloadTrigger, setReloadTrigger] = useState(0);
-
-  // Modal Novo Fornecedor
-  const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
-  const [supLegalName, setSupLegalName] = useState("");
-  const [supTaxId, setSupTaxId] = useState("");
-  const [supHasCr, setSupHasCr] = useState(false);
-  const [supCrNumber, setSupCrNumber] = useState("");
-  const [supCrExpiresAt, setSupCrExpiresAt] = useState("");
-  const [supAuthorizedClasses, setSupAuthorizedClasses] = useState<string[]>([]);
-  const [supSubmitting, setSupSubmitting] = useState(false);
-  const [supError, setSupError] = useState<string | null>(null);
-
-  // Modal Novo Pedido de Compra
-  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
-  const [selectedSupplierId, setSelectedSupplierId] = useState("");
-  const [orderNotes, setOrderNotes] = useState("");
-  const [orderItems, setOrderItems] = useState<
-    Array<{ productId: string; quantity: number; unitCost: number }>
-  >([{ productId: "", quantity: 1, unitCost: 0 }]);
-  const [orderSubmitting, setOrderSubmitting] = useState(false);
-  const [orderError, setOrderError] = useState<string | null>(null);
-
-  // Modal de Recebimento de Compra
-  const [receivingPurchase, setReceivingPurchase] = useState<Purchase | null>(null);
-  const [receiveDueDate, setReceiveDueDate] = useState("");
-  const [receiveInvoiceRef, setReceiveInvoiceRef] = useState("");
-  const [receiveBatches, setReceiveBatches] = useState<ReceiveBatchItem[]>([]);
-  const [receiveSubmitting, setReceiveSubmitting] = useState(false);
-  const [receiveError, setReceiveError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let current = true;
-
-    async function loadData() {
-      setLoading(true);
-      setError(null);
-      try {
-        const [purchasesRes, suppliersRes, productsRes, magazinesRes] =
-          await Promise.all([
-            procurementApi.getPurchases(page, statusFilter || undefined),
-            procurementApi.getSuppliers(1, search.trim() || undefined),
-            inventoryApi.getProducts(1),
-            inventoryApi.getMagazines(),
-          ]);
-
-        if (current) {
-          setPurchases(purchasesRes);
-          setSuppliers(suppliersRes);
-          setProducts(productsRes.data);
-          setMagazines(magazinesRes.data);
-        }
-      } catch (err) {
-        if (current) {
-          setError(errorMessage(err));
-        }
-      } finally {
-        if (current) {
-          setLoading(false);
-        }
-      }
-    }
-
-    void loadData();
-
-    return () => {
-      current = false;
-    };
-  }, [page, statusFilter, search, reloadTrigger]);
-
-  function handleOpenNewSupplier() {
-    setSupLegalName("");
-    setSupTaxId("");
-    setSupHasCr(false);
-    setSupCrNumber("");
-    setSupCrExpiresAt("");
-    setSupAuthorizedClasses([]);
-    setSupError(null);
-    setIsSupplierModalOpen(true);
-  }
-
-  async function handleSaveSupplier(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setSupSubmitting(true);
-    setSupError(null);
-    try {
-      await procurementApi.createSupplier({
-        legalName: supLegalName.trim(),
-        taxId: supTaxId.replace(/\D/g, ""),
-        hasCr: supHasCr,
-        crNumber: supHasCr ? supCrNumber.trim() : undefined,
-        crExpiresAt: supHasCr && supCrExpiresAt ? supCrExpiresAt : undefined,
-        authorizedPceClasses: supHasCr ? supAuthorizedClasses : [],
-      });
-      setIsSupplierModalOpen(false);
-      setReloadTrigger((prev) => prev + 1);
-    } catch (err) {
-      setSupError(errorMessage(err));
-    } finally {
-      setSupSubmitting(false);
-    }
-  }
-
-  function handleOpenNewOrder() {
-    setSelectedSupplierId(suppliers?.data[0]?.id || "");
-    setOrderNotes("");
-    setOrderItems([
-      { productId: products[0]?.id || "", quantity: 1, unitCost: 0 },
-    ]);
-    setOrderError(null);
-    setIsOrderModalOpen(true);
-  }
-
-  async function handleSaveOrder(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!selectedSupplierId) {
-      setOrderError("Selecione um fornecedor.");
-      return;
-    }
-    if (orderItems.some((item) => !item.productId || item.quantity <= 0)) {
-      setOrderError("Todos os itens devem ter um produto válido e quantidade maior que zero.");
-      return;
-    }
-    setOrderSubmitting(true);
-    setOrderError(null);
-    try {
-      await procurementApi.createPurchase({
-        supplierId: selectedSupplierId,
-        reference: orderNotes.trim() || undefined,
-        items: orderItems.map((item) => ({
-          productId: item.productId,
-          orderedQuantity: item.quantity,
-          unitCost: item.unitCost,
-        })),
-      });
-      setIsOrderModalOpen(false);
-      setReloadTrigger((prev) => prev + 1);
-    } catch (err) {
-      setOrderError(errorMessage(err));
-    } finally {
-      setOrderSubmitting(false);
-    }
-  }
-
-  function handleOpenReceive(p: Purchase) {
-    setReceivingPurchase(p);
-    const today = new Date().toISOString().slice(0, 10);
-    setReceiveDueDate(today);
-    setReceiveInvoiceRef("");
-    // Sugere recebimento para os itens que faltam receber
-    const defaultBatches: ReceiveBatchItem[] = p.items
-      .filter((item) => Number(item.orderedQuantity) > receivedQuantity(item))
-      .map((item) => ({
-        purchaseItemId: item.id,
-        productId: item.productId,
-        magazineId: magazines[0]?.id || "",
-        lotNumber: `LOTE-${Date.now().toString().slice(-6)}`,
-        quantity: Number(item.orderedQuantity) - receivedQuantity(item),
-        manufacturedAt: today,
-        expiresAt: today,
-        manufacturerOrImporter: p.supplier?.legalName || "Fabricante",
-      }));
-    setReceiveBatches(defaultBatches);
-    setReceiveError(null);
-  }
-
-  async function handleConfirmReceive(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!receivingPurchase || receiveBatches.length === 0) return;
-    setReceiveSubmitting(true);
-    setReceiveError(null);
-    try {
-      await procurementApi.receivePurchase(receivingPurchase.id, {
-        dueDate: receiveDueDate,
-        invoiceReference: receiveInvoiceRef.trim(),
-        items: receiveBatches.map((batch) => ({
-          purchaseItemId: batch.purchaseItemId,
-          magazineId: batch.magazineId,
-          lotNumber: batch.lotNumber,
-          quantity: batch.quantity,
-          manufacturedAt: batch.manufacturedAt,
-          expiresAt: batch.expiresAt,
-          manufacturerOrImporter: batch.manufacturerOrImporter,
-        })),
-      });
-      setReceivingPurchase(null);
-      setReloadTrigger((prev) => prev + 1);
-    } catch (err) {
-      setReceiveError(errorMessage(err));
-    } finally {
-      setReceiveSubmitting(false);
-    }
-  }
-
-  async function handleCancelOrder(id: string) {
-    if (!window.confirm("Deseja realmente cancelar este pedido de compra?")) return;
-    try {
-      await procurementApi.cancelPurchase(id);
-      setReloadTrigger((prev) => prev + 1);
-    } catch (err) {
-      setError(errorMessage(err));
-    }
-  }
+  const {
+    tab,
+    setTab,
+    purchases,
+    suppliers,
+    products,
+    magazines,
+    loading,
+    search,
+    setSearch,
+    statusFilter,
+    setStatusFilter,
+    setPage,
+    error,
+    isSupplierModalOpen,
+    setIsSupplierModalOpen,
+    supLegalName,
+    setSupLegalName,
+    supTaxId,
+    setSupTaxId,
+    supHasCr,
+    setSupHasCr,
+    supCrNumber,
+    setSupCrNumber,
+    supCrExpiresAt,
+    setSupCrExpiresAt,
+    supAuthorizedClasses,
+    setSupAuthorizedClasses,
+    supSubmitting,
+    supError,
+    handleOpenNewSupplier,
+    handleCreateSupplierSubmit,
+    isOrderModalOpen,
+    setIsOrderModalOpen,
+    selectedSupplierId,
+    setSelectedSupplierId,
+    orderNotes,
+    setOrderNotes,
+    orderItems,
+    setOrderItems,
+    orderSubmitting,
+    orderError,
+    handleOpenNewOrder,
+    handleCreateOrderSubmit,
+    receivingPurchase,
+    setReceivingPurchase,
+    receiveDueDate,
+    setReceiveDueDate,
+    receiveInvoiceRef,
+    setReceiveInvoiceRef,
+    receiveBatches,
+    setReceiveBatches,
+    receiveSubmitting,
+    receiveError,
+    handleOpenReceive,
+    handleReceiveSubmit,
+    handleCancelOrder,
+  } = usePurchasesState();
 
   useEscapeToClose(isSupplierModalOpen, () => setIsSupplierModalOpen(false));
   useModalFocusTrap(isSupplierModalOpen);
@@ -353,7 +182,7 @@ export function PurchasesWorkspace() {
           )
         }
         onClose={() => setIsSupplierModalOpen(false)}
-        onSubmit={handleSaveSupplier}
+        onSubmit={handleCreateSupplierSubmit}
       />
 
       <CreateOrderModal
@@ -368,41 +197,38 @@ export function PurchasesWorkspace() {
         onSupplierChange={setSelectedSupplierId}
         onNotesChange={setOrderNotes}
         onAddItem={() =>
-          setOrderItems((prev) => [
-            ...prev,
-            { productId: products[0]?.id || "", quantity: 1, unitCost: 0 },
-          ])
+          setOrderItems((prev) => [...prev, { productId: "", quantity: 1, unitCost: 0 }])
         }
         onRemoveItem={(index) =>
           setOrderItems((prev) => prev.filter((_, idx) => idx !== index))
         }
         onUpdateItem={(index, updates) =>
           setOrderItems((prev) =>
-            prev.map((it, idx) => (idx === index ? { ...it, ...updates } : it)),
+            prev.map((item, idx) => (idx === index ? { ...item, ...updates } : item)),
           )
         }
         onClose={() => setIsOrderModalOpen(false)}
-        onSubmit={handleSaveOrder}
+        onSubmit={handleCreateOrderSubmit}
       />
 
       <ReceiveOrderModal
         purchase={receivingPurchase}
         products={products}
         magazines={magazines}
-        dueDate={receiveDueDate}
         invoiceRef={receiveInvoiceRef}
+        dueDate={receiveDueDate}
         batches={receiveBatches}
         submitting={receiveSubmitting}
         error={receiveError}
-        onDueDateChange={setReceiveDueDate}
         onInvoiceRefChange={setReceiveInvoiceRef}
+        onDueDateChange={setReceiveDueDate}
         onUpdateBatch={(index, updates) =>
           setReceiveBatches((prev) =>
-            prev.map((b, idx) => (idx === index ? { ...b, ...updates } : b)),
+            prev.map((item, idx) => (idx === index ? { ...item, ...updates } : item)),
           )
         }
         onClose={() => setReceivingPurchase(null)}
-        onSubmit={handleConfirmReceive}
+        onSubmit={handleReceiveSubmit}
       />
     </div>
   );
