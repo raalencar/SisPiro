@@ -53,7 +53,24 @@ export function isTokenBundle(value: unknown): value is TokenBundle {
 
 export function isSameOriginRequest(request: Request): boolean {
   const origin = request.headers.get("origin");
-  return origin !== null && origin === new URL(request.url).origin;
+  if (origin === null) {
+    return false;
+  }
+  // request.url não reflete o Host/proto externos nesta implantação: o Next
+  // roda atrás do nginx (que termina TLS) escutando em 127.0.0.1, então
+  // request.url sempre resolve para "https://localhost:<porta>/...",
+  // independentemente do domínio/protocolo real da requisição. Reconstrói a
+  // origem real a partir dos headers que o nginx encaminha.
+  const host =
+    request.headers.get("x-forwarded-host")?.split(",")[0]?.trim() ??
+    request.headers.get("host");
+  if (!host) {
+    return false;
+  }
+  const protocol =
+    request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() ??
+    new URL(request.url).protocol.replace(":", "");
+  return origin === `${protocol}://${host}`;
 }
 
 export function setAuthCookies(response: NextResponse, tokens: TokenBundle): void {
