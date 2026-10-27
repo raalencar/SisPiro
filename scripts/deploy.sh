@@ -33,9 +33,9 @@ else
   echo "ℹ️ [1/4] Banco de dados ainda não está rodando. Pulando backup pré-deploy."
 fi
 
-# 3. Build e Subida dos Contêineres
+# 3. Build e Subida dos Contêineres (inclui o gateway Nginx interno)
 echo "🔨 [2/4] Construindo imagens e subindo contêineres..."
-docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --build --remove-orphans
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" --profile gateway up -d --build --remove-orphans
 
 # 4. Aguardar Inicialização dos Serviços
 echo "⏳ [3/4] Aguardando backend atingir status de prontidão (readiness)..."
@@ -62,9 +62,11 @@ else
 fi
 
 echo ""
+GATEWAY_PORT=$(grep -E '^GATEWAY_HOST_PORT=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)
+GATEWAY_PORT="${GATEWAY_PORT:-8080}"
 echo "===================================================================="
 echo "🎉 Implantação concluída com sucesso!"
-echo "   - Frontend: http://localhost:3001"
-echo "   - Backend:  http://localhost:3000/api/v1"
-echo "   - Health:   http://localhost:3000/api/v1/health/ready"
+echo "   - Gateway (interno, p/ seu proxy do host repassar): http://127.0.0.1:${GATEWAY_PORT}"
+echo "   - Backend:  http://127.0.0.1:3000/api/v1"
+echo "   - Health:   http://127.0.0.1:3000/api/v1/health/ready"
 echo "===================================================================="

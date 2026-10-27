@@ -10,7 +10,8 @@ O sistema é implantado em uma arquitetura de microsserviços desacoplada com or
 
 ```mermaid
 graph TD
-    Client["Navegador Web / Blaster Mobile"] -->|HTTPS:443| Nginx["Nginx Reverse Proxy / SSL"]
+    Client["Navegador Web / Blaster Mobile"] -->|HTTPS:443| HostProxy["Proxy do Host (certificado TLS) — ver 4.1"]
+    HostProxy -->|HTTP:127.0.0.1:GATEWAY_HOST_PORT| Nginx["Gateway Nginx interno do compose (sem TLS)"]
     Nginx -->|/_next & /| Frontend["Next.js 16 Standalone (Node 22) :3001"]
     Nginx -->|/api/v1| Backend["NestJS Enterprise API (Node 22) :3000"]
     Backend -->|TCP:5432 / pgBouncer| Postgres[("PostgreSQL 16 Alpine")]
@@ -18,6 +19,12 @@ graph TD
     Backend -->|HTTPS| SEFAZ["SEFAZ / Focus NFe (NF-e, NFC-e, NFS-e)"]
     Backend -->|HTTPS| Banco["API Bancária / Webhook PIX"]
 ```
+
+> [!NOTE]
+> O gateway Nginx deste repositório **não termina TLS**. Ele publica apenas em
+> `127.0.0.1:${GATEWAY_HOST_PORT}` (padrão `8080`) para evitar conflito com um
+> proxy que já esteja ocupando as portas 80/443 no host. O certificado e o
+> HTTPS público ficam a cargo do proxy já existente na VPS — ver seção 4.1.
 
 ### Componentes de Infraestrutura:
 - **Frontend:** Next.js 16 Standalone com React 19, zero overhead de SSR desnecessário e assets estáticos com cache imutável de 1 ano.
@@ -80,10 +87,50 @@ O script realizará automaticamente:
 
 ## 4. Orquestração e Comandos Úteis
 
-### Subir com o Gateway Nginx Unificado (Porta 80/443):
+### Subir com o Gateway Nginx Unificado (interno, `127.0.0.1:${GATEWAY_HOST_PORT}`):
 ```bash
 docker compose -f docker-compose.prod.yml --env-file .env.production --profile gateway up -d
 ```
+`./scripts/deploy.sh` já inclui `--profile gateway` por padrão — não é necessário repetir o comando manualmente numa implantação de rotina.
+
+### 4.1 Cenário: VPS com proxy reverso já existente (Nginx/Traefik/Caddy no host)
+
+Esta é a topologia recomendada quando a VPS já expõe HTTPS por outro meio
+(outro Nginx do sistema, Traefik, Caddy, ou um certificado gerenciado fora
+do Docker). O gateway deste compose nunca publica 80/443 — ele escuta
+somente em `127.0.0.1:${GATEWAY_HOST_PORT}` (padrão `8080`, configurável em
+`.env.production`). Configure o proxy já existente no host para repassar
+para essa porta interna.
+
+Exemplo de bloco de servidor para um Nginx do **sistema** (fora do Docker)
+que já cuida do certificado:
+```nginx
+server {
+    listen 443 ssl;
+    server_name erp.casadefogos.com.br;
+
+    ssl_certificate     /etc/letsencrypt/live/erp.casadefogos.com.br/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/erp.casadefogos.com.br/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+server {
+    listen 80;
+    server_name erp.casadefogos.com.br;
+    return 301 https://$host$request_uri;
+}
+```
+Ajuste a sintaxe equivalente se o proxy existente for Traefik (label-based) ou Caddy (Caddyfile) — o destino interno é sempre `http://127.0.0.1:${GATEWAY_HOST_PORT}`, HTTP puro, sem necessidade de certificado nesse salto.
 
 ### Visualizar Logs em Tempo Real:
 ```bash

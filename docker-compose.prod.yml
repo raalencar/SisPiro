@@ -110,13 +110,18 @@ services:
       PORT: 3001
       HOSTNAME: 0.0.0.0
     ports:
-      - "3001:3001"
+      - "127.0.0.1:3001:3001"
     networks:
       - sispiro_net
 
   # ----------------------------------------------------------------------------
   # 5. Reverse Proxy Nginx (Opcional - ativado com: --profile gateway)
   # ----------------------------------------------------------------------------
+  # Publica apenas em loopback (127.0.0.1): este gateway não termina TLS.
+  # Ele existe para unificar frontend+backend sob uma porta interna única,
+  # que o proxy/reverse-proxy já existente no host (Nginx/Traefik/Caddy,
+  # responsável pelo certificado) deve repassar via proxy_pass. Ver
+  # docs/RUNBOOK-IMPLANTACAO-PRODUCAO.md seção 4.1.
   gateway:
     image: nginx:1.27-alpine
     container_name: sispiro_gateway_prod
@@ -128,8 +133,7 @@ services:
       frontend:
         condition: service_started
     ports:
-      - "80:80"
-      - "443:443"
+      - "127.0.0.1:${GATEWAY_HOST_PORT:-8080}:80"
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     networks:

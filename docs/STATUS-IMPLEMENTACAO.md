@@ -236,6 +236,7 @@ Diagnóstico concluído (Fase 0): O controlador declara `GET /inventory/reports/
   - Smoke test E2E real autenticado no banco PostgreSQL validando geração de PIX, webhook e conciliação OFX com 100% de aprovação.
 - Engenharia de Implantação, SRE & Disaster Recovery (Frente 4):
   - Orquestração de produção com `docker-compose.prod.yml` integrando PostgreSQL 16 Alpine, Redis 7 Alpine, Backend NestJS Node 22, Frontend Next.js 16 Standalone e Nginx Reverse Proxy com compressão e headers de segurança.
+  - Gateway Nginx interno sem terminação TLS, publicado apenas em `127.0.0.1:${GATEWAY_HOST_PORT}` (padrão `8080`): evita conflito de porta 80/443 quando a VPS já tem outro proxy (Nginx/Traefik/Caddy) cuidando do certificado. `scripts/deploy.sh` já sobe o gateway por padrão (`--profile gateway`). Exemplo de configuração do proxy externo em [`docs/RUNBOOK-IMPLANTACAO-PRODUCAO.md`](RUNBOOK-IMPLANTACAO-PRODUCAO.md) seção 4.1.
   - Automação de migrações com `docker-entrypoint.sh` executando `prisma migrate deploy` de forma atômica no startup do container.
   - Script de deploy automatizado (`scripts/deploy.sh`) com validação de ambiente, build multi-stage, backup preventivo e verificação de saúde HTTP.
   - Script de backup consistente (`scripts/backup.sh`) com compressão `gzip`, retenção configurável de 30 dias e geração de checksum SHA256 para auditoria de integridade (testado e aprovado ao vivo).
