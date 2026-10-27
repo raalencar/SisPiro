@@ -2514,11 +2514,35 @@ h1, h2, h3, p {
     max-width: 100% !important;
   }
 
-  /* QUANDO HÁ UM DOCUMENTO FORMAL EM MODAL (Proposta, DANFE, SFPC, Ordem de Queima, Recibo) */
-  body:has(.print-document) .workspace,
+  /* QUANDO HÁ UM DOCUMENTO FORMAL EM MODAL (Proposta, DANFE, SFPC, Ordem de Queima, Recibo, Guia de Tráfego) */
+  body:has(.print-document) aside,
+  body:has(.print-document) header,
+  body:has(.print-document) nav,
+  body:has(.print-document) footer,
+  body:has(.print-document) .sidebar,
+  body:has(.print-document) .mobile-sidebar,
   body:has(.print-document) .topbar,
-  body:has(.print-document) .breadcrumbs {
+  body:has(.print-document) .breadcrumbs,
+  body:has(.print-document) .page-heading,
+  body:has(.print-document) .tabs,
+  body:has(.print-document) .filters-bar,
+  body:has(.print-document) .table-container,
+  body:has(.print-document) .toast-container,
+  body:has(.print-document) .quick-actions-bar,
+  body:has(.print-document) .card:not(:has(.print-document)),
+  body:has(.print-document) .workspace > :not(:has(.print-document)):not(.modal-backdrop:has(.print-document)) {
     display: none !important;
+  }
+
+  body:has(.print-document) .workspace {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
 
   .modal-backdrop:has(.print-document),
@@ -2544,6 +2568,7 @@ h1, h2, h3, p {
     max-width: 100% !important;
     width: 100% !important;
     max-height: none !important;
+    height: auto !important;
     box-shadow: none !important;
     border: none !important;
     padding: 0 !important;
@@ -2551,6 +2576,20 @@ h1, h2, h3, p {
     background: #ffffff !important;
     color: #000000 !important;
     overflow: visible !important;
+    overflow-y: visible !important;
+  }
+
+  .modal-body {
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    overflow-y: visible !important;
+    padding: 0 !important;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   .print-sheet {
