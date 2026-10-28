@@ -253,6 +253,61 @@ export async function proxyAuthenticatedRequest(
   }
 }
 
+const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+/**
+ * Proxy GET de imagem autenticada: repassa o corpo binário sem parse/re-serialização,
+ * preservando Content-Type e Cache-Control do backend. Só aceita tipos de imagem
+ * conhecidos; erros JSON da API são repassados como JSON.
+ */
+export async function proxyAuthenticatedImage(
+  backendPath: string,
+): Promise<NextResponse> {
+  const cookieStore = await cookies();
+  const accessToken = cookieStore.get(ACCESS_COOKIE)?.value;
+  if (!accessToken) {
+    return errorResponse("Sessão ausente ou expirada. Entre novamente.", 401);
+  }
+  try {
+    const response = await requestBackend(backendPath, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: "image/jpeg, image/png, image/webp, application/json",
+      },
+    });
+    const contentType = (response.headers.get("content-type") ?? "")
+      .split(";")[0]
+      .trim()
+      .toLowerCase();
+    if (!response.ok) {
+      const payload = contentType === "application/json"
+        ? await readBackendPayload(response)
+        : null;
+      return NextResponse.json(
+        payload ?? { message: `A API respondeu com erro HTTP ${response.status}.` },
+        { status: response.status },
+      );
+    }
+    if (!ALLOWED_IMAGE_TYPES.has(contentType) || !response.body) {
+      return errorResponse("A API retornou uma imagem em formato inesperado.", 502);
+    }
+    const headers = new Headers({
+      "Content-Type": contentType,
+      "Cache-Control": response.headers.get("cache-control") ?? "private, no-store",
+      "X-Content-Type-Options": "nosniff",
+    });
+    const length = response.headers.get("content-length");
+    if (length) headers.set("Content-Length", length);
+    return new NextResponse(response.body, { status: 200, headers });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      return errorResponse("A API demorou para responder. Tente novamente.", 504);
+    }
+    return errorResponse("Não foi possível carregar a imagem.", 502);
+  }
+}
+
 export async function readRefreshToken(): Promise<string | undefined> {
   const cookieStore = await cookies();
   return cookieStore.get(REFRESH_COOKIE)?.value;

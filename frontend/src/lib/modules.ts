@@ -130,6 +130,19 @@ export const modules: ErpModule[] = [
     requiredRoles: ["COMPRAS"],
   },
   {
+    slug: "supplier-catalog",
+    title: "Catálogo de Fornecedores",
+    shortTitle: "Catálogo de fornecedores",
+    description: "Itens dos catálogos de fornecedores e cadastro deles como produtos.",
+    icon: "boxes",
+    group: "Gestão",
+    emptyTitle: "Catálogo de fornecedores conectado",
+    emptyDescription:
+      "Consulta dos itens importados dos fornecedores, com fotos, e cadastro do item como produto do estoque.",
+    statusLabel: "Tela integrada",
+    requiredRoles: ["COMPRAS", "ESTOQUE"],
+  },
+  {
     slug: "sales",
     title: "Comercial e Vendas",
     shortTitle: "Comercial e vendas",

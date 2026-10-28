@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   isSameOriginRequest,
+  proxyAuthenticatedImage,
   proxyAuthenticatedRequest,
 } from "@/lib/server-auth";
 
@@ -10,6 +11,20 @@ type RouteContext = {
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const IMAGE_INDEX_PATTERN = /^(0|[1-9][0-9]{0,3})$/;
+
+function catalogImagePath(path: string[]): string | null {
+  if (
+    path.length === 4 &&
+    path[0] === "supplier-catalog" &&
+    UUID_PATTERN.test(path[1]) &&
+    path[2] === "images" &&
+    IMAGE_INDEX_PATTERN.test(path[3])
+  ) {
+    return `procurement/supplier-catalog/${path[1]}/images/${path[3]}`;
+  }
+  return null;
+}
 
 function backendPath(
   path: string[],
@@ -26,6 +41,19 @@ function backendPath(
       if (method === "GET" || method === "PATCH") {
         return `suppliers/${path[1]}`;
       }
+    }
+    return null;
+  }
+
+  // Catálogo de fornecedor (somente leitura): /supplier-catalog
+  if (path[0] === "supplier-catalog") {
+    if (method !== "GET") return null;
+    if (path.length === 1) return "procurement/supplier-catalog";
+    if (path.length === 2 && path[1] === "categories") {
+      return "procurement/supplier-catalog/categories";
+    }
+    if (path.length === 2 && UUID_PATTERN.test(path[1])) {
+      return `procurement/supplier-catalog/${path[1]}`;
     }
     return null;
   }
@@ -61,6 +89,8 @@ function invalidPath(): NextResponse {
 
 export async function GET(request: Request, context: RouteContext) {
   const { path } = await context.params;
+  const imagePath = catalogImagePath(path);
+  if (imagePath) return proxyAuthenticatedImage(imagePath);
   const target = backendPath(path, "GET");
   if (!target) return invalidPath();
   const query = new URL(request.url).search;

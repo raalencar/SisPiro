@@ -16,6 +16,21 @@ export type Product = {
   riskClass: string | null;
   neqGrams: string;
   unit: string;
+  description?: string | null;
+  /** Relativa, sem `/api/v1` (ver `catalogImageSrc`). Presente em GET /inventory/products. */
+  imageUrl?: string | null;
+};
+
+export type CreateProductBody = {
+  sku: string;
+  name: string;
+  type: ProductType;
+  isPce: boolean;
+  riskClass?: string;
+  neqGrams?: number;
+  unit: string;
+  description?: string;
+  supplierCatalogItemId?: string;
 };
 
 export type Magazine = {
@@ -204,15 +219,7 @@ export const inventoryApi = {
     requestJson<PageResult<StockMovement>>(
       paginatedPath("movements", page, search),
     ),
-  createProduct: (body: {
-    sku: string;
-    name: string;
-    type: ProductType;
-    isPce: boolean;
-    riskClass?: string;
-    neqGrams?: number;
-    unit: string;
-  }) =>
+  createProduct: (body: CreateProductBody) =>
     requestJson<Product>("/api/inventory/products", {
       method: "POST",
       body: JSON.stringify(body),

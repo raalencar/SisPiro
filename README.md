@@ -16,6 +16,7 @@ Monorepositório da plataforma **SisPiro ERP**, com API NestJS em `backend/` e i
 2. **Estoque Especializado & WMS (`/modules/inventory`):**
    - Paióis com travas de segurança volumétrica e capacidade máxima em NEQ (kg) validadas em transação relacional com lock pessimista (`SELECT FOR UPDATE`).
    - Rastreabilidade obrigatória de lotes PCE (fabricação, validade, fabricante e quarentena/bloqueio físico).
+   - Catálogo de fornecedores (`/modules/supplier-catalog`): itens e fotos importados do fornecedor (Amazon Fireworks, 167 itens), consulta para Compras/Estoque e cadastro de produto a partir do item com vínculo único e auditado.
    - Desmembramento atômico de lotes (`split`) e Mapa Mensal de Movimentação e Estocagem de PCE para o Exército Brasileiro (R-105).
 3. **Operações de Shows & Ordens de Serviço (`/modules/operations`):**
    - Ciclo de vida completo: Orçamento ➔ Aprovação com Blaster & ART ➔ Montagem ➔ Queima / Encerramento seguro.
@@ -112,6 +113,7 @@ npm run build      # Build Next.js 16 de produção (20 rotas SSG/SSR)
 ## 📚 Documentação Adicional
 
 - [Status Consolidado de Implementação](./docs/STATUS-IMPLEMENTACAO.md)
+- [Oportunidades de Melhoria (backlog para definição)](./docs/OPORTUNIDADES.md)
 - [Jornada Operacional Ponta a Ponta (Golden Path)](./docs/JORNADA-OPERACIONAL-E2E.md)
 - [Runbook de Implantação e Operação de Produção (SRE)](./docs/RUNBOOK-IMPLANTACAO-PRODUCAO.md)
 - [Resumo Detalhado de Funcionalidades](./docs/RESUMO-FUNCIONALIDADES.md)

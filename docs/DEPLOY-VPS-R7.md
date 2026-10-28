@@ -40,6 +40,39 @@ sudo systemctl restart sispiro-web.service
 Não existe script de deploy automatizando isso ainda (decisão deliberada de manter manual por ora,
 nesta fase). Se isso virar recorrente, vale reconsiderar.
 
+## Procedimentos de deploy (sem derrubar o site)
+
+**Regra:** nunca rodar `npm run build`, `prisma generate` ou `next build` direto nas árvores
+`backend/` e `frontend/`, a não ser como parte de um deploy planejado. As duas servem produção: o
+`dist/` regenerado com schema novo e migração ainda não aplicada quebra a API no próximo restart, e
+o `next build` apaga o `.next` que o `sispiro-web` está servindo.
+
+**Backend com migração:**
+1. `pg_dump -Fc` do `sispiro_db` em `/home/r7admin/backups/sispiro/`
+2. `npx prisma migrate deploy` (em `backend/`)
+3. `npm run build`
+4. `sudo systemctl restart sispiro-api`
+5. checar no `journalctl -u sispiro-api` se as rotas foram mapeadas (o prefixo da API é `/api/v1`)
+
+**Frontend:**
+1. `rsync -a --exclude .next frontend/ <tmp>/`
+2. `next build` em `<tmp>`
+3. Trocar com `sed` o caminho `<tmp>` pelo caminho real em `.next/standalone/server.js` e em
+   `.next/standalone/.next/required-server-files.json`. O `outputFileTracingRoot` fica gravado com
+   caminho absoluto.
+4. Copiar `.next/static` e `public` para dentro do standalone.
+5. `rsync` do `.next` novo para `frontend/.next.new`.
+6. `mv .next .next.bak-<data>` e depois `mv .next.new .next`.
+7. `sudo systemctl restart sispiro-web`
+8. Testar `/`, um CSS de `/_next/static/...` e uma rota BFF sem sessão (espera-se 401).
+
+Para voltar atrás, troque as pastas de novo e reinicie. Não existe rota `/login`: o login fica em `/`.
+
+**Catálogo de fornecedor:** importar com `backend/prisma/import-supplier-catalog.mjs` (dry-run e depois
+`--apply`; ver `backend/README.md`). Em produção, o fornecedor dono do catálogo Amazon Fireworks é a
+matriz `6f9bf637-fd10-4b20-bf20-1a0964147c8f`. **Não rodar `prisma/seed.mjs` em produção:** ele
+redefine a senha de todos os usuários e cria o fornecedor fictício "AMAZON FIREWORKS".
+
 ## ⚠️ Corrigido: login sempre devolvia 403 atrás do nginx
 
 `frontend/src/lib/server-auth.ts` tinha um `isSameOriginRequest()` que comparava o header `Origin` do
@@ -98,5 +131,7 @@ terminando TLS na frente.
   não investigado a fundo.
 - Sem script de deploy — todo rebuild (frontend ou backend) é manual: `npm run build` + (frontend)
   cópia de `static`/`public` pro standalone + `systemctl restart`.
-- Não confirmado se `prisma migrate deploy` roda automaticamente em algum pipeline nesta VPS ou se é
-  sempre manual — assumir manual até confirmar o contrário.
+- Migrações são **manuais** (não há pipeline): backup do banco, depois `npx prisma migrate deploy` em
+  `backend/`, e só então o restart da API. Feito assim em 2026-10-27 para `20261027201603_supplier_catalog`.
+- As imagens do catálogo de fornecedor (`data/fornecedores/`) não estão no git nem no backup diário (que
+  cobre só o banco).

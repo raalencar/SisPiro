@@ -134,6 +134,28 @@ export class CreateProductDto {
   @MinLength(1)
   @MaxLength(10)
   unit!: string;
+
+  @ApiPropertyOptional({
+    description: 'Descrição em texto puro (HTML não é aceito).',
+    maxLength: 5000,
+  })
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @MaxLength(5000)
+  @Matches(/^(?![\s\S]*<\/?[a-z!][^>]*>)/i, {
+    message: 'A descrição deve ser texto puro, sem marcação HTML.',
+  })
+  description?: string;
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description:
+      'Item do catálogo de fornecedor a vincular ao produto criado (cada item vincula um único produto).',
+  })
+  @IsOptional()
+  @IsUUID()
+  supplierCatalogItemId?: string;
 }
 
 export class CreateMagazineDto {

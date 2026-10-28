@@ -7,3 +7,4 @@ export * from "./commercial";
 export * from "./finance";
 export * from "./fiscal";
 export * from "./compliance";
+export * from "./supplier-catalog";

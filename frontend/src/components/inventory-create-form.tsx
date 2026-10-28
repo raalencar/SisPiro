@@ -90,6 +90,9 @@ export function InventoryCreateForm({
               }
             : {}),
           unit: stringField(form, "unit"),
+          ...(stringField(form, "description")
+            ? { description: stringField(form, "description") }
+            : {}),
         };
         await inventoryApi.createProduct(body);
         onCreated("Produto cadastrado.");

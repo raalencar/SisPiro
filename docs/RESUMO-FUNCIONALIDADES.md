@@ -51,6 +51,10 @@ fases já concluídas, veja [`Plano_Backend.md`](../Plano_Backend.md) e
 ### Compras
 - Pedidos de compra, recebimento físico com validação de capacidade NEQ do
   paiol, geração automática de conta a pagar.
+- Catálogo de fornecedores (`/modules/supplier-catalog`): consulta somente
+  leitura de itens e fotos importados do fornecedor (Amazon Fireworks, 167
+  itens), com filtros e categorias. Um item vira produto só por cadastro
+  explícito (perfil Estoque) com NEQ/classe de risco, vínculo único e auditado.
 
 ### Comercial e vendas
 - Tabelas de preço e promoções (desconto fixo ou percentual), com motor de
@@ -150,6 +154,10 @@ fases já concluídas, veja [`Plano_Backend.md`](../Plano_Backend.md) e
 | Automação E2E Playwright da Jornada Operacional | Pipeline automatizado de testes de ponta a ponta no CI para o Golden Path completo. | Alta |
 
 ---
+
+Melhorias pedidas pela Casa de Fogos ainda em análise (ex.: custo × venda e
+margem no orçamento, PDF do cliente sem custos) estão em
+[`OPORTUNIDADES.md`](./OPORTUNIDADES.md), aguardando definição.
 
 ## 🔒 Bloqueado — requer decisão explícita antes de iniciar
 

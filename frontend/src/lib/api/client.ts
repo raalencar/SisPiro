@@ -18,6 +18,8 @@ export class ApiError extends Error {
     message: string,
     public readonly kind: ApiErrorKind,
     public readonly status?: number,
+    /** Corpo JSON da resposta de erro, quando houver (ex.: `productId` em 409). */
+    public readonly payload?: unknown,
   ) {
     super(message);
     this.name = "ApiError";
@@ -118,6 +120,7 @@ async function fetchJson(
         apiMessage(payload, response.status),
         "http",
         response.status,
+        payload,
       );
     }
 

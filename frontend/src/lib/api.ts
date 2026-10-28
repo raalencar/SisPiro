@@ -11,3 +11,4 @@ export * from "./api/commercial";
 export * from "./api/finance";
 export * from "./api/fiscal";
 export * from "./api/compliance";
+export * from "./api/supplier-catalog";

@@ -165,6 +165,10 @@ A perda de dados em um ERP pirotécnico pode causar autuações severas pelo Ex�
 ```
 Os backups são gravados em `./backups/postgres/` compactados via `gzip` e retidos por 30 dias com rotação automática.
 
+> ⚠️ O backup cobre só o banco. As imagens do catálogo de fornecedor (`SUPPLIER_CATALOG_DIR`,
+> padrão `data/fornecedores/`) ficam em disco, fora do git, e precisam de cópia própria. O
+> `docker-compose.prod.yml` também ainda não monta esse diretório no container da API: pendente.
+
 ### Agendamento de Backup Automático (Cron):
 Adicione no crontab do servidor (`crontab -e`):
 ```bash

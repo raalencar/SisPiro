@@ -189,7 +189,7 @@ Todos usam o prefixo configurado (`/api/v1` por padrão):
 
 | Método | Rota | Uso |
 | --- | --- | --- |
-| `GET` / `POST` | `/inventory/products` | Lista e cadastra produtos/PCE |
+| `GET` / `POST` | `/inventory/products` | Lista e cadastra produtos/PCE (opcionalmente vinculando um item do catálogo de fornecedor) |
 | `GET` | `/inventory/products/:id` | Consulta produto |
 | `GET` / `POST` | `/inventory/magazines` | Lista/cria paióis; lista inclui NEQ atual e capacidade restante |
 | `GET` | `/inventory/magazines/:id` | Consulta paiol e capacidade |
@@ -260,6 +260,62 @@ vencimento e referência fiscal também são associados ao lançamento. A opera�
 verifica capacidade NEQ e licença do paiol. Para PCE, o fornecedor precisa estar
 ativo e ter CR vigente e classe autorizada cadastrados. Essa validação não
 consulta sistemas oficiais.
+
+### Catálogo de fornecedor
+
+Catálogo comercial importado de fornecedores (ex.: Amazon Fireworks), somente
+leitura pela API. Rotas exigem `COMPRAS` ou `ESTOQUE` (o vínculo com produto é
+feito no cadastro de produtos do estoque).
+
+| Método | Rota | Uso |
+| --- | --- | --- |
+| `GET` | `/procurement/supplier-catalog` | Lista paginada; filtros `supplierId`, `q` (ou `search`: nome, código, efeito), `category`, `linked=true\|false` |
+| `GET` | `/procurement/supplier-catalog/categories` | Categorias distintas (`{ data: string[] }`), filtro opcional `supplierId` |
+| `GET` | `/procurement/supplier-catalog/:id` | Detalhe com descrição, observações, atributos extras e `images: [{ index, url }]` |
+| `GET` | `/procurement/supplier-catalog/:id/images/:index` | Arquivo da imagem (jpg/jpeg/png/webp), `Cache-Control: private` |
+
+As imagens ficam em `SUPPLIER_CATALOG_DIR` (caminho absoluto; padrão
+`<repositório>/data/fornecedores`) e o banco guarda apenas caminhos relativos.
+A rota de imagem rejeita com 404 caminhos fora do diretório (inclusive via
+symlink), extensões não suportadas e arquivos ausentes. URLs de imagem
+retornadas pela API são relativas ao prefixo (`/procurement/supplier-catalog/...`).
+
+`POST /inventory/products` aceita `description` (texto puro, até 5000
+caracteres; HTML é rejeitado) e `supplierCatalogItemId`. Com o vínculo, a mesma
+transação bloqueia o item (`FOR UPDATE`), responde 404 se não existir e 409 se
+já estiver vinculado, cria o produto (mesmas regras PCE), grava `productId` no
+item e registra auditoria do produto e do vínculo. `GET /inventory/products` e
+`/inventory/products/:id` passam a retornar `description` e `imageUrl`
+(primeira imagem do item de catálogo vinculado, ou `null`).
+
+Importação (dry-run por padrão; `--apply` grava). É idempotente por
+(fornecedor, `wc_id`), nunca altera `productId` nem apaga itens, valida a
+existência de cada imagem, converte todos os textos em texto puro e grava um
+log de auditoria resumido (ator nulo):
+
+```bash
+node prisma/import-supplier-catalog.mjs \
+  --file ../data/fornecedores/amazon-fireworks/catalogo.json \
+  --supplier-id <uuid-do-fornecedor> \
+  --images-prefix amazon-fireworks \
+  --source-host www.amazonfireworks.com.br [--apply]
+```
+
+`--images-prefix` é a pasta do fornecedor dentro de `SUPPLIER_CATALOG_DIR`; o
+campo `arquivo` do JSON já inclui `imagens/`. O importador tem defesa própria
+contra conteúdo malicioso, independente do script que gerou o JSON: aborta sem
+gravar nada, listando os `wc_id` rejeitados, se qualquer texto contiver
+`_0x…`, `function(`, `window.`, `document.`, `<script`, `javascript:`,
+atributos `on…=` ou entidades HTML residuais; `sourceUrl` só é gravado se for
+`https:` (e do host informado em `--source-host`, repetível), senão fica `null`.
+
+O seed de desenvolvimento cria o fornecedor **AMAZON FIREWORKS** (CNPJ
+fictício, sem CR) e importa o catálogo se o arquivo existir. Em produção o
+catálogo foi importado com o script acima sob o fornecedor real
+**IMPORTACAO E EXPORTACAO AMAZON BR LTDA** (matriz, CNPJ 33.817.923/0001-90);
+a filial (33.817.923/0002-70) está cadastrada sem itens de catálogo. O `sourceUrl` dos
+itens aponta para o site do fornecedor, que já serviu conteúdo malicioso: não
+exibir como link clicável sem necessidade.
 
 ### Endpoints de clientes e profissionais
 

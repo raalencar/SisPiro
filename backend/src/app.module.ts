@@ -1,9 +1,11 @@
+import { isAbsolute } from 'node:path';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import Joi from 'joi';
 import { AuditContextInterceptor } from './common/audit-context.interceptor.js';
+import { DEFAULT_SUPPLIER_CATALOG_DIR } from './common/supplier-catalog.js';
 import { PrismaModule } from './database/prisma.module.js';
 import { HealthModule } from './health/health.module.js';
 import { QueueModule } from './infrastructure/queue.module.js';
@@ -48,6 +50,11 @@ import { FiscalModule } from './modules/fiscal/fiscal.module.js';
           REDIS_HOST: Joi.string().default('localhost'),
           REDIS_PORT: Joi.number().port().default(6379),
           REDIS_PASSWORD: Joi.string().allow('').default(''),
+          SUPPLIER_CATALOG_DIR: Joi.string()
+            .custom((value: string, helpers) =>
+              isAbsolute(value) ? value : helpers.error('any.invalid'),
+            )
+            .default(DEFAULT_SUPPLIER_CATALOG_DIR),
         })
           .unknown(true)
           .validate(config, { abortEarly: false });

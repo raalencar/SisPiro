@@ -57,6 +57,7 @@ Para assegurar facilidade de manutenção, testabilidade e conformidade com o te
 2. **Estoque e WMS:**
    - Posição consolidada de estoque e cálculo em tempo real de NEQ (Número Equivalente de TNT).
    - Catálogo de produtos, lotes, paióis e histórico de movimentações auditadas.
+   - A lista de produtos mostra uma miniatura de `imageUrl` (imagem do item de catálogo vinculado). Se a imagem falhar (ex.: 403 para perfil sem acesso ao catálogo, 404), a miniatura some sem aviso.
    - Operações de estoque: recebimento de lote, entrada, saída, ajuste, quarentena, bloqueio, e desmembramento entre paióis (`/inventory/lots/:id/split`).
    - Relatório regulamentar do Mapa Mensal SFPC (R-105) para fiscalização do Exército Brasileiro.
 
@@ -68,6 +69,11 @@ Para assegurar facilidade de manutenção, testabilidade e conformidade com o te
    - Cadastro e verificação de fornecedores homologados com CR.
    - Emissão e acompanhamento de pedidos de compra (`PENDENTE`, `PARCIAL`, `RECEBIDO`, `CANCELADO`).
    - Recebimento físico de lotes com validação atômica de capacidade NEQ do paiol e lançamento financeiro automático de Contas a Pagar.
+
+   - **Catálogo de Fornecedores (`/modules/supplier-catalog`, grupo "Gestão", perfis `COMPRAS`/`ESTOQUE`):** consulta somente leitura dos itens importados do catálogo do fornecedor, em grade de cards (imagem com `loading="lazy"` e placeholder, código, nome, efeito, embalagens, categorias e selo "Cadastrado (SKU X)"), com busca, filtros por fornecedor, categoria e situação (todos/não cadastrados/cadastrados) e paginação. O modal de detalhe mostra a galeria e todos os campos; `description`/`notes` são renderizados como texto puro, e `sourceUrl` aparece só como texto não clicável sob o aviso "site de origem comprometido — não acessar".
+   - **Cadastrar como produto:** disponível apenas para itens sem vínculo e para o perfil `ESTOQUE` (ou `ADMIN`), pois `POST /inventory/products` exige `ESTOQUE`; para `COMPRAS` o modal mostra só um aviso. O fluxo reaproveita o formulário de produto já preenchido (nome, descrição e SKU sugerido = `supplierCode` sem espaços, editável), com PCE marcado por padrão exceto nas categorias "Máquinas"/"Acessórios", e envia `supplierCatalogItemId`. Classe de risco e NEQ vêm da ficha técnica ou da NF do fornecedor. Em 409 com `productId` no corpo (item já vinculado), mostra a mensagem da API, atualiza o selo com o SKU já vinculado e indica `/modules/products` (não existe página de detalhe de produto); 409 sem `productId` (ex.: SKU duplicado — "Já existe um registro com esses dados únicos.", caso real dos códigos AMZ repetidos no catálogo), 400 e 404 repassam a mensagem do backend e mantêm o formulário aberto com os valores digitados.
+   - O campo "Descrição (opcional, texto puro)" do formulário de produto é compartilhado: também aparece no cadastro comum de produto em Estoque (`/modules/products`), e é enviado como `description` só quando preenchido.
+   - Rotas BFF (somente `GET`, em `/api/procurement/[...path]`): `supplier-catalog`, `supplier-catalog/categories` e `supplier-catalog/:id` (uuid) são mapeadas para `/procurement/supplier-catalog/...` no backend. `supplier-catalog/:id/images/:index` (uuid + inteiro) usa um handler binário próprio (`proxyAuthenticatedImage` em `src/lib/server-auth.ts`) que repassa o corpo e os headers `Content-Type` (apenas jpeg/png/webp) e `Cache-Control`, com `nosniff`. As URLs relativas `imageUrl`/`thumbnailUrl` são convertidas para `/api/procurement/...` por `catalogImageSrc` (`src/lib/api/supplier-catalog.ts`), que descarta qualquer outro formato.
 
 5. **Comercial, PDV e Orçamentos (`/modules/sales`):**
    - Gestão de Tabelas de Preço por canal e Campanhas Promocionais (desconto percentual ou preço fixo promocional com controle de vigência).
@@ -113,6 +119,7 @@ Para assegurar facilidade de manutenção, testabilidade e conformidade com o te
 - `/modules/customers` — Clientes e conformidade de CR / classes autorizadas.
 - `/modules/teams` — Blasters habilitados e equipes de espetáculo.
 - `/modules/purchases` — Compras, fornecedores e recebimento físico.
+- `/modules/supplier-catalog` — Catálogo de fornecedores (consulta e cadastro de produto a partir do item).
 - `/modules/sales` — Comercial, tabelas de preço, promoções, orçamentos e PDV.
 - `/modules/billing` — Faturamento, emissão de NF-e, NFC-e e NFS-e e cancelamento fiscal.
 - `/modules/compliance` — Compliance militar, emissão e espelho oficial de Guias de Tráfego (GT).
@@ -147,6 +154,10 @@ npm run build      # Build de produção otimizado Next.js (20 rotas otimizadas)
 
 - Os controles de apresentação por perfil atuam no nível de módulo/tela, não
   de ação individual dentro de uma tela compartilhada por perfis diferentes.
+  Exceção: no Catálogo de Fornecedores, o botão "Cadastrar como produto" só
+  aparece para `ESTOQUE`/`ADMIN`, e o filtro de fornecedor usa `GET /suppliers`
+  apenas para `COMPRAS`/`ADMIN` (para `ESTOQUE`, usa os fornecedores dos itens
+  já carregados).
 - Smoke tests visuais autenticados das jornadas completas (OS, estoque,
   cadastros, compras, comercial, financeiro) foram executados extensivamente
   contra o backend local, validando fluxo de sessão, responsividade mobile/tablet/desktop,

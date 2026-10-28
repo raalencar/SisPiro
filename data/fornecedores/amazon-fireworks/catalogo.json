@@ -1,0 +1,4857 @@
+[
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2262,
+    "nome": "TURBO JET SMOKE SF-X02",
+    "slug": "turbo-jet-smoke-sf-x02",
+    "url": "https://www.amazonfireworks.com.br/produto/turbo-jet-smoke-sf-x02/",
+    "codigo": "AMZ 8025",
+    "efeito": null,
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Máquina Simuladora CO2",
+    "categorias": [
+      "Linha Profissional",
+      "Máquinas"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/12/SF-X02.jpg",
+        "arquivo": "imagens/AMZ8025_wc2262.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2246,
+    "nome": "PLACA 1.2″ LEQUE 05 TUBOS – RED GREEN STROBE MINE",
+    "slug": "placa-1-2-leque-05-tubos-red-green-strobe-mine",
+    "url": "https://www.amazonfireworks.com.br/produto/placa-1-2-leque-05-tubos-red-green-strobe-mine/",
+    "codigo": "AMZ 0509",
+    "efeito": "Red Green Strobe Mine, Gold to Chrysanthemum Tail “C” Effect",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "20 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Produto para realização de shows profissionais de grande ou pequeno porte.",
+    "categorias": [
+      "Linha Profissional",
+      "Placas"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/12/placa-1.2-leque-05-tubos-red-green-strobe-mine.png",
+        "arquivo": "imagens/AMZ0509_wc2246.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2244,
+    "nome": "PLACA 1.2″ LEQUE 05 TUBOS – GOLD TIGER TAIL",
+    "slug": "placa-1-2-leque-05-tubos-gold-tiger-tail",
+    "url": "https://www.amazonfireworks.com.br/produto/placa-1-2-leque-05-tubos-gold-tiger-tail/",
+    "codigo": "AMZ 0508",
+    "efeito": "Gold Tiger Tail “C” Effect",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "20 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Produto para realização de shows profissionais de grande ou pequeno porte.",
+    "categorias": [
+      "Linha Profissional",
+      "Placas"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/12/placa-1.2-leque-05-gold-tiger-.png",
+        "arquivo": "imagens/AMZ0508_wc2244.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2239,
+    "nome": "MONOTIRO 1.2″ – RED PALM COMET",
+    "slug": "monotiro-1-2-red-palm-comet",
+    "url": "https://www.amazonfireworks.com.br/produto/monotiro-1-2-red-palm-comet/",
+    "codigo": "AMZ 12204",
+    "efeito": "Red Palm Comet",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Monotiro de efeito específico para realização de shows profissionais como piromusicais em grandes eventos.",
+    "categorias": [
+      "Linha Profissional",
+      "Monotiros"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/12/Monotiro-1.2_-red-palm-comet.png",
+        "arquivo": "imagens/AMZ12204_wc2239.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2237,
+    "nome": "MONOTIRO 1.2″ – PURPLE TO LEMON MINE",
+    "slug": "monotiro-1-2-purple-to-lemon-mine",
+    "url": "https://www.amazonfireworks.com.br/produto/monotiro-1-2-purple-to-lemon-mine/",
+    "codigo": "AMZ 12208",
+    "efeito": "Purple to Lemon MIne",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Monotiro de efeito específico para realização de shows profissionais como piromusicais em grandes eventos.",
+    "categorias": [
+      "Linha Profissional",
+      "Monotiros"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/12/Monotiro-1.2_-purple-to-lemon-mine.png",
+        "arquivo": "imagens/AMZ12208_wc2237.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2235,
+    "nome": "MONOTIRO 1.2″ – GREEN STROBE MINE SPINNER",
+    "slug": "monotiro-1-2-green-strobe-mine-spinner",
+    "url": "https://www.amazonfireworks.com.br/produto/monotiro-1-2-green-strobe-mine-spinner/",
+    "codigo": "AMZ 12207",
+    "efeito": "Green Strobe Mine Spinner",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Monotiro de efeito específico para realização de shows profissionais como piromusicais em grandes eventos.",
+    "categorias": [
+      "Linha Profissional",
+      "Monotiros"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/12/Monotiro-1.2_-green-strobe.png",
+        "arquivo": "imagens/AMZ12207_wc2235.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2233,
+    "nome": "MONOTIRO 1.2″ – WHITE STROBE MINE",
+    "slug": "monotiro-1-2-white-strobe-mine",
+    "url": "https://www.amazonfireworks.com.br/produto/monotiro-1-2-white-strobe-mine/",
+    "codigo": "AMZ 12206",
+    "efeito": "White Strobe Mine",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Monotiro de efeito específico para realização de shows profissionais como piromusicais em grandes eventos.",
+    "categorias": [
+      "Linha Profissional",
+      "Monotiros"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/12/Monotiro-1.2_-white-strobe-mine.png",
+        "arquivo": "imagens/AMZ12206_wc2233.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2231,
+    "nome": "MONOTIRO 1.2″ – SILVER STROBE WILLOW TAIL",
+    "slug": "monotiro-1-2-silver-strobe-willow-tail",
+    "url": "https://www.amazonfireworks.com.br/produto/monotiro-1-2-silver-strobe-willow-tail/",
+    "codigo": "AMZ 12205",
+    "efeito": "Silver Strobe Willow Tail",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Monotiro de efeito específico para realização de shows profissionais como piromusicais em grandes eventos.",
+    "categorias": [
+      "Linha Profissional",
+      "Monotiros"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/12/Monotiro-1.2-Silver-strobe-willow-tail.jpg",
+        "arquivo": "imagens/AMZ12205_wc2231.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2229,
+    "nome": "MONOTIRO 1.2″ – SILVER PALM COMET",
+    "slug": "monotiro-1-2-silver-palm-comet",
+    "url": "https://www.amazonfireworks.com.br/produto/monotiro-1-2-silver-palm-comet/",
+    "codigo": "AMZ 12203",
+    "efeito": "Silver Palm Comet",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Monotiro de efeito específico para realização de shows profissionais como piromusicais em grandes eventos.",
+    "categorias": [
+      "Linha Profissional",
+      "Monotiros"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/12/Monotiro-1.2_-silver-palm-comet.png",
+        "arquivo": "imagens/AMZ12203_wc2229.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2227,
+    "nome": "MONOTIRO 1.2″ – CRACKLING CHRYSANTHEMUM",
+    "slug": "monotiro-1-2-crackling-chrysanthemum",
+    "url": "https://www.amazonfireworks.com.br/produto/monotiro-1-2-crackling-chrysanthemum/",
+    "codigo": "AMZ 122020",
+    "efeito": "Crackling Chrysanthemum Flowers Mine to Red Mine",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Monotiro de efeito específico para realização de shows profissionais como piromusicais em grandes eventos.",
+    "categorias": [
+      "Linha Profissional",
+      "Monotiros"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/12/Monotiro-1.2_-crackling-chrysanthemum.png",
+        "arquivo": "imagens/AMZ122020_wc2227.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2225,
+    "nome": "MONOTIRO 1.2″ – COLOR STROBE MINE",
+    "slug": "monotiro-1-2-color-strobe-mine",
+    "url": "https://www.amazonfireworks.com.br/produto/monotiro-1-2-color-strobe-mine/",
+    "codigo": "AMZ 12201",
+    "efeito": "Color Strobe Mine",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Monotiro de efeito específico para realização de shows profissionais como piromusicais em grandes eventos.",
+    "categorias": [
+      "Linha Profissional",
+      "Monotiros"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/12/Monotiro-1.2_-color-stobe-mine.png",
+        "arquivo": "imagens/AMZ12201_wc2225.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2223,
+    "nome": "MONOTIRO 0.8″ – RED MINE TO GOLD",
+    "slug": "monotiro-0-8-red-mine-to-gold",
+    "url": "https://www.amazonfireworks.com.br/produto/monotiro-0-8-red-mine-to-gold/",
+    "codigo": "AMZ 12806",
+    "efeito": "Red Mine to Gold Palm Comet",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "300 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Monotiro de efeito específico para realização de shows profissionais como piro-musicais em grandes eventos.",
+    "categorias": [
+      "Linha Profissional",
+      "Monotiros"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/12/Monotiro-0.8_-Red-Mine-to-gold-palm-comet.png",
+        "arquivo": "imagens/AMZ12806_wc2223.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2220,
+    "nome": "MONOTIRO 0.8″ – WHITE STROBE MINE",
+    "slug": "monotiro-0-8-white-strobe-mine",
+    "url": "https://www.amazonfireworks.com.br/produto/monotiro-0-8-white-strobe-mine/",
+    "codigo": "AMZ 12804",
+    "efeito": "White Strobe Mine to Ti-willow Tail with red head",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "300 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Monotiro de efeito específico para realização de shows profissionais como piro-musicais em grandes eventos.",
+    "categorias": [
+      "Linha Profissional",
+      "Monotiros"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/12/Monotiro-0.8_-White-Strobe-Mine.png",
+        "arquivo": "imagens/AMZ12804_wc2220.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2216,
+    "nome": "MONOTIRO 0.8″ – RED TO CHRY MINE",
+    "slug": "monotiro-0-8-red-to-chry-mine",
+    "url": "https://www.amazonfireworks.com.br/produto/monotiro-0-8-red-to-chry-mine/",
+    "codigo": "AMZ 12805",
+    "efeito": "Red to Chry Mine",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "300 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Monotiro de efeito específico para realização de shows profissionais como piro-musicais em grandes eventos.",
+    "categorias": [
+      "Linha Profissional",
+      "Monotiros"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/12/Monotiro-0.8_-Red-to-chry-Mine.png",
+        "arquivo": "imagens/AMZ12805_wc2216.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2215,
+    "nome": "MONOTIRO 0.8″ – BLUE TO RED STROBE MINE",
+    "slug": "monotiro-0-8-blue-to-red-strobe-mine",
+    "url": "https://www.amazonfireworks.com.br/produto/monotiro-0-8-blue-to-red-strobe-mine/",
+    "codigo": "AMZ 12801",
+    "efeito": "Blue to Red strobe mine",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "300 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Monotiro de efeito específico para realização de shows profissionais como piro-musicais em grandes eventos.",
+    "categorias": [
+      "Linha Profissional",
+      "Monotiros"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/12/Monotiro-0.8_-Blue-to-Red-strobe-mine.png",
+        "arquivo": "imagens/AMZ12801_wc2215.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2212,
+    "nome": "HAVAÍÍ – 49 tubos 30mm",
+    "slug": "havaii-49-tubos-30mm",
+    "url": "https://www.amazonfireworks.com.br/produto/havaii-49-tubos-30mm/",
+    "codigo": "AMZ 4910",
+    "efeito": "Efeito em Z com Vasos e Bomba com Explosão",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "03 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Com o efeito desta torta seu show vai ficar na história!",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/12/TORTA-HAWAII.jpg",
+        "arquivo": "imagens/AMZ4910_wc2212.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2210,
+    "nome": "PRISMA – 104 tubos 1.2″",
+    "slug": "prisma-104-tubos-1-2",
+    "url": "https://www.amazonfireworks.com.br/produto/prisma-104-tubos-1-2/",
+    "codigo": "AMZ 1004",
+    "efeito": "Efeito Leque vaso intermitente verde e dourado + vaso azul + cometa rosa",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Com o efeito desta torta seu show vai ficar na história!",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/12/TORTA-PRISMA.jpg",
+        "arquivo": "imagens/AMZ1004_wc2210.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2208,
+    "nome": "FLORENÇA – 130 tubos 1.2″",
+    "slug": "florenca-130-tubos-1-2",
+    "url": "https://www.amazonfireworks.com.br/produto/florenca-130-tubos-1-2/",
+    "codigo": "AMZ 1005",
+    "efeito": "Efeito Leque vaso intermitente verde + vaso vermelho, verde, azul, laranja e rosa",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Com o efeito desta torta seu show vai ficar na história!",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/12/TORTA-FLORENCA.jpg",
+        "arquivo": "imagens/AMZ1005_wc2208.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2206,
+    "nome": "TOQUIO – 150 tubos 0.6″",
+    "slug": "toquio-150-tubos-0-6",
+    "url": "https://www.amazonfireworks.com.br/produto/toquio-150-tubos-0-6/",
+    "codigo": "AMZ 15004",
+    "efeito": "Efeito em C Traçante dourado Intermitente com ponta Branca",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "02 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Com o efeito desta torta seu show vai ficar na história!",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/12/TORTA-TOQUIO.jpg",
+        "arquivo": "imagens/AMZ15004_wc2206.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2203,
+    "nome": "TRÓIA – 182 tubos 0.8″",
+    "slug": "troia-182-tubos-0-8",
+    "url": "https://www.amazonfireworks.com.br/produto/troia-182-tubos-0-8/",
+    "codigo": "AMZ 1821",
+    "efeito": "Efeito Z cometa colorido",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Com o efeito desta torta seu show vai ficar na história!",
+    "categorias": [
+      "Linha Comercial",
+      "Linha Profissional"
+    ],
+    "tags": [
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/12/TORTA-TROIA.jpg",
+        "arquivo": "imagens/AMZ1821_wc2203.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2201,
+    "nome": "SAFIRA – 25 tubos",
+    "slug": "safira-25-tubos",
+    "url": "https://www.amazonfireworks.com.br/produto/safira-25-tubos/",
+    "codigo": "AMZ 2509",
+    "efeito": "Vertical, Bombas de Cores Diversas",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "18 unidade",
+    "tempo_aproximado": "20 segundos",
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Com o efeito desta torta seu show vai ficar na história!",
+    "categorias": [
+      "Linha Comercial",
+      "Linha Profissional"
+    ],
+    "tags": [
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/12/Torta-Safira.png",
+        "arquivo": "imagens/AMZ2509_wc2201.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2199,
+    "nome": "CRISTAL – 25 tubos",
+    "slug": "cristal-25-tubos",
+    "url": "https://www.amazonfireworks.com.br/produto/cristal-25-tubos/",
+    "codigo": "AMZ 2513",
+    "efeito": "Vertical, Bombas Coloridas e Efeitos Diversos",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "18 unidade",
+    "tempo_aproximado": "20 segundos",
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Com o efeito desta torta seu show vai ficar na história!",
+    "categorias": [
+      "Linha Comercial",
+      "Linha Profissional"
+    ],
+    "tags": [
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/12/Torta-Cristal-2.png",
+        "arquivo": "imagens/AMZ2513_wc2199.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2197,
+    "nome": "FUMAÇA DE SOLO – REVELAÇÃO VERDE",
+    "slug": "fumaca-de-solo-revelacao-verde",
+    "url": "https://www.amazonfireworks.com.br/produto/fumaca-de-solo-revelacao-verde/",
+    "codigo": "AMZ 2504",
+    "efeito": "Fumaça Verde",
+    "embalagem_unitaria": "05 unidades",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": "50 segundos",
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Fumaça de solo colorida para realização de shows profissionais de grande ou pequeno porte.",
+    "categorias": [
+      "Linha Comercial",
+      "Linha Fumaças"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/12/Fumaca-Revelacao-Lilas-verde-solo.png",
+        "arquivo": "imagens/AMZ2504_wc2197.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2196,
+    "nome": "FUMAÇA DE SOLO – REVELAÇÃO LILÁS",
+    "slug": "fumaca-de-solo-revelacao-lilas",
+    "url": "https://www.amazonfireworks.com.br/produto/fumaca-de-solo-revelacao-lilas/",
+    "codigo": "AMZ 2506",
+    "efeito": "Fumaça Lilás",
+    "embalagem_unitaria": "05 unidades",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": "50 segundos",
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Fumaça de solo colorida para realização de shows profissionais de grande ou pequeno porte.",
+    "categorias": [
+      "Linha Comercial",
+      "Linha Fumaças"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/12/Fumaca-Revelacao-Lilas-verde-solo.png",
+        "arquivo": "imagens/AMZ2506_wc2196.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2194,
+    "nome": "FUMAÇA DE SOLO – REVELAÇÃO ROSA",
+    "slug": "fumaca-de-solo-revelacao-rosa",
+    "url": "https://www.amazonfireworks.com.br/produto/fumaca-de-solo-revelacao-rosa/",
+    "codigo": "AMZ 2507",
+    "efeito": "Fumaça Rosa",
+    "embalagem_unitaria": "05 unidades",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": "50 segundos",
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Fumaça de solo colorida para realização de shows profissionais de grande ou pequeno porte.",
+    "categorias": [
+      "Linha Comercial",
+      "Linha Fumaças"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/12/Fumaca-Revelacao-Azul-rosa-solo.png",
+        "arquivo": "imagens/AMZ2507_wc2194.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2193,
+    "nome": "FUMAÇA DE SOLO – REVELAÇÃO AZUL",
+    "slug": "fumaca-de-solo-revelacao-azul",
+    "url": "https://www.amazonfireworks.com.br/produto/fumaca-de-solo-revelacao-azul/",
+    "codigo": "AMZ 2505",
+    "efeito": "Fumaça Azul",
+    "embalagem_unitaria": "05 unidades",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": "50 segundos",
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Fumaça de solo colorida para realização de shows profissionais de grande ou pequeno porte.",
+    "categorias": [
+      "Linha Comercial",
+      "Linha Fumaças"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/12/Fumaca-Revelacao-Azul-rosa-solo.png",
+        "arquivo": "imagens/AMZ2505_wc2193.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2190,
+    "nome": "FUMAÇA DE SOLO – PRETA",
+    "slug": "fumaca-de-solo-preta",
+    "url": "https://www.amazonfireworks.com.br/produto/fumaca-de-solo-preta/",
+    "codigo": "AMZ 2502",
+    "efeito": "Fumaça Preta",
+    "embalagem_unitaria": "05 unidades",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": "50 segundos",
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Fumaça de solo colorida para realização de shows profissionais de grande ou pequeno porte.",
+    "categorias": [
+      "Linha Comercial",
+      "Linha Fumaças"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/12/Fumaca-Preta-solo.png",
+        "arquivo": "imagens/AMZ2502_wc2190.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2189,
+    "nome": "FUMAÇA DE SOLO – VERMELHA",
+    "slug": "fumaca-de-solo-vermelha",
+    "url": "https://www.amazonfireworks.com.br/produto/fumaca-de-solo-vermelha/",
+    "codigo": "AMZ 2508",
+    "efeito": "Fumaça Vermelha",
+    "embalagem_unitaria": "05 unidades",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": "50 segundos",
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Fumaça de solo colorida para realização de shows profissionais de grande ou pequeno porte.",
+    "categorias": [
+      "Linha Comercial",
+      "Linha Fumaças"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/12/Fumaca-Vermelha-solo.png",
+        "arquivo": "imagens/AMZ2508_wc2189.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2187,
+    "nome": "FUMAÇA DE SOLO – BRANCA",
+    "slug": "fumaca-de-solo-branca",
+    "url": "https://www.amazonfireworks.com.br/produto/fumaca-de-solo-branca/",
+    "codigo": "AMZ 2503",
+    "efeito": "Fumaça Branca",
+    "embalagem_unitaria": "05 unidades",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": "50 segundos",
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Fumaça de solo colorida para realização de shows profissionais de grande ou pequeno porte.",
+    "categorias": [
+      "Linha Comercial",
+      "Linha Fumaças"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/12/Fumaca-Branca-solo.png",
+        "arquivo": "imagens/AMZ2503_wc2187.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2098,
+    "nome": "PAPEL ALUMÍNIO – 20X50 (Anti-chamas)",
+    "slug": "papel-aluminio-20x50-anti-chamas",
+    "url": "https://www.amazonfireworks.com.br/produto/papel-aluminio-20x50-anti-chamas/",
+    "codigo": "AMZ 8012",
+    "efeito": null,
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "16 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": null,
+    "categorias": [
+      "Acessórios"
+    ],
+    "tags": [
+      "acessório"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/Fita-Aluminio-Anti-Chama.jpg",
+        "arquivo": "imagens/AMZ8012_wc2098.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2103,
+    "nome": "FIRE BALL INDOOR – RED",
+    "slug": "fire-ball-indoor-red",
+    "url": "https://www.amazonfireworks.com.br/produto/fire-ball-indoor-red/",
+    "codigo": "AMZ IF01",
+    "efeito": "Red Light",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "60 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "01 Disparo (Acompanha Skib)",
+    "categorias": [
+      "Linha Indoor",
+      "Linha Profissional"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/Fire-Ball-red.jpg",
+        "arquivo": "imagens/AMZIF01_wc2103.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2122,
+    "nome": "TORTA SMOKE CRACKER – FUMAÇA BRANCO COM CRACKLING",
+    "slug": "torta-smoke-cracker-fumaca-branco-com-crackling",
+    "url": "https://www.amazonfireworks.com.br/produto/torta-smoke-cracker-fumaca-branco-com-crackling/",
+    "codigo": "AMZ 2508",
+    "efeito": "Fumaça Branco com Crackling",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "04 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Torta de fumaça colorida para realização de shows profissionais de grande ou pequeno porte. Torta 25 Tubos 1.2″",
+    "categorias": [
+      "Linha Comercial",
+      "Linha Fumaças",
+      "Linha Profissional"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/Smoke-Cracker-BRANCA.jpg",
+        "arquivo": "imagens/AMZ2508_wc2122.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2121,
+    "nome": "TORTA SMOKE CRACKER – FUMAÇA PRETO COM CRACKLING",
+    "slug": "torta-smoke-cracker-fumaca-preto-com-crackling",
+    "url": "https://www.amazonfireworks.com.br/produto/torta-smoke-cracker-fumaca-preto-com-crackling/",
+    "codigo": "AMZ 2507",
+    "efeito": "Fumaça Preto com Crackling",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "04 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Torta de fumaça colorida para realização de shows profissionais de grande ou pequeno porte. Torta 25 Tubos 1.2″",
+    "categorias": [
+      "Linha Comercial",
+      "Linha Fumaças",
+      "Linha Profissional"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/Smoke-Cracker-PRETA.jpg",
+        "arquivo": "imagens/AMZ2507_wc2121.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2119,
+    "nome": "TORTA SMOKE CRACKER – FUMAÇA ROSA COM CRACKLING",
+    "slug": "torta-smoke-cracker-fumaca-rosa-com-crackling",
+    "url": "https://www.amazonfireworks.com.br/produto/torta-smoke-cracker-fumaca-rosa-com-crackling/",
+    "codigo": "AMZ 2506",
+    "efeito": "Fumaça Rosa com Crackling",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "04 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Torta de fumaça colorida para realização de shows profissionais de grande ou pequeno porte. Torta 25 Tubos 1.2″",
+    "categorias": [
+      "Linha Comercial",
+      "Linha Fumaças",
+      "Linha Profissional"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/Torta-Smoke-Rosa-001.png",
+        "arquivo": "imagens/AMZ2506_wc2119.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2118,
+    "nome": "TORTA SMOKE CRACKER – FUMAÇA LILÁS COM CRACKLING",
+    "slug": "torta-smoke-cracker-fumaca-lilas-com-crackling",
+    "url": "https://www.amazonfireworks.com.br/produto/torta-smoke-cracker-fumaca-lilas-com-crackling/",
+    "codigo": "AMZ 2505",
+    "efeito": "Fumaça Lilás com Crackling",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "04 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Torta de fumaça colorida para realização de shows profissionais de grande ou pequeno porte. Torta 25 Tubos 1.2″",
+    "categorias": [
+      "Linha Comercial",
+      "Linha Fumaças",
+      "Linha Profissional"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/Smoke-Cracker-VIOLETA.jpg",
+        "arquivo": "imagens/AMZ2505_wc2118.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2117,
+    "nome": "SILVER JET INDOOR",
+    "slug": "silver-jet-indoor",
+    "url": "https://www.amazonfireworks.com.br/produto/silver-jet-indoor/",
+    "codigo": "AMZI 01",
+    "efeito": null,
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "40 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "01 Disparo (Acompanha Skib)",
+    "categorias": [
+      "Linha Indoor",
+      "Linha Profissional"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/Silver-jet-Indoor.jpg",
+        "arquivo": "imagens/AMZI01_wc2117.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2116,
+    "nome": "GERB 15s INDOOR – 5 metros",
+    "slug": "gerb-15s-indoor-5-metros",
+    "url": "https://www.amazonfireworks.com.br/produto/gerb-15s-indoor-5-metros/",
+    "codigo": "AMZI 03",
+    "efeito": null,
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "01 Disparo (Acompanha Skib)",
+    "categorias": [
+      "Linha Indoor",
+      "Linha Profissional"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/Gerb-15s-Indoor-5-metros.jpg",
+        "arquivo": "imagens/AMZI03_wc2116.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2115,
+    "nome": "GERB 30s INDOOR – 5 metros",
+    "slug": "gerb-30s-indoor-5-metros",
+    "url": "https://www.amazonfireworks.com.br/produto/gerb-30s-indoor-5-metros/",
+    "codigo": "AMZI 02",
+    "efeito": null,
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "01 Disparo (Acompanha Skib)",
+    "categorias": [
+      "Linha Indoor",
+      "Linha Profissional"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/Gerb-30s-Indoor-5-metros.jpg",
+        "arquivo": "imagens/AMZI02_wc2115.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2114,
+    "nome": "MICRO COMET INDOOR – BLUE",
+    "slug": "micro-comet-indoor-blue",
+    "url": "https://www.amazonfireworks.com.br/produto/micro-comet-indoor-blue/",
+    "codigo": "AMZ IC05",
+    "efeito": "Blue",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "01 Disparo (Acompanha Skib)",
+    "categorias": [
+      "Linha Indoor",
+      "Linha Profissional"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/Micro-Comet-Blue.jpg",
+        "arquivo": "imagens/AMZIC05_wc2114.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2113,
+    "nome": "MICRO COMET INDOOR – GREEN",
+    "slug": "micro-comet-indoor-green",
+    "url": "https://www.amazonfireworks.com.br/produto/micro-comet-indoor-green/",
+    "codigo": "AMZ IC04",
+    "efeito": "Green",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "01 Disparo (Acompanha Skib)",
+    "categorias": [
+      "Linha Indoor",
+      "Linha Profissional"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/Micro-Comet-Green.jpg",
+        "arquivo": "imagens/AMZIC04_wc2113.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2112,
+    "nome": "MICRO COMET INDOOR – RED",
+    "slug": "micro-comet-indoor-red",
+    "url": "https://www.amazonfireworks.com.br/produto/micro-comet-indoor-red/",
+    "codigo": "AMZ IC03",
+    "efeito": "Red",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "01 Disparo (Acompanha Skib)",
+    "categorias": [
+      "Linha Indoor",
+      "Linha Profissional"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/Micro-Comet.jpg",
+        "arquivo": "imagens/AMZIC03_wc2112.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2111,
+    "nome": "MICRO COMET INDOOR – SILVER",
+    "slug": "micro-comet-indoor-silver",
+    "url": "https://www.amazonfireworks.com.br/produto/micro-comet-indoor-silver/",
+    "codigo": "AMC IC02",
+    "efeito": "Silver Tail",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "01 Disparo (Acompanha Skib)",
+    "categorias": [
+      "Linha Indoor",
+      "Linha Profissional"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/Micro-Comet.jpg",
+        "arquivo": "imagens/AMCIC02_wc2111.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2110,
+    "nome": "MICRO COMET INDOOR – GOLD",
+    "slug": "micro-comet-indoor-gold",
+    "url": "https://www.amazonfireworks.com.br/produto/micro-comet-indoor-gold/",
+    "codigo": "AMC IM01",
+    "efeito": "Gold Glittering Tail",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "01 Disparo (Acompanha Skib)",
+    "categorias": [
+      "Linha Indoor",
+      "Linha Profissional"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/Micro-Comet.jpg",
+        "arquivo": "imagens/AMCIM01_wc2110.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2109,
+    "nome": "MICRO MINE INDOOR – GREEN",
+    "slug": "micro-mine-indoor-green",
+    "url": "https://www.amazonfireworks.com.br/produto/micro-mine-indoor-green/",
+    "codigo": "AMZ IM03",
+    "efeito": "Green",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "01 Disparo (Acompanha Skib)",
+    "categorias": [
+      "Linha Indoor",
+      "Linha Profissional"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/MICRO-MINE.jpg",
+        "arquivo": "imagens/AMZIM03_wc2109.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2108,
+    "nome": "MICRO MINE INDOOR – RED",
+    "slug": "micro-mine-indoor-red",
+    "url": "https://www.amazonfireworks.com.br/produto/micro-mine-indoor-red/",
+    "codigo": "AMZ IM02",
+    "efeito": "Red",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "01 Disparo (Acompanha Skib)",
+    "categorias": [
+      "Linha Indoor",
+      "Linha Profissional"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/Micro-Mine-red.jpg",
+        "arquivo": "imagens/AMZIM02_wc2108.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2106,
+    "nome": "MICRO MINE INDOOR – GOLD",
+    "slug": "micro-mine-indoor-gold",
+    "url": "https://www.amazonfireworks.com.br/produto/micro-mine-indoor-gold/",
+    "codigo": "AMZ IM01",
+    "efeito": "Gold Glittering",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "01 Disparo (Acompanha Skib)",
+    "categorias": [
+      "Linha Indoor",
+      "Linha Profissional"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/MICRO-MINE.jpg",
+        "arquivo": "imagens/AMZIM01_wc2106.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2105,
+    "nome": "FIRE BALL INDOOR – BLUE",
+    "slug": "fire-ball-indoor-blue",
+    "url": "https://www.amazonfireworks.com.br/produto/fire-ball-indoor-blue/",
+    "codigo": "AMZ IF03",
+    "efeito": "Blue Light",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "60 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "01 Disparo (Acompanha Skib)",
+    "categorias": [
+      "Linha Indoor",
+      "Linha Profissional"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/Fire-Ball-Azul.jpg",
+        "arquivo": "imagens/AMZIF03_wc2105.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2104,
+    "nome": "FIRE BALL INDOOR – GREEN",
+    "slug": "fire-ball-indoor-green",
+    "url": "https://www.amazonfireworks.com.br/produto/fire-ball-indoor-green/",
+    "codigo": "AMZ IF02",
+    "efeito": "Green Light",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "60 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "01 Disparo (Acompanha Skib)",
+    "categorias": [
+      "Linha Indoor",
+      "Linha Profissional"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/Fire-Ball-green.jpg",
+        "arquivo": "imagens/AMZIF02_wc2104.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2101,
+    "nome": "ROLO FIO TELEFONE- COBRE",
+    "slug": "rolo-fio-telefone-cobre",
+    "url": "https://www.amazonfireworks.com.br/produto/rolo-fio-telefone-cobre/",
+    "codigo": "8002",
+    "efeito": null,
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": "400 metros",
+    "obs": null,
+    "descricao": "Rolo fio de telefone para ligação de tortas à mesa de detonação",
+    "categorias": [
+      "Acessórios",
+      "Linha Profissional"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/ROLO-FIO-Cobre.jpg",
+        "arquivo": "imagens/8002_wc2101.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2100,
+    "nome": "ROLO FIO TELEFONE- ALUMÍNIO",
+    "slug": "rolo-fio-telefone-aluminio",
+    "url": "https://www.amazonfireworks.com.br/produto/rolo-fio-telefone-aluminio/",
+    "codigo": "AMZ 8001",
+    "efeito": null,
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": "400 metros",
+    "obs": null,
+    "descricao": "Rolo fio de telefone para ligação de tortas à mesa de detonação",
+    "categorias": [
+      "Acessórios",
+      "Linha Profissional"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/ROLO-FIO-Aluminio.jpg",
+        "arquivo": "imagens/AMZ8001_wc2100.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2097,
+    "nome": "ALFA 1.2″- 100 Tubos – Efeito Leque",
+    "slug": "alfa-1-2-100-tubos-efeito-leque",
+    "url": "https://www.amazonfireworks.com.br/produto/alfa-1-2-100-tubos-efeito-leque/",
+    "codigo": "AMZ 1002",
+    "efeito": "Efeito em Leque Vaso Intermitente Branco + Vermelho + Verde + Lilás + Azul",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Maravilhosos efeitos e perfeita sincronização para seu show!",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/TORTA-Alfa-2.jpg",
+        "arquivo": "imagens/AMZ1002_wc2097.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2096,
+    "nome": "ASTRA 1.2″- 100 Tubos – Efeito Leque",
+    "slug": "astra-1-2-100-tubos-efeito-leque",
+    "url": "https://www.amazonfireworks.com.br/produto/astra-1-2-100-tubos-efeito-leque/",
+    "codigo": "AMZ 1001",
+    "efeito": "Efeito em Leque Cometa Vermelho e Intermitente Branco",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Maravilhosos efeitos e perfeita sincronização para seu show!",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/TORTA-Astra-2.jpg",
+        "arquivo": "imagens/AMZ1001_wc2096.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2094,
+    "nome": "ARGO 1.2″- 120 Tubos – Efeito Z",
+    "slug": "argo-1-2-120-tubos-efeito-z",
+    "url": "https://www.amazonfireworks.com.br/produto/argo-1-2-120-tubos-efeito-z/",
+    "codigo": "AMZ 1203",
+    "efeito": "Efeito em Z Traçante Dourado + Traçante Prata com Ponta Vermelha",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Maravilhosos efeitos e perfeita sincronização para seu show!",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/Torta-Argo-001.png",
+        "arquivo": "imagens/AMZ1203_wc2094.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2092,
+    "nome": "FÊNIX 1.2″- 120 Tubos – Efeito Duplo Z",
+    "slug": "fenix-1-2-120-tubos-efeito-duplo-z",
+    "url": "https://www.amazonfireworks.com.br/produto/fenix-1-2-120-tubos-efeito-duplo-z/",
+    "codigo": "AMZ 1202",
+    "efeito": "Efeito Duplo Z Traçante Prata c/ Intermitente Vermelho",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Maravilhosos efeitos e perfeita sincronização para seu show!",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/Torta-Fenix-001.png",
+        "arquivo": "imagens/AMZ1202_wc2092.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2091,
+    "nome": "BOGOTA 0.5″- 120 Tubos – Efeito Z",
+    "slug": "bogota-0-5-120-tubos-efeito-z",
+    "url": "https://www.amazonfireworks.com.br/produto/bogota-0-5-120-tubos-efeito-z/",
+    "codigo": "AMZ 1207",
+    "efeito": "Efeito em Z Traçante Lilás Intermitente",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "04 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Maravilhosos efeitos e perfeita sincronização para seu show!",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/TORTA-Bogota.jpg",
+        "arquivo": "imagens/AMZ1207_wc2091.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2090,
+    "nome": "MOSCOU 0.5″- 120 Tubos – Efeito Z",
+    "slug": "moscou-0-5-120-tubos-efeito-z",
+    "url": "https://www.amazonfireworks.com.br/produto/moscou-0-5-120-tubos-efeito-z/",
+    "codigo": "AMZ 1206",
+    "efeito": "Efeito em Z Traçante Dourado Intermitente",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "04 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Maravilhosos efeitos e perfeita sincronização para seu show!",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/TORTA-Moscou-2.jpg",
+        "arquivo": "imagens/AMZ1206_wc2090.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2089,
+    "nome": "RIO 0.5″- 120 Tubos – Efeito Z",
+    "slug": "rio-0-5-120-tubos-efeito-z",
+    "url": "https://www.amazonfireworks.com.br/produto/rio-0-5-120-tubos-efeito-z/",
+    "codigo": "AMZ 1205",
+    "efeito": "Efeito em Z Traçante Colorido Intermitente",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "04 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Maravilhosos efeitos e perfeita sincronização para seu show!",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/TORTA-Rio-2.jpg",
+        "arquivo": "imagens/AMZ1205_wc2089.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2088,
+    "nome": "BERLIM 0.5″- 120 Tubos – Efeito Z",
+    "slug": "berlim-0-5-120-tubos-efeito-z",
+    "url": "https://www.amazonfireworks.com.br/produto/berlim-0-5-120-tubos-efeito-z/",
+    "codigo": "AMZ 1204",
+    "efeito": "Efeito em Z Traçante Vermelho Intermitente",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "04 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Maravilhosos efeitos e perfeita sincronização para seu show!",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/TORTA-Berlim-2.jpg",
+        "arquivo": "imagens/AMZ1204_wc2088.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2086,
+    "nome": "ÔNIX 1.2″- 150 Tubos – Efeito Z",
+    "slug": "onix-1-2-150-tubos-efeito-z",
+    "url": "https://www.amazonfireworks.com.br/produto/onix-1-2-150-tubos-efeito-z/",
+    "codigo": "AMZ 1503",
+    "efeito": "Efeito em Z, Cometa Azul + Falling Leaves",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Maravilhosos efeitos e perfeita sincronização para seu show!",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/Torta-Onix-001.png",
+        "arquivo": "imagens/AMZ1503_wc2086.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2084,
+    "nome": "SIENA 0.8″- 150 Tubos – Efeito Z",
+    "slug": "siena-0-8-150-tubos-efeito-z",
+    "url": "https://www.amazonfireworks.com.br/produto/siena-0-8-150-tubos-efeito-z/",
+    "codigo": "AMZ 1507",
+    "efeito": "Efeito em Z, Cometa Intermitente Vermelho + Cometa Verde",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "02 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Maravilhosos efeitos e perfeita sincronização para seu show!",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/Torta-Siena-001.png",
+        "arquivo": "imagens/AMZ1507_wc2084.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2082,
+    "nome": "ELDORADO 0.8″- 150 Tubos – Efeito Z",
+    "slug": "eldorado-0-8-150-tubos-efeito-z",
+    "url": "https://www.amazonfireworks.com.br/produto/eldorado-0-8-150-tubos-efeito-z/",
+    "codigo": "AMZ 1506",
+    "efeito": "Efeito em Z, Cometa Amarelo + Cometa Verde Intermitente",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "02 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Maravilhosos efeitos e perfeita sincronização para seu show!",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/Torta-Eldorado-001.png",
+        "arquivo": "imagens/AMZ1506_wc2082.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2080,
+    "nome": "VÊNUS 0.8″- 150 Tubos – Efeito Z",
+    "slug": "venus-0-8-150-tubos-efeito-z",
+    "url": "https://www.amazonfireworks.com.br/produto/venus-0-8-150-tubos-efeito-z/",
+    "codigo": "AMZ 1505",
+    "efeito": "Efeito em Z Vaso Intermitente Prata + Traçante Vermelho com Calda Intermitente Prata",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "02 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Maravilhosos efeitos e perfeita sincronização para seu show!",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/Torta-Venus-001.png",
+        "arquivo": "imagens/AMZ1505_wc2080.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2079,
+    "nome": "NAIROBI 0.6″- 150 Tubos – Efeito C",
+    "slug": "nairobi-0-6-150-tubos-efeito-c",
+    "url": "https://www.amazonfireworks.com.br/produto/nairobi-0-6-150-tubos-efeito-c/",
+    "codigo": "AMZ 1501",
+    "efeito": "Efeito em C Traçante Dourado Intermitente com Ponta Azul",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "02 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Maravilhosos efeitos e perfeita sincronização para seu show!",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/TORTA-Nairobi-2.jpg",
+        "arquivo": "imagens/AMZ1501_wc2079.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2078,
+    "nome": "MARSELHA 0.6″- 150 Tubos – Efeito Z",
+    "slug": "marselha-0-6-150-tubos-efeito-z",
+    "url": "https://www.amazonfireworks.com.br/produto/marselha-0-6-150-tubos-efeito-z/",
+    "codigo": "AMZ 1502",
+    "efeito": "Efeito em Z Traçante Dourado com Crackling",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "02 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Maravilhosos efeitos e perfeita sincronização para seu show!",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/TORTA-Marselha-2.jpg",
+        "arquivo": "imagens/AMZ1502_wc2078.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2074,
+    "nome": "ATLÂNTIDA Z – 300 Tubos 0.8″ Ponta Azul",
+    "slug": "atlantida-z-300-tubos-0-8-ponta-azul",
+    "url": "https://www.amazonfireworks.com.br/produto/atlantida-z-300-tubos-0-8-ponta-azul/",
+    "codigo": "GFC 104",
+    "efeito": "Coconut Ponta Azul",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": "11 segundos",
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Maravilhosos efeitos e perfeita sincronização para seu show!",
+    "categorias": [
+      "Linha Profissional",
+      "Tortas 20mm"
+    ],
+    "tags": [
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2022/09/Torta-Atlantida-Z.png",
+        "arquivo": "imagens/GFC104_wc2074.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2072,
+    "nome": "ATLAS 1.2″- 165 Tubos – Efeito 8 Crossete",
+    "slug": "atlas-1-2-165-tubos-efeito-8-crossete",
+    "url": "https://www.amazonfireworks.com.br/produto/atlas-1-2-165-tubos-efeito-8-crossete/",
+    "codigo": "AMZ 1651",
+    "efeito": "Efeito em 8 Crossete Colorido",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Um show de belas cores para seu evento!",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/Torta-Atlas-001.png",
+        "arquivo": "imagens/AMZ1651_wc2072.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2070,
+    "nome": "ÓPERA 1.2″- 196 Tubos – Efeito O",
+    "slug": "opera-1-2-196-tubos-efeito-o",
+    "url": "https://www.amazonfireworks.com.br/produto/opera-1-2-196-tubos-efeito-o/",
+    "codigo": "AMZ 1961",
+    "efeito": "Efeito em O, Calda Azul, Cascata Intermitente Verde e Vermelho, Peixinho e Dragon Eggs",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Um show de belas cores para seu evento!",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/Torta-Opera-002.png",
+        "arquivo": "imagens/AMZ1961_wc2070.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2068,
+    "nome": "MISTRAL YELLOW 0.8″- 200 Tubos – Efeito Vertical",
+    "slug": "mistral-yellow-0-8-200-tubos-efeito-vertical",
+    "url": "https://www.amazonfireworks.com.br/produto/mistral-yellow-0-8-200-tubos-efeito-vertical/",
+    "codigo": "AMZ 2005",
+    "efeito": "Efeito Vertical Pérola Amarela",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Um show de belas cores para seu evento!",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/Mistral-Amarela-001.png",
+        "arquivo": "imagens/AMZ2005_wc2068.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2067,
+    "nome": "MISTRAL BLUE 0.8″- 200 Tubos – Efeito Vertical",
+    "slug": "mistral-blue-0-8-200-tubos-efeito-vertical",
+    "url": "https://www.amazonfireworks.com.br/produto/mistral-blue-0-8-200-tubos-efeito-vertical/",
+    "codigo": "AMZ 2004",
+    "efeito": "Efeito Vertical Pérola Azul",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Um show de belas cores para seu evento!",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/TORTA-Mistral.jpg",
+        "arquivo": "imagens/AMZ2004_wc2067.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2065,
+    "nome": "MISTRAL RED 0.8″- 200 Tubos – Efeito Vertical",
+    "slug": "mistral-red-0-8-200-tubos-efeito-vertical",
+    "url": "https://www.amazonfireworks.com.br/produto/mistral-red-0-8-200-tubos-efeito-vertical/",
+    "codigo": "AMZ 2003",
+    "efeito": "Efeito Vertical Pérola Vermelha",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Um show de belas cores para seu evento!",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/Mistral-Vermelha-001.png",
+        "arquivo": "imagens/AMZ2003_wc2065.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2063,
+    "nome": "MISTRAL GREEN 0.8″- 200 Tubos – Efeito Vertical",
+    "slug": "mistral-green-0-8-200-tubos-efeito-vertical",
+    "url": "https://www.amazonfireworks.com.br/produto/mistral-green-0-8-200-tubos-efeito-vertical/",
+    "codigo": "AMZ 2002",
+    "efeito": "Efeito Vertical Pérola Verde",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Um show de belas cores para seu evento!",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/Mistral-Verde-001.png",
+        "arquivo": "imagens/AMZ2002_wc2063.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2061,
+    "nome": "MISTRAL PINK 0.8″- 200 Tubos – Efeito Vertical",
+    "slug": "mistral-pink-0-8-200-tubos-efeito-vertical",
+    "url": "https://www.amazonfireworks.com.br/produto/mistral-pink-0-8-200-tubos-efeito-vertical/",
+    "codigo": "AMZ 2001",
+    "efeito": "Efeito Vertical Pérola Rosa",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Um show de belas cores para seu evento!",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/Torta-Mistral-Pink.png",
+        "arquivo": "imagens/AMZ2001_wc2061.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2060,
+    "nome": "MANDARIM 0.8″- 300 Tubos – Efeito Z",
+    "slug": "mandarim-0-8-300-tubos-efeito-z",
+    "url": "https://www.amazonfireworks.com.br/produto/mandarim-0-8-300-tubos-efeito-z/",
+    "codigo": "AMZ 3008",
+    "efeito": "Efeito Z Cometa Dourado Com Ponta Colorida",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Um show de belas cores para seu evento!",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/TORTA-Mandarim.jpg",
+        "arquivo": "imagens/AMZ3008_wc2060.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2059,
+    "nome": "POLARIS 0.8″- 300 Tubos – Efeito Z",
+    "slug": "polaris-0-8-300-tubos-efeito-z",
+    "url": "https://www.amazonfireworks.com.br/produto/polaris-0-8-300-tubos-efeito-z/",
+    "codigo": "AMZ 3007",
+    "efeito": "Efeito Z Cometa Crackling",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Um show de belas cores para seu evento!",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/TORTA-POLARIS.jpg",
+        "arquivo": "imagens/AMZ3007_wc2059.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2057,
+    "nome": "ESTELAR 0.8″- 300 Tubos – Efeito Leque",
+    "slug": "estelar-0-8-300-tubos-efeito-leque",
+    "url": "https://www.amazonfireworks.com.br/produto/estelar-0-8-300-tubos-efeito-leque/",
+    "codigo": "AMZ 3006",
+    "efeito": "Efeito Leque Crossete Colorido",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Um show de belas cores para seu evento!",
+    "categorias": [
+      "Linha Profissional",
+      "Tortas Leque"
+    ],
+    "tags": [
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/10/Torta-Estelar-001.png",
+        "arquivo": "imagens/AMZ3006_wc2057.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2009,
+    "nome": "SKIB – 60 CM",
+    "slug": "skib-60-cm",
+    "url": "https://www.amazonfireworks.com.br/produto/skib-60-cm/",
+    "codigo": "AMZ 8015",
+    "efeito": null,
+    "embalagem_unitaria": "c Caixa 200 unidades",
+    "embalagem_master": "01 Unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": null,
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/05/SKIB-60-CM.png",
+        "arquivo": "imagens/AMZ8015_wc2009.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2007,
+    "nome": "SENSAÇÃO",
+    "slug": "sensacao",
+    "url": "https://www.amazonfireworks.com.br/produto/sensacao/",
+    "codigo": "AMZ 2024",
+    "efeito": "TORTA 24 TUBOS 20MM",
+    "embalagem_unitaria": "01 Unidade",
+    "embalagem_master": "24 Unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": null,
+    "categorias": [
+      "Linha Comercial"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/05/SENSACAO.png",
+        "arquivo": "imagens/AMZ2024_wc2007.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2004,
+    "nome": "CANITA VOADORA",
+    "slug": "canita-voadora",
+    "url": "https://www.amazonfireworks.com.br/produto/canita-voadora/",
+    "codigo": "AMZ 034",
+    "efeito": "Mine rojão apito com tiros",
+    "embalagem_unitaria": "Display 12 unidades",
+    "embalagem_master": "20 Displays",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": null,
+    "categorias": [
+      "Linha Infanto Juvenil"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/05/CANITA-VOADORA.png",
+        "arquivo": "imagens/AMZ034_wc2004.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2002,
+    "nome": "BASE COLORIDA",
+    "slug": "base-colorida",
+    "url": "https://www.amazonfireworks.com.br/produto/base-colorida/",
+    "codigo": "AMZ 033",
+    "efeito": "100 Disparo de vasos colorida",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "21 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": null,
+    "categorias": [
+      "Linha Infanto Juvenil"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/05/BASE-COLORIDA.png",
+        "arquivo": "imagens/AMZ033_wc2002.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 2000,
+    "nome": "LISBOA 0.6″- 150 Tubos – Efeito Z",
+    "slug": "lisboa-0-6-150-tubos-efeito-z",
+    "url": "https://www.amazonfireworks.com.br/produto/lisboa-0-6-150-tubos-efeito-z/",
+    "codigo": "AMZ 1501",
+    "efeito": "Efeito em Z Traçante Colorido",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "02 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Maravilhosos efeitos e perfeita sincronização para seu show!",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/05/TORTA-Lisboa.jpg",
+        "arquivo": "imagens/AMZ1501_wc2000.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1988,
+    "nome": "ZURICH – 150 Tubos (20mm) Efeito Z",
+    "slug": "zurich-150-tubos-20mm-efeito-z",
+    "url": "https://www.amazonfireworks.com.br/produto/zurich-150-tubos-20mm-efeito-z/",
+    "codigo": "AMZ 1501",
+    "efeito": "Efeito em Z Cometa Vermelho",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "02 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Maravilhosos efeitos e perfeita sincronização para seu show!",
+    "categorias": [
+      "Linha Profissional",
+      "Tortas 20mm"
+    ],
+    "tags": [
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/05/TORTA-ZURICH.png",
+        "arquivo": "imagens/AMZ1501_wc1988.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1986,
+    "nome": "TORTA OLINDA",
+    "slug": "spark-titan-sf-x8-2",
+    "url": "https://www.amazonfireworks.com.br/produto/spark-titan-sf-x8-2/",
+    "codigo": "AMZ 7001",
+    "efeito": "70 Tubos 30MM",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "01 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": null,
+    "categorias": [
+      "Linha Profissional",
+      "Tortas 30mm"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/05/TORTA-OLINDA.png",
+        "arquivo": "imagens/AMZ7001_wc1986.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1984,
+    "nome": "SPARK TITAN SF – X8",
+    "slug": "spark-titan-sf-x8",
+    "url": "https://www.amazonfireworks.com.br/produto/spark-titan-sf-x8/",
+    "codigo": "AMZ 8020",
+    "efeito": null,
+    "embalagem_unitaria": null,
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": "110-240V/1700w                                                                                                                                                                                                                                                                                                                Descrição: Sparkular 08m                                                                                                                                                                                                                                                                                                          Máquina: 400 x 335 x 313mm",
+    "descricao": null,
+    "categorias": [
+      "Linha Profissional",
+      "Máquinas"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/05/SPARK-TITAN-SF-X8.png",
+        "arquivo": "imagens/AMZ8020_wc1984.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1982,
+    "nome": "SPARK TITAN SF – X2",
+    "slug": "spark-titan-sf-x2",
+    "url": "https://www.amazonfireworks.com.br/produto/spark-titan-sf-x2/",
+    "codigo": "AMZ 8021",
+    "efeito": null,
+    "embalagem_unitaria": null,
+    "embalagem_master": "01 unidades",
+    "tempo_aproximado": null,
+    "maquina": "319 x 320 x 404mm",
+    "quantidade_por_rolo": null,
+    "obs": "110-240/1300w",
+    "descricao": null,
+    "categorias": [
+      "Linha Profissional",
+      "Máquinas"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/05/SPARK-TITAN-SF-X2.png",
+        "arquivo": "imagens/AMZ8021_wc1982.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1980,
+    "nome": "SPARK JET PRO SF – 05",
+    "slug": "spark-jet-pro-sf-05",
+    "url": "https://www.amazonfireworks.com.br/produto/spark-jet-pro-sf-05/",
+    "codigo": "AMZ 8018",
+    "efeito": null,
+    "embalagem_unitaria": null,
+    "embalagem_master": "01 unidades",
+    "tempo_aproximado": null,
+    "maquina": "210 x 220 x 340mm",
+    "quantidade_por_rolo": null,
+    "obs": "110-240V/500w                                                                                                                                                                                                                                                                                                   Descrição: Sparkular reta",
+    "descricao": null,
+    "categorias": [
+      "Linha Profissional",
+      "Máquinas"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/05/SPARK-JET-PRO-SF-05.png",
+        "arquivo": "imagens/AMZ8018_wc1980.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1978,
+    "nome": "FLY SPARK SF – Z5",
+    "slug": "fly-spark-sf-z5",
+    "url": "https://www.amazonfireworks.com.br/produto/fly-spark-sf-z5/",
+    "codigo": "AMZ 8019",
+    "efeito": null,
+    "embalagem_unitaria": null,
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": null,
+    "maquina": "400 x 295 x 270mm",
+    "quantidade_por_rolo": null,
+    "obs": "110-240/700w                                                                                                                                                                                                                                                                                                      Descrição: Sparkular reta",
+    "descricao": null,
+    "categorias": [
+      "Linha Profissional",
+      "Máquinas"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/05/FLY-SPARK-SF-Z5.png",
+        "arquivo": "imagens/AMZ8019_wc1978.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1976,
+    "nome": "FLAMER SF – 180",
+    "slug": "flamer-sf-180",
+    "url": "https://www.amazonfireworks.com.br/produto/flamer-sf-180/",
+    "codigo": "AMZ 8017",
+    "efeito": null,
+    "embalagem_unitaria": null,
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": null,
+    "maquina": "630 x 363 x 373mm",
+    "quantidade_por_rolo": null,
+    "obs": "110-240/300w                                                                                                                                                                                                                                                                                                                Descrição: Máquina de fogos 180",
+    "descricao": null,
+    "categorias": [
+      "Linha Profissional",
+      "Máquinas"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/05/FLAMER-PLUS-SF-180.png",
+        "arquivo": "imagens/AMZ8017_wc1976.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1974,
+    "nome": "FLAMER PLUS SF – 90",
+    "slug": "flamer-plus-sf-90",
+    "url": "https://www.amazonfireworks.com.br/produto/flamer-plus-sf-90/",
+    "codigo": "AMZ 8016",
+    "efeito": null,
+    "embalagem_unitaria": null,
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": null,
+    "maquina": "404 x 359 x 365",
+    "quantidade_por_rolo": null,
+    "obs": "110-240V/300w                                                                                                                                                                                                                                                                                                      Descrição: Máquina de fogo reta",
+    "descricao": null,
+    "categorias": [
+      "Linha Profissional",
+      "Máquinas"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/05/FLAMER-PLUS-SF-90.png",
+        "arquivo": "imagens/AMZ8016_wc1974.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1972,
+    "nome": "CONSOLE MA SF – X600",
+    "slug": "console-ma-sf-x600",
+    "url": "https://www.amazonfireworks.com.br/produto/console-ma-sf-x600/",
+    "codigo": "AMZ 8024",
+    "efeito": null,
+    "embalagem_unitaria": null,
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": null,
+    "maquina": "200 x 91 x 54mm",
+    "quantidade_por_rolo": null,
+    "obs": "Programável                                                                                                                                                                                                                                                                                                                      Descrição: Maleta de operação",
+    "descricao": null,
+    "categorias": [
+      "Linha Profissional",
+      "Máquinas"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/05/CONSOLE-MA-SF-X600.png",
+        "arquivo": "imagens/AMZ8024_wc1972.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1970,
+    "nome": "CONSOLE CT – 05",
+    "slug": "console-ct-05",
+    "url": "https://www.amazonfireworks.com.br/produto/console-ct-05/",
+    "codigo": "AMZ 8023",
+    "efeito": null,
+    "embalagem_unitaria": null,
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": null,
+    "maquina": "300 x 200 x 120mm",
+    "quantidade_por_rolo": null,
+    "obs": "Sequencia disparo programável                                                                                                                                                                                                                                                                          Descrição: Maleta de operação",
+    "descricao": null,
+    "categorias": [
+      "Linha Profissional",
+      "Máquinas"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/05/CONSOLE-CT-05.png",
+        "arquivo": "imagens/AMZ8023_wc1970.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1968,
+    "nome": "VELA VULCÃO",
+    "slug": "vela-vulcao",
+    "url": "https://www.amazonfireworks.com.br/produto/vela-vulcao/",
+    "codigo": "AMZ 036",
+    "efeito": "Faíscas prateada das cintilantes",
+    "embalagem_unitaria": null,
+    "embalagem_master": "05 Displays",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Embalagem: Display 100 Unidades",
+    "categorias": [
+      "Linha Infanto Juvenil"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/05/VELA-VULCAO.png",
+        "arquivo": "imagens/AMZ036_wc1968.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1966,
+    "nome": "BORBOLETINHA",
+    "slug": "borboletinha",
+    "url": "https://www.amazonfireworks.com.br/produto/borboletinha/",
+    "codigo": "AMZ 034",
+    "efeito": "Giratória",
+    "embalagem_unitaria": null,
+    "embalagem_master": "300 Display",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Embalagem Display 12 Unidades",
+    "categorias": [
+      "Linha Infanto Juvenil"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2025/05/BORBOLETINHA-1-1.png",
+        "arquivo": "imagens/AMZ034_wc1966.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1902,
+    "nome": "TORTA SMOKE CRACKER – FUMAÇA VERMELHA COM CRACKLING",
+    "slug": "torta-smoke-cracker-fumaca-vermelha-com-crackling",
+    "url": "https://www.amazonfireworks.com.br/produto/torta-smoke-cracker-fumaca-vermelha-com-crackling/",
+    "codigo": "AMZ 2501",
+    "efeito": "Fumaça Vermelha com Crackling",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "04 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Torta de fumaça colorida para realização de shows profissionais de grande ou pequeno porte. Torta 25 Tubos 1.2″",
+    "categorias": [
+      "Linha Comercial",
+      "Linha Fumaças",
+      "Linha Profissional"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/Torta-Smoke-Cracker-Vermelho.png",
+        "arquivo": "imagens/AMZ2501_wc1902.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1901,
+    "nome": "TORTA SMOKE CRACKER –  FUMAÇA AZUL COM CRACKLING",
+    "slug": "torta-smoke-cracklingo-fumaca-azul-com-crackling",
+    "url": "https://www.amazonfireworks.com.br/produto/torta-smoke-cracklingo-fumaca-azul-com-crackling/",
+    "codigo": "AMZ 22502",
+    "efeito": "Fumaça Azul com Crackling",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "04 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Torta de fumaça colorida para realização de shows profissionais de grande ou pequeno porte. Torta 25 Tubos 1.2″",
+    "categorias": [
+      "Linha Comercial",
+      "Linha Fumaças",
+      "Linha Profissional"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/Torta-Smoke-Cracker-Azul.png",
+        "arquivo": "imagens/AMZ22502_wc1901.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1900,
+    "nome": "TORTA SMOKE CRACKLING – FUMAÇA AMARELA COM CRACKLING",
+    "slug": "torta-smoke-crackling-fumaca-amarela-com-crackling",
+    "url": "https://www.amazonfireworks.com.br/produto/torta-smoke-crackling-fumaca-amarela-com-crackling/",
+    "codigo": "AMZ 2503",
+    "efeito": "Fumaça Amarela com Crackling",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "04 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Torta de fumaça colorida para realização de shows profissionais de grande ou pequeno porte. Torta 25 Tubos 1.2″",
+    "categorias": [
+      "Linha Comercial",
+      "Linha Fumaças",
+      "Linha Profissional"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/Torta-Smoke-Cracker-Amarela.png",
+        "arquivo": "imagens/AMZ2503_wc1900.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1895,
+    "nome": "TORTA SMOKE CRACKER –  FUMAÇA VERDE COM CRACKLING",
+    "slug": "torta-smoke-cracker-fumaca-verde-com-crackling",
+    "url": "https://www.amazonfireworks.com.br/produto/torta-smoke-cracker-fumaca-verde-com-crackling/",
+    "codigo": "AMZ 2504",
+    "efeito": "Fumaça Verde com Crackling",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "04 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Torta de fumaça colorida para realização de shows profissionais de grande ou pequeno porte. Torta 25 Tubos 1.2″",
+    "categorias": [
+      "Linha Comercial",
+      "Linha Fumaças",
+      "Linha Profissional"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/Torta-Smoke-Cracker-Verde.png",
+        "arquivo": "imagens/AMZ2504_wc1895.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1893,
+    "nome": "LOVE SHOW – 90 tubos 1.2″",
+    "slug": "love-show-90-tubos-1-2",
+    "url": "https://www.amazonfireworks.com.br/produto/love-show-90-tubos-1-2/",
+    "codigo": "GFC 9001",
+    "efeito": "Em Z Pérola Vermelhas",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "02 unidades",
+    "tempo_aproximado": "15 segundos",
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Com o efeito desta torta seu show vai ficar na história!",
+    "categorias": [
+      "Kits para Shows",
+      "Linha Comercial",
+      "Linha Profissional",
+      "Tortas Leque"
+    ],
+    "tags": [
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/Love-Show-003.png",
+        "arquivo": "imagens/GFC9001_wc1893.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1891,
+    "nome": "TITANIUM EM PÓ",
+    "slug": "titanium-em-po",
+    "url": "https://www.amazonfireworks.com.br/produto/titanium-em-po/",
+    "codigo": "AMZ 8005",
+    "efeito": null,
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "unidade",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Sachê de titânio em pó para máquinas de efeito indoor.",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "01 disparo",
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/tITANIUM.png",
+        "arquivo": "imagens/AMZ8005_wc1891.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1888,
+    "nome": "SKIB – 30 CM",
+    "slug": "skib-30-cm",
+    "url": "https://www.amazonfireworks.com.br/produto/skib-30-cm/",
+    "codigo": "AMZ 8004",
+    "efeito": null,
+    "embalagem_unitaria": "caixa com 200 unidades",
+    "embalagem_master": "25 caixas",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Conector elétrico pra montagem de shows pirotécnicos.",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "01 disparo",
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/Skib-30cm-006-com-fundo.png",
+        "arquivo": "imagens/AMZ8004_wc1888.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1887,
+    "nome": "SKIB – 3 METROS",
+    "slug": "skib-3-metros",
+    "url": "https://www.amazonfireworks.com.br/produto/skib-3-metros/",
+    "codigo": "AMZ 8003",
+    "efeito": null,
+    "embalagem_unitaria": "caixa com 40 unidades",
+    "embalagem_master": "25 caixas",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Conector elétrico pra montagem de shows pirotécnicos.",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "01 disparo",
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/Skib-3m-003-com-fundo.png",
+        "arquivo": "imagens/AMZ8003_wc1887.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1885,
+    "nome": "SKIB – 1 METRO",
+    "slug": "skib-1-metro",
+    "url": "https://www.amazonfireworks.com.br/produto/skib-1-metro/",
+    "codigo": "AMZ 8002",
+    "efeito": null,
+    "embalagem_unitaria": "caixa com 100 unidades",
+    "embalagem_master": "20 caixas",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Conector elétrico pra montagem de shows pirotécnicos.",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "01 disparo",
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/Skib-1m-002-com-fundo.png",
+        "arquivo": "imagens/AMZ8002_wc1885.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1883,
+    "nome": "PLACA 1.2″ LEQUE 13 TUBOS – BOUQUET AZUL CINTILANTE COM CROSSETE VERMELHO",
+    "slug": "placa-1-2-leque-13-tubos-bouquet-azul-cintilante-com-crossete-vermelho",
+    "url": "https://www.amazonfireworks.com.br/produto/placa-1-2-leque-13-tubos-bouquet-azul-cintilante-com-crossete-vermelho/",
+    "codigo": "AMZ 1301",
+    "efeito": "Bouquet Azul Cintilante com Crossete Vermelho",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "10 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Produto para realização de shows profissionais de grande ou pequeno porte.",
+    "categorias": [
+      "Linha Profissional",
+      "Placas"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/Placa-Leque-13-tubos-1.2-001.png",
+        "arquivo": "imagens/AMZ1301_wc1883.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1880,
+    "nome": "PLACA 1.2″ LEQUE 05 TUBOS – TRAÇANTE PRATEADO CINTILANTE E VASO VERMELHO CINTILANTE",
+    "slug": "placa-1-2-leque-05-tubos-tracante-prateado-cintilante-e-vaso-vermelo-cintilante",
+    "url": "https://www.amazonfireworks.com.br/produto/placa-1-2-leque-05-tubos-tracante-prateado-cintilante-e-vaso-vermelo-cintilante/",
+    "codigo": "AMZ 0506",
+    "efeito": "Traçante Prateado Cintilante e Vaso Vermelho Cintilante",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "20 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Produto para realização de shows profissionais de grande ou pequeno porte.",
+    "categorias": [
+      "Linha Profissional",
+      "Placas"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/Placa-Tracante-Prata-e-Vaso-Vermelho-Cintilante-001.png",
+        "arquivo": "imagens/AMZ0506_wc1880.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1879,
+    "nome": "PLACA 1.2″ LEQUE 05 TUBOS – VERDE CINTILANTE COM BOUQUET LILÁS",
+    "slug": "placa-1-2-leque-05-tubos-verde-cintilante-com-bouquet-lilas",
+    "url": "https://www.amazonfireworks.com.br/produto/placa-1-2-leque-05-tubos-verde-cintilante-com-bouquet-lilas/",
+    "codigo": "AMZ 0501",
+    "efeito": "Verde Cintilante com Bouquet Lilás",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "20 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Produto para realização de shows profissionais de grande ou pequeno porte.",
+    "categorias": [
+      "Linha Profissional",
+      "Placas"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/Placa-05-tubos-Verde-cintilantes-com-bouquet-Lilas-001-1.png",
+        "arquivo": "imagens/AMZ0501_wc1879.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1874,
+    "nome": "PLACA 1.2″ LEQUE 05 TUBOS – VASO AZUL",
+    "slug": "placa-1-2-leque-05-tubos-vaso-azul",
+    "url": "https://www.amazonfireworks.com.br/produto/placa-1-2-leque-05-tubos-vaso-azul/",
+    "codigo": "AMZ 0503",
+    "efeito": "Vaso Azul",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "20 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Produto para realização de shows profissionais de grande ou pequeno porte.",
+    "categorias": [
+      "Linha Profissional",
+      "Placas"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/Placa-05-tubos-Vaso-Azul-001.png",
+        "arquivo": "imagens/AMZ0503_wc1874.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1873,
+    "nome": "PLACA 1.2″ LEQUE 05 TUBOS – TRAÇANTE E VASO PRATEADO CINTILANTE",
+    "slug": "placa-1-2-leque-05-tubos-tracante-e-vaso-prateado-cintilante",
+    "url": "https://www.amazonfireworks.com.br/produto/placa-1-2-leque-05-tubos-tracante-e-vaso-prateado-cintilante/",
+    "codigo": "AMZ 0505",
+    "efeito": "Traçante e Vaso Prateado Cintilante",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "20 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Produto para realização de shows profissionais de grande ou pequeno porte.",
+    "categorias": [
+      "Linha Profissional",
+      "Placas"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/Placa-Leque-05-tubos-Tracante-e-Vasos-prateados-Cintilante-002.png",
+        "arquivo": "imagens/AMZ0505_wc1873.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1872,
+    "nome": "PLACA 1.2″ LEQUE 05 TUBOS – CROSSETE VERMELHO COM VASOS BRANCOS CINTILANTES",
+    "slug": "placa-1-2-leque-05-tubos-crossete-vermelho-com-vasos-brancos-cintilantes",
+    "url": "https://www.amazonfireworks.com.br/produto/placa-1-2-leque-05-tubos-crossete-vermelho-com-vasos-brancos-cintilantes/",
+    "codigo": "AMZ 0502",
+    "efeito": "Crossete Vermelho com Vasos Brancos Cintilantes",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "20 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Produto para realização de shows profissionais de grande ou pequeno porte.",
+    "categorias": [
+      "Linha Profissional",
+      "Placas"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/Placa-Leque-05-tubos-Cross-Vm-e-Vaos-Bcos-Brilhantes-002.png",
+        "arquivo": "imagens/AMZ0502_wc1872.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1870,
+    "nome": "PLACA 1.2″ LEQUE 05 TUBOS – BOUQUET VERDE CINTILANTE COM ROSA E AZUL",
+    "slug": "placa-1-2-leque-05-tubos-bouquet-verde-cintilante-com-rosa-e-azul",
+    "url": "https://www.amazonfireworks.com.br/produto/placa-1-2-leque-05-tubos-bouquet-verde-cintilante-com-rosa-e-azul/",
+    "codigo": "AMZ 0504",
+    "efeito": "Bouquet Verde Cintilante com Rosa e Azul",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "20 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Produto para realização de shows profissionais de grande ou pequeno porte.",
+    "categorias": [
+      "Linha Profissional",
+      "Placas"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/Placa-05-tubos-Verde-cintilantes-com-bouquet-Lilas-001.png",
+        "arquivo": "imagens/AMZ0504_wc1870.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1863,
+    "nome": "MONOTIRO 2″ – FUMAÇA VERMELHA COM CRACKLING",
+    "slug": "monotiro-2-fumaca-vermelha-com-crackling",
+    "url": "https://www.amazonfireworks.com.br/produto/monotiro-2-fumaca-vermelha-com-crackling/",
+    "codigo": "AMZ 125A",
+    "efeito": "Fumaça Vermelha com Crackling",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "50 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Monotiro de fumaça colorida para realização de shows profissionais de grande ou pequeno porte.",
+    "categorias": [
+      "Linha Fumaças",
+      "Linha Profissional",
+      "Monotiros",
+      "Promoção"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/6.png",
+        "arquivo": "imagens/AMZ125A_wc1863.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1862,
+    "nome": "MONOTIRO 2″ – FUMAÇA VERDE COM CRACKLING",
+    "slug": "monotiro-2-fumaca-verde-com-crackling",
+    "url": "https://www.amazonfireworks.com.br/produto/monotiro-2-fumaca-verde-com-crackling/",
+    "codigo": "AMZ 125C",
+    "efeito": "Fumaça Verde com Crackling",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "50 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Monotiro de fumaça colorida para realização de shows profissionais de grande ou pequeno porte.",
+    "categorias": [
+      "Linha Fumaças",
+      "Linha Profissional",
+      "Monotiros",
+      "Promoção"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/5-1.png",
+        "arquivo": "imagens/AMZ125C_wc1862.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1861,
+    "nome": "MONOTIRO 2″ – FUMAÇA AZUL COM CRACKLING",
+    "slug": "monotiro-2-fumaca-azul-com-crackling",
+    "url": "https://www.amazonfireworks.com.br/produto/monotiro-2-fumaca-azul-com-crackling/",
+    "codigo": "AMZ 125B",
+    "efeito": "Fumaça Azul com Crackling",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "50 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Monotiro de fumaça colorida para realização de shows profissionais de grande ou pequeno porte.",
+    "categorias": [
+      "Linha Fumaças",
+      "Linha Profissional",
+      "Monotiros",
+      "Promoção"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/3-6.png",
+        "arquivo": "imagens/AMZ125B_wc1861.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1859,
+    "nome": "MONOTIRO 2″ – FUMAÇA AMARELA COM CRACKLING",
+    "slug": "monotiro-2-fumaca-amarela-com-crackling",
+    "url": "https://www.amazonfireworks.com.br/produto/monotiro-2-fumaca-amarela-com-crackling/",
+    "codigo": "AMZ 125D",
+    "efeito": "Fumaça Amarela com Crackling",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "50 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Monotiro de fumaça colorida para realização de shows profissionais de grande ou pequeno porte.",
+    "categorias": [
+      "Linha Fumaças",
+      "Linha Profissional",
+      "Monotiros",
+      "Promoção"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/4-1.png",
+        "arquivo": "imagens/AMZ125D_wc1859.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1856,
+    "nome": "MONOTIRO 1.2″ – VASO VERMELHO",
+    "slug": "monotiro-1-2-vaso-vermelho",
+    "url": "https://www.amazonfireworks.com.br/produto/monotiro-1-2-vaso-vermelho/",
+    "codigo": "AMZ 122B",
+    "efeito": "Vaso Vermelho",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Monotiro de efeito específico para realização de shows profissionais como piromusicais em grandes eventos.",
+    "categorias": [
+      "Linha Profissional",
+      "Monotiros"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/2-1.png",
+        "arquivo": "imagens/AMZ122B_wc1856.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1854,
+    "nome": "MONOTIRO 1.2″ – VASO VERDE",
+    "slug": "monotiro-1-2-vaso-verde",
+    "url": "https://www.amazonfireworks.com.br/produto/monotiro-1-2-vaso-verde/",
+    "codigo": "AMZ 122A",
+    "efeito": "Vaso Verde",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Monotiro de efeito específico para realização de shows profissionais como piromusicais em grandes eventos.",
+    "categorias": [
+      "Linha Profissional",
+      "Monotiros"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/2.png",
+        "arquivo": "imagens/AMZ122A_wc1854.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1850,
+    "nome": "MONOTIRO 1.2″ – VASO BRANCO +  CROSSETE PRATA",
+    "slug": "monotiro-1-2-vaso-branco-crossete-prata",
+    "url": "https://www.amazonfireworks.com.br/produto/monotiro-1-2-vaso-branco-crossete-prata/",
+    "codigo": "AMZ 122D",
+    "efeito": "Vaso Branco + Crossete Prata",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Monotiro de efeito específico para realização de shows profissionais como piromusicais em grandes eventos.",
+    "categorias": [
+      "Linha Profissional",
+      "Monotiros"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/5.png",
+        "arquivo": "imagens/AMZ122D_wc1850.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1849,
+    "nome": "MONOTIRO 1.2″ – VASO AZUL",
+    "slug": "monotiro-1-2-vaso-azul",
+    "url": "https://www.amazonfireworks.com.br/produto/monotiro-1-2-vaso-azul/",
+    "codigo": "AMZ 122C",
+    "efeito": "Vaso Azul",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Monotiro de efeito específico para realização de shows profissionais como piromusicais em grandes eventos.",
+    "categorias": [
+      "Linha Profissional",
+      "Monotiros"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/3-5.png",
+        "arquivo": "imagens/AMZ122C_wc1849.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1848,
+    "nome": "MONOTIRO 1.2″ – TRICOLOR VERMELHO + VERDE +AZUL",
+    "slug": "monotiro-1-2-tricolor-vermelho-verde-azul",
+    "url": "https://www.amazonfireworks.com.br/produto/monotiro-1-2-tricolor-vermelho-verde-azul/",
+    "codigo": "AMZ 122J",
+    "efeito": "Tricolor Vermelho + Verde + Azul",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Monotiro de efeito específico para realização de shows profissionais como piromusicais em grandes eventos.",
+    "categorias": [
+      "Linha Profissional",
+      "Monotiros"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/4.png",
+        "arquivo": "imagens/AMZ122J_wc1848.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1845,
+    "nome": "MONOTIRO 1.2″ – TRAÇANTE AMARELO + VASO VERDE",
+    "slug": "monotiro-1-2-tracante-amarelo-vaso-verde",
+    "url": "https://www.amazonfireworks.com.br/produto/monotiro-1-2-tracante-amarelo-vaso-verde/",
+    "codigo": "AMZ 122E",
+    "efeito": "Traçante Amarelo + Vaso Verde",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Monotiro de efeito específico para realização de shows profissionais como piromusicais em grandes eventos.",
+    "categorias": [
+      "Linha Profissional",
+      "Monotiros"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/3-4.png",
+        "arquivo": "imagens/AMZ122E_wc1845.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1843,
+    "nome": "MONOTIRO 1.2″ – TRAÇANTE + CHUVA PRATEADA",
+    "slug": "monotiro-1-2-tracante-chuva-prateada",
+    "url": "https://www.amazonfireworks.com.br/produto/monotiro-1-2-tracante-chuva-prateada/",
+    "codigo": "AMZ 122F",
+    "efeito": "Traçante + Chuva Prateada",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Monotiro de efeito específico para realização de shows profissionais como piromusicais em grandes eventos.",
+    "categorias": [
+      "Linha Profissional",
+      "Monotiros"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/3-3.png",
+        "arquivo": "imagens/AMZ122F_wc1843.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1841,
+    "nome": "MONOTIRO 1.2″ – ESTRELA VERDE + VASO CRACKLING",
+    "slug": "monotiro-1-2-estrela-verde-vaso-crackling",
+    "url": "https://www.amazonfireworks.com.br/produto/monotiro-1-2-estrela-verde-vaso-crackling/",
+    "codigo": "AMZ 122G",
+    "efeito": "Estrela Verde + Vaso Crackling",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Monotiro de efeito específico para realização de shows profissionais como piromusicais em grandes eventos.",
+    "categorias": [
+      "Linha Profissional",
+      "Monotiros"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/3-2.png",
+        "arquivo": "imagens/AMZ122G_wc1841.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1837,
+    "nome": "MONOTIRO 1.2″ – ESTRELA AZUL + VASO VERDE",
+    "slug": "https-www-youtube-com-watchvfmzuivxxo6m",
+    "url": "https://www.amazonfireworks.com.br/produto/https-www-youtube-com-watchvfmzuivxxo6m/",
+    "codigo": "AMZ 122H",
+    "efeito": "Estrela Azul + Vaso Verde",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Monotiro de efeito específico para realização de shows profissionais como piro-musicais em grandes eventos.",
+    "categorias": [
+      "Linha Profissional",
+      "Monotiros"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/3-1.png",
+        "arquivo": "imagens/AMZ122H_wc1837.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1836,
+    "nome": "MONOTIRO 1.2″ – AMARELO + VERDE CINTILANTE",
+    "slug": "monotiro-1-2-amarelo-verde-cintilante",
+    "url": "https://www.amazonfireworks.com.br/produto/monotiro-1-2-amarelo-verde-cintilante/",
+    "codigo": "AMZ 122I",
+    "efeito": "Amarelo + Vaso Verde Cintilante",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "100 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Monotiro de efeito específico para realização de shows profissionais como piro-musicais em grandes eventos.",
+    "categorias": [
+      "Linha Profissional",
+      "Monotiros"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/3.png",
+        "arquivo": "imagens/AMZ122I_wc1836.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1835,
+    "nome": "MONOTIRO 0.8″ – VASO VERMELHO",
+    "slug": "monotiro-0-8-vaso-vermelho",
+    "url": "https://www.amazonfireworks.com.br/produto/monotiro-0-8-vaso-vermelho/",
+    "codigo": "AMZ 128A",
+    "efeito": "Vaso Vermelho",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "300 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Monotiro de efeito específico para realização de shows profissionais como piro-musicais em grandes eventos.",
+    "categorias": [
+      "Linha Profissional",
+      "Monotiros"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/Monotiros-0.8-pol-009.png",
+        "arquivo": "imagens/AMZ128A_wc1835.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1833,
+    "nome": "MONOTIRO 0.8″ – VASO VERDE",
+    "slug": "monotiro-0-8-vaso-verde",
+    "url": "https://www.amazonfireworks.com.br/produto/monotiro-0-8-vaso-verde/",
+    "codigo": "AMZ 128C",
+    "efeito": "Vaso Verde",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "300 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Monotiro de efeito específico para realização de shows profissionais como piro-musicais em grandes eventos.",
+    "categorias": [
+      "Linha Profissional",
+      "Monotiros"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/Monotiros-0.8-pol-006.png",
+        "arquivo": "imagens/AMZ128C_wc1833.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1831,
+    "nome": "MONOTIRO 0.8″ – VASO LILÁS",
+    "slug": "monotiro-0-8-vaso-lilas",
+    "url": "https://www.amazonfireworks.com.br/produto/monotiro-0-8-vaso-lilas/",
+    "codigo": "AMZ 128D",
+    "efeito": "Vaso Lilás",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "300 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Monotiro de efeito específico para realização de shows profissionais como piro-musicais em grandes eventos.",
+    "categorias": [
+      "Linha Profissional",
+      "Monotiros"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/Monotiros-0.8-pol-010.png",
+        "arquivo": "imagens/AMZ128D_wc1831.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1829,
+    "nome": "MONOTIRO 0.8″ – VASO CRACKLING",
+    "slug": "monotiro-0-8-vaso-crackling",
+    "url": "https://www.amazonfireworks.com.br/produto/monotiro-0-8-vaso-crackling/",
+    "codigo": "AMZ 128F",
+    "efeito": "Vaso Crackling",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "300 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Monotiro de efeito específico para realização de shows profissionais como piro-musicais em grandes eventos.",
+    "categorias": [
+      "Linha Profissional",
+      "Monotiros"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/Monotiros-0.8-pol-007.png",
+        "arquivo": "imagens/AMZ128F_wc1829.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1827,
+    "nome": "MONOTIRO 0.8″ – VASO BRANCO",
+    "slug": "monotiro-0-8-vaso-branco",
+    "url": "https://www.amazonfireworks.com.br/produto/monotiro-0-8-vaso-branco/",
+    "codigo": "AMZ 128E",
+    "efeito": "Vaso Branco",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "300 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Monotiro de efeito específico para realização de shows profissionais como piro-musicais em grandes eventos.",
+    "categorias": [
+      "Linha Profissional",
+      "Monotiros"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/Monotiros-0.8-pol-008.png",
+        "arquivo": "imagens/AMZ128E_wc1827.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1825,
+    "nome": "MONOTIRO 0.8″ – VASO AZUL",
+    "slug": "monotiro-0-8-vaso-azul",
+    "url": "https://www.amazonfireworks.com.br/produto/monotiro-0-8-vaso-azul/",
+    "codigo": "AMZ 128B",
+    "efeito": "Vaso Azul",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "300 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Monotiro de efeito específico para realização de shows profissionais como piro-musicais em grandes eventos.",
+    "categorias": [
+      "Linha Profissional",
+      "Monotiros"
+    ],
+    "tags": [
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/Monotiros-0.8-pol-005.png",
+        "arquivo": "imagens/AMZ128B_wc1825.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1823,
+    "nome": "ESTALOS PEPPI – 50X50",
+    "slug": "estalos-peppi-50x50",
+    "url": "https://www.amazonfireworks.com.br/produto/estalos-peppi-50x50/",
+    "codigo": "AMZ 5050",
+    "efeito": "Estampido",
+    "embalagem_unitaria": "Display com 50 caixinhas com 50 unidades",
+    "embalagem_master": "08 Displays",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Estalos de salão (biribinhas/traque).",
+    "categorias": [
+      "Linha Infanto Juvenil",
+      "Linha Peppi"
+    ],
+    "tags": [
+      "50x30",
+      "biribas",
+      "biribinhas",
+      "bombinha",
+      "Estalos",
+      "miudezas",
+      "traque"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2022/09/Estalos-50x30-peppi.jpg",
+        "arquivo": "imagens/AMZ5050_wc1823.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1822,
+    "nome": "ESTALOS PEPPI – 50X15 PEQUENO",
+    "slug": "estalos-peppi-50x15-pequeno",
+    "url": "https://www.amazonfireworks.com.br/produto/estalos-peppi-50x15-pequeno/",
+    "codigo": "5015B",
+    "efeito": "Estampido",
+    "embalagem_unitaria": "Display com 50 caixinhas com 15 unidades",
+    "embalagem_master": "08 Displays",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Estalos de salão (biribinhas/traque).",
+    "categorias": [
+      "Linha Infanto Juvenil",
+      "Linha Peppi"
+    ],
+    "tags": [
+      "50x30",
+      "biribas",
+      "biribinhas",
+      "bombinha",
+      "Estalos",
+      "miudezas",
+      "traque"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/Estalos-menores.png",
+        "arquivo": "imagens/5015B_wc1822.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1821,
+    "nome": "ESTALOS PEPPI – 50X15 GRANDE",
+    "slug": "estalos-peppi-50x15-grande",
+    "url": "https://www.amazonfireworks.com.br/produto/estalos-peppi-50x15-grande/",
+    "codigo": "5015A",
+    "efeito": "Estampido",
+    "embalagem_unitaria": "Display com 50 caixinhas com 150 unidades",
+    "embalagem_master": "08 Displays",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Estalos de salão (biribinhas/traque).",
+    "categorias": [
+      "Linha Infanto Juvenil",
+      "Linha Peppi"
+    ],
+    "tags": [
+      "50x30",
+      "biribas",
+      "biribinhas",
+      "bombinha",
+      "Estalos",
+      "miudezas",
+      "traque"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/Estalos-menores.png",
+        "arquivo": "imagens/5015A_wc1821.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1819,
+    "nome": "ESTALOS PEPPI – 50X10",
+    "slug": "estalos-peppi-50x10",
+    "url": "https://www.amazonfireworks.com.br/produto/estalos-peppi-50x10/",
+    "codigo": "5010",
+    "efeito": "Estampido",
+    "embalagem_unitaria": "Display com 50 caixinhas com 10 unidades",
+    "embalagem_master": "15 Displays",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Estalos de salão (biribinhas/traque).",
+    "categorias": [
+      "Linha Infanto Juvenil",
+      "Linha Peppi"
+    ],
+    "tags": [
+      "50x30",
+      "biribas",
+      "biribinhas",
+      "bombinha",
+      "Estalos",
+      "miudezas",
+      "traque"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/Estalos-maiores.png",
+        "arquivo": "imagens/5010_wc1819.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1818,
+    "nome": "ESTALOS PEPPI – 20X30",
+    "slug": "estalos-peppi-20x30",
+    "url": "https://www.amazonfireworks.com.br/produto/estalos-peppi-20x30/",
+    "codigo": "2030",
+    "efeito": "Estampido",
+    "embalagem_unitaria": "Display com 20 caixinhas com 30 unidades",
+    "embalagem_master": "10 Displays",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Estalos de salão (biribinhas/traque).",
+    "categorias": [
+      "Linha Infanto Juvenil",
+      "Linha Peppi"
+    ],
+    "tags": [
+      "50x30",
+      "biribas",
+      "biribinhas",
+      "bombinha",
+      "Estalos",
+      "miudezas",
+      "traque"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/3D-Estalos-Peppi-50x30-CAIXINHAS-SEM-QUANTIDADE.png",
+        "arquivo": "imagens/2030_wc1818.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1816,
+    "nome": "ESTALOS PEPPI – 10X30",
+    "slug": "estalos-peppi-10x30",
+    "url": "https://www.amazonfireworks.com.br/produto/estalos-peppi-10x30/",
+    "codigo": "1030",
+    "efeito": "Estampido",
+    "embalagem_unitaria": "Display com 10 caixinhas com 30 unidades",
+    "embalagem_master": "32 Displays",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Estalos de salão (biribinhas/traque).",
+    "categorias": [
+      "Linha Infanto Juvenil",
+      "Linha Peppi"
+    ],
+    "tags": [
+      "50x30",
+      "biribas",
+      "biribinhas",
+      "bombinha",
+      "Estalos",
+      "miudezas",
+      "traque"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2024/04/3D-Estalos-Peppi-50x30-CAIXINHAS-SEM-QUANTIDADE.png",
+        "arquivo": "imagens/1030_wc1816.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1799,
+    "nome": "ESTALOS PEPPI – 50X30 médio",
+    "slug": "estalos-peppi-50x30-medio",
+    "url": "https://www.amazonfireworks.com.br/produto/estalos-peppi-50x30-medio/",
+    "codigo": null,
+    "efeito": "Estampido",
+    "embalagem_unitaria": "Display com 50 caixinhas com 30 unidades",
+    "embalagem_master": "04 Displays",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Estalos de salão (biribinhas/traque).",
+    "categorias": [
+      "Linha Infanto Juvenil",
+      "Linha Peppi"
+    ],
+    "tags": [
+      "50x30",
+      "biribas",
+      "biribinhas",
+      "bombinha",
+      "Estalos",
+      "miudezas",
+      "traque"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2023/12/3D-Estalos-Peppi-50x30-DISPLAY.png",
+        "arquivo": "imagens/SEMCOD_wc1799.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1794,
+    "nome": "COETILHO – 30 tiros",
+    "slug": "coetilho-30-tiros",
+    "url": "https://www.amazonfireworks.com.br/produto/coetilho-30-tiros/",
+    "codigo": "AMZ 079",
+    "efeito": "30 Estampidos sequenciais",
+    "embalagem_unitaria": "Pacote com 10 unidades de 30 disparos cada",
+    "embalagem_master": null,
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Vem se divertir com os amigos e aproveitar este super produto.",
+    "categorias": [
+      "Linha Infanto Juvenil",
+      "Linha Peppi"
+    ],
+    "tags": [
+      "bombinhas",
+      "efeitos de solo",
+      "estampido",
+      "miudezas",
+      "tiro"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2023/12/Coetilho.png",
+        "arquivo": "imagens/AMZ079_wc1794.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1792,
+    "nome": "ARIEL W CRACKER – 30 tubos 30mm",
+    "slug": "ariel-w-cracker-30-tubos-30mm",
+    "url": "https://www.amazonfireworks.com.br/produto/ariel-w-cracker-30-tubos-30mm/",
+    "codigo": "GFC 630",
+    "efeito": "Cores sortidas em leque",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": "15 segundos",
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Com o efeito desta torta seu show vai ficar na história!",
+    "categorias": [
+      "Linha Comercial",
+      "Linha Profissional",
+      "Tortas 30mm",
+      "Tortas Leque"
+    ],
+    "tags": [
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2023/12/Torta-Ariel.png",
+        "arquivo": "imagens/GFC630_wc1792.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1791,
+    "nome": "EUROPA – 110 tubos leque",
+    "slug": "europa-110-tubos-leque",
+    "url": "https://www.amazonfireworks.com.br/produto/europa-110-tubos-leque/",
+    "codigo": "GFC 206",
+    "efeito": "Cores sortidas em leque",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": "25 segundos",
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Com o efeito desta torta seu show vai ficar na história!",
+    "categorias": [
+      "Linha Profissional",
+      "Tortas Leque"
+    ],
+    "tags": [
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2023/12/Torta-Europa.png",
+        "arquivo": "imagens/GFC206_wc1791.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1788,
+    "nome": "VENEZA – 138 tubos",
+    "slug": "veneza-138-tubos",
+    "url": "https://www.amazonfireworks.com.br/produto/veneza-138-tubos/",
+    "codigo": "GFC 501",
+    "efeito": "Reta, “W” e “Z” de efeitos sortidos",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": "45 segundos",
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Com o efeito desta torta seu show vai ficar na história!",
+    "categorias": [
+      "Linha Profissional",
+      "Tortas Leque"
+    ],
+    "tags": [
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2023/12/Torta-Veneza.png",
+        "arquivo": "imagens/GFC501_wc1788.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1785,
+    "nome": "CANDELA 10 DISPAROS",
+    "slug": "candela-10-disparos",
+    "url": "https://www.amazonfireworks.com.br/produto/candela-10-disparos/",
+    "codigo": "AMZ 002",
+    "efeito": "10 disparos de efeitos coloridos",
+    "embalagem_unitaria": "12 unidades",
+    "embalagem_master": null,
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Candelas são de fácil utilização para brincar e se divertir de montão.",
+    "categorias": [
+      "Candela",
+      "Linha Infanto Juvenil",
+      "Linha Peppi"
+    ],
+    "tags": [
+      "01 disparo",
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2023/12/Candela-10-disparos.png",
+        "arquivo": "imagens/AMZ002_wc1785.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1783,
+    "nome": "CANDELA 20 DISPAROS",
+    "slug": "candela-20-disparos",
+    "url": "https://www.amazonfireworks.com.br/produto/candela-20-disparos/",
+    "codigo": "AMZ 003",
+    "efeito": "20 disparos de efeitos coloridos",
+    "embalagem_unitaria": "12 unidades",
+    "embalagem_master": null,
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Candelas são de fácil utilização para brincar e se divertir de montão.",
+    "categorias": [
+      "Candela",
+      "Linha Infanto Juvenil",
+      "Linha Peppi"
+    ],
+    "tags": [
+      "01 disparo",
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2023/12/Candela-20-disparos.png",
+        "arquivo": "imagens/AMZ003_wc1783.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1780,
+    "nome": "CANDELA 30 DISPAROS",
+    "slug": "candela-30-disparos",
+    "url": "https://www.amazonfireworks.com.br/produto/candela-30-disparos/",
+    "codigo": "AMZ 004",
+    "efeito": "30 disparos de efeitos coloridos",
+    "embalagem_unitaria": "12 unidades",
+    "embalagem_master": null,
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Candelas são de fácil utilização para brincar e se divertir de montão.",
+    "categorias": [
+      "Candela",
+      "Linha Infanto Juvenil",
+      "Linha Peppi"
+    ],
+    "tags": [
+      "01 disparo",
+      "candela"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2023/12/Candela-30-disparos-1.png",
+        "arquivo": "imagens/AMZ004_wc1780.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1778,
+    "nome": "AVIAOZINHO X-TREME",
+    "slug": "aviaozinho-x-treme",
+    "url": "https://www.amazonfireworks.com.br/produto/aviaozinho-x-treme/",
+    "codigo": "AMZ 007",
+    "efeito": "Giratório voador",
+    "embalagem_unitaria": "Display com 12 unidades",
+    "embalagem_master": null,
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "É diversão de verdade para toda a família com os Aviãozinhos X-Treme!",
+    "categorias": [
+      "Linha Infanto Juvenil",
+      "Linha Peppi"
+    ],
+    "tags": [
+      "bombinhas",
+      "cracker",
+      "efeitos de solo",
+      "estampido",
+      "miudezas",
+      "tiro"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2023/12/Aviaozinho-X-treme.png",
+        "arquivo": "imagens/AMZ007_wc1778.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1776,
+    "nome": "THUNDER TRAQUE – 1 TIRO",
+    "slug": "thunder-traque-1-tiro",
+    "url": "https://www.amazonfireworks.com.br/produto/thunder-traque-1-tiro/",
+    "codigo": "AMZ 801",
+    "efeito": "Traque de 01 tiro",
+    "embalagem_unitaria": "Display com 20 caixinhas com 40 unidades",
+    "embalagem_master": null,
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Se você precisa de disparos rápidos, mas impactantes, a Thunder Traque 1 tiros é o ideal para você! Com a precisão e agilidade, os disparos são feitos próximo ao chão e em ordem, para que seu disparo seja seguro e eficiente. O seu efeito é sonoro e impacta pelo brilho.",
+    "categorias": [
+      "Linha Comercial",
+      "Linha Infanto Juvenil",
+      "Linha Peppi"
+    ],
+    "tags": [
+      "bombinhas",
+      "cracker",
+      "efeitos de solo",
+      "estampido",
+      "miudezas",
+      "tiro"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2023/12/Thunder-traque-1-tiro.png",
+        "arquivo": "imagens/AMZ801_wc1776.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1774,
+    "nome": "VERONA – 665 Tubos em Z",
+    "slug": "verona-665-tubos-em-z",
+    "url": "https://www.amazonfireworks.com.br/produto/verona-665-tubos-em-z/",
+    "codigo": "GFC 6651",
+    "efeito": "Em “Z”. Pérola Vermelhas",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": "10 segundos",
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Efeitos que encantam a todos os espectadores!",
+    "categorias": [
+      "Linha Profissional",
+      "Tortas Leque"
+    ],
+    "tags": [
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2023/12/Torta-Verona.png",
+        "arquivo": "imagens/GFC6651_wc1774.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1766,
+    "nome": "TUBOS DE FIBRA – 8″",
+    "slug": "tubos-de-fibra-8",
+    "url": "https://www.amazonfireworks.com.br/produto/tubos-de-fibra-8/",
+    "codigo": null,
+    "efeito": null,
+    "embalagem_unitaria": null,
+    "embalagem_master": null,
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Tubos de fibra de 8 polegadas para shows pirotécnicos. Alta qualidade",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "rojao"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2023/12/Tubo-fibra-8.png",
+        "arquivo": "imagens/SEMCOD_wc1766.png"
+      },
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2022/11/tubos-fibra.jpg",
+        "arquivo": "imagens/SEMCOD_wc1766_1.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1765,
+    "nome": "TUBOS DE FIBRA – 6″",
+    "slug": "tubos-de-fibra-6",
+    "url": "https://www.amazonfireworks.com.br/produto/tubos-de-fibra-6/",
+    "codigo": null,
+    "efeito": null,
+    "embalagem_unitaria": null,
+    "embalagem_master": null,
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Tubos de fibra de 6 polegadas para shows pirotécnicos. Alta qualidade.",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "rojao"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2023/12/Tubo-fibra-6.png",
+        "arquivo": "imagens/SEMCOD_wc1765.png"
+      },
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2022/11/tubos-fibra.jpg",
+        "arquivo": "imagens/SEMCOD_wc1765_1.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1764,
+    "nome": "TUBOS DE FIBRA – 5″",
+    "slug": "tubos-de-fibra-5",
+    "url": "https://www.amazonfireworks.com.br/produto/tubos-de-fibra-5/",
+    "codigo": null,
+    "efeito": null,
+    "embalagem_unitaria": null,
+    "embalagem_master": null,
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Tubos de fibra de 5 polegadas para shows pirotécnicos",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "rojao"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2023/12/Tubo-fibra-5.png",
+        "arquivo": "imagens/SEMCOD_wc1764.png"
+      },
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2022/11/tubos-fibra.jpg",
+        "arquivo": "imagens/SEMCOD_wc1764_1.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1763,
+    "nome": "TUBOS DE FIBRA – 4″",
+    "slug": "tubos-de-fibra-4",
+    "url": "https://www.amazonfireworks.com.br/produto/tubos-de-fibra-4/",
+    "codigo": null,
+    "efeito": null,
+    "embalagem_unitaria": null,
+    "embalagem_master": null,
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Tubos de fibra de 4 polegadas para shows pirotécnicos",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "rojao"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2023/12/tubo-fibra-4-1.png",
+        "arquivo": "imagens/SEMCOD_wc1763.png"
+      },
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2022/11/tubos-fibra.jpg",
+        "arquivo": "imagens/SEMCOD_wc1763_1.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1745,
+    "nome": "ANTARES – 65 tubos de 30mm leque",
+    "slug": "antares-65-tubos-de-30mm-leque",
+    "url": "https://www.amazonfireworks.com.br/produto/antares-65-tubos-de-30mm-leque/",
+    "codigo": "AMZ 6521",
+    "efeito": "Leque trassante violeta e giratório dourado",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "02 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Com o efeito desta torta seu evento vai ficar na história!",
+    "categorias": [
+      "Linha Profissional",
+      "Tortas 30mm"
+    ],
+    "tags": [
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2023/03/Slide1.jpg",
+        "arquivo": "imagens/AMZ6521_wc1745.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1738,
+    "nome": "ROLO FIO TELEFONE- COBREADO",
+    "slug": "rolo-fio-telefone-400-m",
+    "url": "https://www.amazonfireworks.com.br/produto/rolo-fio-telefone-400-m/",
+    "codigo": null,
+    "efeito": null,
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": "400 metros",
+    "obs": null,
+    "descricao": "Rolo fio de telefone para ligação de tortas à mesa de detonação",
+    "categorias": [
+      "Acessórios",
+      "Linha Profissional"
+    ],
+    "tags": [],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2022/11/06.jpg",
+        "arquivo": "imagens/SEMCOD_wc1738.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1735,
+    "nome": "TUBOS DE FIBRA – 3″",
+    "slug": "tubos-de-fibra-3",
+    "url": "https://www.amazonfireworks.com.br/produto/tubos-de-fibra-3/",
+    "codigo": null,
+    "efeito": null,
+    "embalagem_unitaria": null,
+    "embalagem_master": null,
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Tubos de fibra de 3 polegadas para shows pirotécnicos",
+    "categorias": [
+      "Linha Profissional"
+    ],
+    "tags": [
+      "rojao"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2022/11/tubos-fibra.jpg",
+        "arquivo": "imagens/SEMCOD_wc1735.jpg"
+      },
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2022/11/tubos-fibra.jpg",
+        "arquivo": "imagens/SEMCOD_wc1735_1.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1130,
+    "nome": "ASTECA 8- 300 tubos de 20mm",
+    "slug": "azteca-300-tubos-de-20mm",
+    "url": "https://www.amazonfireworks.com.br/produto/azteca-300-tubos-de-20mm/",
+    "codigo": "GFC 105",
+    "efeito": "Crossete Verde e Vermelho",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": "17 segundos",
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Um show de belas cores para seu evento!",
+    "categorias": [
+      "Linha Profissional",
+      "Tortas 20mm"
+    ],
+    "tags": [
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2022/09/Torta-Asteca-8.png",
+        "arquivo": "imagens/GFC105_wc1130.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1127,
+    "nome": "ATLÂNTIDA Z – 300 Tubos 0.8″ Ponta Amarela",
+    "slug": "atlantida-z-300-tubos-20mm-ponta-amarela",
+    "url": "https://www.amazonfireworks.com.br/produto/atlantida-z-300-tubos-20mm-ponta-amarela/",
+    "codigo": "GFC 104A",
+    "efeito": "Coconut com Ponta Amarela",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": "11 segundos",
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Maravilhosos efeitos e perfeita sincronização para seu show!",
+    "categorias": [
+      "Linha Profissional",
+      "Tortas 20mm"
+    ],
+    "tags": [
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2022/09/Torta-Atlantida-Z.png",
+        "arquivo": "imagens/GFC104A_wc1127.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1102,
+    "nome": "BAILE DOS FOGOS – 100 tubos de 30mm",
+    "slug": "baile-dos-fogos-100-tubos-de-30mm",
+    "url": "https://www.amazonfireworks.com.br/produto/baile-dos-fogos-100-tubos-de-30mm/",
+    "codigo": "GFC 103",
+    "efeito": "Em “Z”. Calda Dourada Explosão Dourada Intermitente Branco",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": "10 segundos",
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Com o efeito desta torta seu show vai ficar na história!",
+    "categorias": [
+      "Linha Profissional",
+      "Tortas 30mm"
+    ],
+    "tags": [
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2022/09/GFC103.jpg",
+        "arquivo": "imagens/GFC103_wc1102.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1092,
+    "nome": "DELTA – 65 tubos de 30mm",
+    "slug": "delta-65-tubos-de-30mm",
+    "url": "https://www.amazonfireworks.com.br/produto/delta-65-tubos-de-30mm/",
+    "codigo": "AMZ 6520",
+    "efeito": "Cores sortidas",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Com o efeito desta torta seu show vai ficar na história!",
+    "categorias": [
+      "Linha Profissional",
+      "Tortas 30mm"
+    ],
+    "tags": [
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2022/09/AMZ6520.jpg",
+        "arquivo": "imagens/AMZ6520_wc1092.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1090,
+    "nome": "HAWAII – 49 tubos de 30mm",
+    "slug": "havaii-49-tubos-de-30mm",
+    "url": "https://www.amazonfireworks.com.br/produto/havaii-49-tubos-de-30mm/",
+    "codigo": "AMZ 4910",
+    "efeito": "Cores sortidas em “Z”",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "03 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Com o efeito em “Z” este produto abrange uma maior abertura no céu e uma sincronia perfeita.",
+    "categorias": [
+      "Linha Profissional",
+      "Tortas 30mm"
+    ],
+    "tags": [
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2022/09/AMZ4920-HAVAII.jpg",
+        "arquivo": "imagens/AMZ4910_wc1090.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1088,
+    "nome": "CARIBE – 49 tubos de 30mm",
+    "slug": "caribe-49-tubos-de-30mm",
+    "url": "https://www.amazonfireworks.com.br/produto/caribe-49-tubos-de-30mm/",
+    "codigo": "AMZ 4920",
+    "efeito": "Cores sortidas em leque",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "02 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Com o efeito em leque este produto abrange uma maior abertura no céu.",
+    "categorias": [
+      "Linha Profissional",
+      "Tortas 30mm"
+    ],
+    "tags": [
+      "kit",
+      "leque",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2022/09/AMZ4920-CARIBE.jpg",
+        "arquivo": "imagens/AMZ4920_wc1088.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1057,
+    "nome": "ROJÃO – 38mm",
+    "slug": "rojao-38mm",
+    "url": "https://www.amazonfireworks.com.br/produto/rojao-38mm/",
+    "codigo": "GFR 38",
+    "efeito": "Cores diversas",
+    "embalagem_unitaria": "cartela com 06 unidades",
+    "embalagem_master": "24 cartelas",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Rojão com vara, perfeito para comemorações em geral.",
+    "categorias": [
+      "Linha Comercial",
+      "Rojão de Vara"
+    ],
+    "tags": [
+      "rojao"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2022/09/GFR38.jpg",
+        "arquivo": "imagens/GFR38_wc1057.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1028,
+    "nome": "GALAXY – 64 tubos de 1.75mm",
+    "slug": "galaxy-64-tubos-de-1-75mm",
+    "url": "https://www.amazonfireworks.com.br/produto/galaxy-64-tubos-de-1-75mm/",
+    "codigo": "GFC 1764",
+    "efeito": "Cores diversas",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "01 unidade",
+    "tempo_aproximado": "3 minutos",
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Show de muitas cores é com este produto.",
+    "categorias": [
+      "Linha Comercial"
+    ],
+    "tags": [
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2022/09/GFC1764.jpg",
+        "arquivo": "imagens/GFC1764_wc1028.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1019,
+    "nome": "CROSSETE W – 30 tubos de 30mm",
+    "slug": "crossete-30-tubos-de-30mm",
+    "url": "https://www.amazonfireworks.com.br/produto/crossete-30-tubos-de-30mm/",
+    "codigo": "GFM 530",
+    "efeito": "Em “W”. Crossete verde/vermelho",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "102 unidades",
+    "tempo_aproximado": "15 segundos",
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Com o efeito “W” este produto abrange uma maior abertura no céu.",
+    "categorias": [
+      "Linha Comercial",
+      "Tortas 30mm"
+    ],
+    "tags": [
+      "efeito w",
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2022/09/Torta-Crossete-W-1.png",
+        "arquivo": "imagens/GFM530_wc1019.png"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 1003,
+    "nome": "VELA ESTRELADA",
+    "slug": "vela-estrelada",
+    "url": "https://www.amazonfireworks.com.br/produto/vela-estrelada/",
+    "codigo": "AMZ 015",
+    "efeito": "Faíscas Estreladas",
+    "embalagem_unitaria": "Cartela com 04 unidades",
+    "embalagem_master": "160 cartelas",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Delicadeza e magia unidas em um só produto.",
+    "categorias": [
+      "Linha Infanto Juvenil"
+    ],
+    "tags": [
+      "indoor",
+      "miudezas",
+      "velas",
+      "velinhas"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2022/09/AMZ015-VELA-ESTRELADA.jpg",
+        "arquivo": "imagens/AMZ015_wc1003.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 998,
+    "nome": "SAMBA – 100 tubos de 25mm",
+    "slug": "samba-100-tubos-de-25mm",
+    "url": "https://www.amazonfireworks.com.br/produto/samba-100-tubos-de-25mm/",
+    "codigo": "AMZ 10025",
+    "efeito": "Bombas de 25mm de efeitos sortidos",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "02 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Os seus fogos proporcionam efeito de brilho potente e cheio de magia, ideal para comemorações noturnas.",
+    "categorias": [
+      "Linha Comercial",
+      "Promoção",
+      "Tortas 25mm"
+    ],
+    "tags": [
+      "25mm",
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2022/09/AMZ10025.jpg",
+        "arquivo": "imagens/AMZ10025_wc998.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 990,
+    "nome": "SERENA – 48 tubos de 25mm",
+    "slug": "serena-48-tubos-de-25mm",
+    "url": "https://www.amazonfireworks.com.br/produto/serena-48-tubos-de-25mm/",
+    "codigo": "AMZ 4825",
+    "efeito": "Bombas de 25mm de efeitos sortidos",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "06 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Os seus fogos proporcionam efeito de brilho potente e cheio de magia, ideal para comemorações noturnas.",
+    "categorias": [
+      "Linha Comercial",
+      "Tortas 25mm"
+    ],
+    "tags": [
+      "25mm",
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2022/09/AMZ4825.jpg",
+        "arquivo": "imagens/AMZ4825_wc990.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 987,
+    "nome": "ZEN – 25 tubos de 25mm",
+    "slug": "zen-25-tubos-de-25mm",
+    "url": "https://www.amazonfireworks.com.br/produto/zen-25-tubos-de-25mm/",
+    "codigo": "AMZ 2525",
+    "efeito": "Bombas de 25mm de efeitos sortidos",
+    "embalagem_unitaria": "01 unidade",
+    "embalagem_master": "12 unidades",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Torta Zen, efeitos coloridos para seu evento fazer a diferença!",
+    "categorias": [
+      "Linha Comercial",
+      "Tortas 25mm"
+    ],
+    "tags": [
+      "25mm",
+      "kit",
+      "torta"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2022/09/AMZ2525.jpg",
+        "arquivo": "imagens/AMZ2525_wc987.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 968,
+    "nome": "ESTALOS PEPPI – 50X30 grande",
+    "slug": "estalos-peppi-50x30-grande",
+    "url": "https://www.amazonfireworks.com.br/produto/estalos-peppi-50x30-grande/",
+    "codigo": "AMZ 5030",
+    "efeito": "Estampido",
+    "embalagem_unitaria": "Display com 50 caixinhas com 30 unidades",
+    "embalagem_master": "04 Displays",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Estalos de salão (biribinhas/traque).",
+    "categorias": [
+      "Linha Infanto Juvenil",
+      "Linha Peppi"
+    ],
+    "tags": [
+      "50x30",
+      "biribas",
+      "biribinhas",
+      "bombinha",
+      "Estalos",
+      "miudezas",
+      "traque"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2022/09/Estalos-50x30-peppi.jpg",
+        "arquivo": "imagens/AMZ5030_wc968.jpg"
+      }
+    ]
+  },
+  {
+    "fornecedor": "Amazon Fireworks",
+    "wc_id": 867,
+    "nome": "ESTALOS PEPPI – 50X20",
+    "slug": "estalos-peppi-50x20",
+    "url": "https://www.amazonfireworks.com.br/produto/estalos-peppi-50x20/",
+    "codigo": "AMZ 5020",
+    "efeito": "Estampido",
+    "embalagem_unitaria": "Display com 50 caixinhas com 20 unidades",
+    "embalagem_master": "08 Displays",
+    "tempo_aproximado": null,
+    "maquina": null,
+    "quantidade_por_rolo": null,
+    "obs": null,
+    "descricao": "Estalos de salão (biribinhas/traque).",
+    "categorias": [
+      "Linha Infanto Juvenil",
+      "Linha Peppi"
+    ],
+    "tags": [
+      "biribas",
+      "biribinhas",
+      "bombinha",
+      "Estalos",
+      "miudezas",
+      "traque"
+    ],
+    "imagens": [
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2022/09/Estalos-50x20-peppi.jpg",
+        "arquivo": "imagens/AMZ5020_wc867.jpg"
+      },
+      {
+        "url": "https://www.amazonfireworks.com.br/wp-content/uploads/2022/09/AMZ5020.jpg",
+        "arquivo": "imagens/AMZ5020_wc867_1.jpg"
+      }
+    ]
+  }
+]

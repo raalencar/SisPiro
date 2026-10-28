@@ -1,10 +1,21 @@
 "use client";
 
+import type { ReactNode } from "react";
+
+export type CreateProductDefaults = {
+  sku?: string;
+  name?: string;
+  description?: string;
+};
+
 interface CreateProductFormProps {
   productType: string;
   isPce: boolean;
   onProductTypeChange: (type: string) => void;
   onIsPceChange: (isPce: boolean) => void;
+  defaults?: CreateProductDefaults;
+  skuHint?: ReactNode;
+  pceHint?: ReactNode;
 }
 
 export function CreateProductForm({
@@ -12,17 +23,21 @@ export function CreateProductForm({
   isPce,
   onProductTypeChange,
   onIsPceChange,
+  defaults,
+  skuHint,
+  pceHint,
 }: CreateProductFormProps) {
   return (
     <>
       <div className="form-grid">
         <label className="field">
           <span>SKU</span>
-          <input name="sku" maxLength={50} required />
+          <input name="sku" maxLength={50} required defaultValue={defaults?.sku} />
+          {skuHint && <small className="form-hint">{skuHint}</small>}
         </label>
         <label className="field">
           <span>Nome</span>
-          <input name="name" maxLength={150} required />
+          <input name="name" maxLength={150} required defaultValue={defaults?.name} />
         </label>
       </div>
       <div className="form-grid">
@@ -56,6 +71,7 @@ export function CreateProductForm({
         />
         Produto controlado (PCE)
       </label>
+      {isPce && pceHint && <p className="form-hint">{pceHint}</p>}
       {isPce && (
         <div className="form-grid">
           <label className="field">
@@ -75,6 +91,15 @@ export function CreateProductForm({
           </label>
         </div>
       )}
+      <label className="field">
+        <span>Descrição (opcional, texto puro)</span>
+        <textarea
+          name="description"
+          maxLength={5000}
+          rows={4}
+          defaultValue={defaults?.description}
+        />
+      </label>
     </>
   );
 }

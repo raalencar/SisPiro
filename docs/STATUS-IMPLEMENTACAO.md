@@ -1,6 +1,6 @@
 # Status da implementação SisPiro ERP
 
-Atualizado em 26 de outubro de 2026. Este documento resume as entregas existentes
+Atualizado em 27 de outubro de 2026. Este documento resume as entregas existentes
 no backend e no frontend e registra trabalho ainda necessário. O estado dos
 endpoints de negócio deve ser confirmado também contra a versão efetivamente
 implantada da API.
@@ -28,6 +28,18 @@ implantada da API.
 - Relatório Regulatório Militar: Mapa Mensal de Movimentação e Estocagem de PCE para o Exército
   Brasileiro (SFPC / R-105) consolidando saldos anteriores, entradas, saídas, saldos finais e massa NEQ
   por classe de risco.
+- Catálogo de fornecedor (`/procurement/supplier-catalog`): itens importados
+  (Amazon Fireworks, 167 itens/173 imagens) com filtros, categorias, detalhe e
+  imagens servidas com proteção contra path traversal; importador idempotente
+  `prisma/import-supplier-catalog.mjs` (dry-run por padrão, `--images-prefix
+  amazon-fireworks`, rejeita conteúdo com padrões de código/injeção e só aceita
+  `sourceUrl` https do host do fornecedor); cadastro de produto
+  com `description` e vínculo opcional a item do catálogo (`supplierCatalogItemId`,
+  lock `FOR UPDATE`, 409 em vínculo duplicado). Migração
+  `20261027201603_supplier_catalog` aplicada em produção em 2026-10-27; catálogo
+  importado sob o fornecedor real IMPORTACAO E EXPORTACAO AMAZON BR LTDA (matriz
+  CNPJ 33.817.923/0001-90; filial 33.817.923/0002-70 também cadastrada), ambos
+  ainda sem CR informado.
 - Cadastros e operações para clientes, blasters, fornecedores/compras,
   tabelas de preços e promoções, orçamentos/vendas/devoluções, ordens de serviço
   e contas a pagar/receber e relatórios financeiros.
@@ -103,9 +115,26 @@ bug for reintroduzido.
 
 ## Trabalho pendente no frontend
 
+- **Catálogo de fornecedor — implementado no frontend** (`/modules/supplier-catalog`,
+  detalhes em `frontend/README.md`). No BFF, as rotas são mapeadas
+  explicitamente para `/procurement/supplier-catalog/...` (as rotas irmãs
+  `/suppliers` e `/purchases` ficam na raiz), e a imagem binária tem o handler
+  próprio `proxyAuthenticatedImage`, que repassa `Content-Type` e `Cache-Control`.
+  Publicado em produção em 2026-10-27 (migração aplicada, catálogo importado).
+  O 409 só mostra o painel "item já vinculado" quando a API devolve `productId`;
+  o 409 de SKU duplicado (há códigos AMZ repetidos no catálogo) mostra a
+  mensagem da API e mantém o formulário. Fica pendente: validar a jornada
+  logada no navegador (até aqui, testes Vitest e smoke test sem sessão).
+  Divergências de contrato encontradas: `POST /inventory/products`
+  aceita apenas `ESTOQUE`, então `COMPRAS` vê o catálogo mas não consegue
+  cadastrar o produto (a UI esconde o botão); `GET /suppliers` aceita apenas
+  `COMPRAS` (para `ESTOQUE`, o filtro usa os fornecedores dos itens
+  carregados); não há página de detalhe de produto, então o "link para o
+  produto" do 409 aponta para `/modules/products`.
+
 - **RBAC por ação:** avaliado nesta entrega (ver `Plano_Front.md` Fase 3) —
-  hoje não há nenhuma tela real compartilhada por mais de um perfil com
-  permissões diferentes por ação, então não é uma lacuna ativa. Reavaliar
+  hoje a única tela compartilhada por perfis com permissões diferentes por
+  ação é o Catálogo de Fornecedores (ver item acima), tratado localmente. Reavaliar
   somente se um módulo existente passar a ser usado por mais de um perfil com
   regras distintas por operação dentro da mesma tela.
 - **Sessão expirada e renovação (refresh):** validado em Chrome contra o
@@ -195,6 +224,28 @@ bug for reintroduzido.
 ### Compatibilidade da instância local
 
 Diagnóstico concluído (Fase 0): O controlador declara `GET /inventory/reports/stock-summary` e `GET /inventory/reports/sfpc-monthly-map` em `InventoryController`, devidamente registrados no `AppModule`, compilados no build NestJS (`npm run build`) e cobertos com sucesso na suíte de testes ponta a ponta (`backend/test/inventory.e2e-spec.ts`). A causa raiz da divergência anterior (404) foi a execução de um processo local `node` defasado, iniciado antes da compilação e deploy das novas rotas de relatórios. Reiniciar a instância com o artefato atualizado (`npm run build && npm run start:dev`) disponibiliza os endpoints com código 200 no OpenAPI (`/api/v1/docs`) e nas chamadas autenticadas.
+
+### Pendências conhecidas (levantadas em 2026-10-27)
+
+- **Testes do frontend quebrados desde o commit `7fed842`:** 8 testes falham com
+  403 em `auth/password-reset` (6), `blasters` (1) e `customers` (1). A causa
+  provável é que `isSameOriginRequest` passou a exigir `Host`/`X-Forwarded-*`, e
+  os testes montam a requisição sem esses headers. Não afeta produção;
+  corrigir os testes em uma entrega separada.
+- **Imagens do catálogo de fornecedor fora do git e do backup:**
+  `data/fornecedores/*/imagens/` está no `.gitignore` e o backup diário só cobre
+  o banco. Se o disco for perdido, o catálogo continua no banco, mas as imagens
+  respondem 404 até alguém rodar de novo a extração e a importação.
+- **`docker-compose.prod.yml` não monta `SUPPLIER_CATALOG_DIR`** no container
+  da API. No deploy via Docker, as imagens do catálogo dariam 404. Hoje o
+  deploy na VPS r7 é nativo (systemd) e não é afetado.
+- **Permissão de cadastro a partir do catálogo:** `POST /inventory/products`
+  aceita só `ESTOQUE`, então `COMPRAS` vê o catálogo mas não cadastra.
+  Aguarda decisão.
+- **CR dos fornecedores Amazon BR** (matriz e filial) não informado
+  (`possui_cr=false`); completar quando houver o número do CR.
+- Melhorias pedidas pela empresa e ainda não aprovadas ficam em
+  [`OPORTUNIDADES.md`](./OPORTUNIDADES.md).
 
 ## Limites funcionais explícitos
 

@@ -9,6 +9,7 @@ import { InventoryWorkspace } from "@/components/inventory-workspace";
 import { ModuleEmptyState } from "@/components/module-empty-state";
 import { OperationsWorkspace } from "@/components/operations-workspace";
 import { PurchasesWorkspace } from "@/components/purchases-workspace";
+import { SupplierCatalogWorkspace } from "@/components/supplier-catalog-workspace";
 import { TeamsWorkspace } from "@/components/teams-workspace";
 import { getModule, modules } from "@/lib/modules";
 
@@ -55,6 +56,9 @@ export default async function ModulePage({
   }
   if (slug === "purchases") {
     return <PurchasesWorkspace key={slug} />;
+  }
+  if (slug === "supplier-catalog") {
+    return <SupplierCatalogWorkspace key={slug} />;
   }
   if (slug === "sales") {
     return <CommercialWorkspace key={slug} />;

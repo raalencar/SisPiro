@@ -2,6 +2,7 @@
 
 import type { Product } from "@/lib/api";
 import { formatNumber } from "@/lib/format";
+import { CatalogImage } from "@/components/supplier-catalog/catalog-image";
 import { EmptyTable, productTypeLabels } from "./types";
 
 interface ProductsTabProps {
@@ -29,8 +30,18 @@ export function ProductsTab({ products }: ProductsTabProps) {
           {products.map((product) => (
             <tr key={product.id}>
               <td>
-                <strong>{product.name}</strong>
-                <small>{product.sku}</small>
+                <div className="flex items-center gap-3">
+                  <CatalogImage
+                    url={product.imageUrl}
+                    alt={product.name}
+                    placeholder={false}
+                    className="h-10 w-10 shrink-0 rounded"
+                  />
+                  <div>
+                    <strong>{product.name}</strong>
+                    <small>{product.sku}</small>
+                  </div>
+                </div>
               </td>
               <td>{productTypeLabels[product.type] ?? product.type}</td>
               <td>

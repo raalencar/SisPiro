@@ -1,6 +1,12 @@
 import { randomBytes, scryptSync } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
+import {
+  DEFAULT_SUPPLIER_CATALOG_DIR,
+  importSupplierCatalog,
+  loadCatalogFile,
+} from './import-supplier-catalog.mjs';
 
 const seedEnabled = process.env.DEV_SEED_ENABLED === 'true';
 const adminPassword = process.env.DEV_SEED_ADMIN_PASSWORD;
@@ -55,6 +61,7 @@ const ids = {
   supplierSaoBento: '00000000-0000-4000-8000-000000000004',
   supplierPirobras: '00000000-0000-4000-9000-000000000041',
   supplierCearaPiro: '00000000-0000-4000-9000-000000000042',
+  supplierAmazonFireworks: '00000000-0000-4000-9000-000000000043',
 
   // Blasters
   blasterEncarregado: '00000000-0000-4000-8000-000000000005',
@@ -218,6 +225,8 @@ const customerJuninaCnpj = validCnpj('145678900001'); // Federação das Quadril
 const supplierSaoBentoCnpj = validCnpj('184567890001'); // Indústria São Bento (Sto. Antônio do Monte/MG)
 const supplierPirobrasCnpj = validCnpj('234567890001'); // Pirobrás Artigos Pirotécnicos S/A
 const supplierCearaPiroCnpj = validCnpj('334567890001'); // Ceará Piro Insumos
+// Placeholder: CNPJ real da Amazon Fireworks ainda não foi informado; substituir no cadastro real.
+const supplierAmazonFireworksCnpj = validCnpj('445678900001');
 
 const blasterEncarregadoCpf = validCpf('059221013'); // Raimundo Nonato de Alencar
 const blasterOperadorCpf = validCpf('245892110'); // Francisco Evandro Moreira
@@ -444,6 +453,16 @@ try {
     await upsertById(tx.supplier, ids.supplierCearaPiro, {
       legalName: 'CEARÁ PIRO INSUMOS E EQUIPAMENTOS ELETRÔNICOS LTDA',
       taxId: supplierCearaPiroCnpj,
+      hasCr: false,
+      crNumber: null,
+      crExpiresAt: null,
+      authorizedPceClasses: [],
+      active: true,
+    });
+
+    await upsertById(tx.supplier, ids.supplierAmazonFireworks, {
+      legalName: 'AMAZON FIREWORKS',
+      taxId: supplierAmazonFireworksCnpj,
       hasCr: false,
       crNumber: null,
       crExpiresAt: null,
@@ -1122,6 +1141,29 @@ try {
       reference: 'DUP-PIROBRAS-019230',
     });
   });
+
+  const supplierCatalogDir =
+    process.env.SUPPLIER_CATALOG_DIR || DEFAULT_SUPPLIER_CATALOG_DIR;
+  const amazonCatalogFile = `${supplierCatalogDir}/amazon-fireworks/catalogo.json`;
+  if (existsSync(amazonCatalogFile)) {
+    try {
+      await importSupplierCatalog(prisma, {
+        items: loadCatalogFile(amazonCatalogFile),
+        supplierId: ids.supplierAmazonFireworks,
+        imagesPrefix: 'amazon-fireworks',
+        catalogDir: supplierCatalogDir,
+        sourceHosts: ['www.amazonfireworks.com.br', 'amazonfireworks.com.br'],
+        sourceFile: amazonCatalogFile,
+        apply: true,
+        log: () => {},
+      });
+      console.info('Catálogo Amazon Fireworks importado.');
+    } catch (error) {
+      console.warn(`Catálogo Amazon Fireworks não importado: ${error.message}`);
+    }
+  } else {
+    console.info(`Catálogo Amazon Fireworks ausente (${amazonCatalogFile}); importação ignorada.`);
+  }
 
   console.info('================================================================');
   console.info('   SEED PROFISSIONAL APLICADO COM SUCESSO - SISPIRO ERP         ');
